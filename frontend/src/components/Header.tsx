@@ -20,6 +20,9 @@ import {
 interface HeaderProps {
   onOpenAuth: () => void;
   onOpenProfile: () => void;
+  onOpenVehicleDesigner?: () => void;
+  onOpenDispatcherPanel?: () => void;
+  onOpenGroupManagement?: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
 }
@@ -57,7 +60,15 @@ const ROLE_LABELS: Record<UserRole, { label: string; badgeClass: string; icon: a
   }
 };
 
-export default function Header({ onOpenAuth, onOpenProfile, darkMode, onToggleDarkMode }: HeaderProps) {
+export default function Header({ 
+  onOpenAuth, 
+  onOpenProfile, 
+  onOpenVehicleDesigner,
+  onOpenDispatcherPanel,
+  onOpenGroupManagement,
+  darkMode, 
+  onToggleDarkMode 
+}: HeaderProps) {
   const { user, profile, isGuest, logout, switchRole } = useAuth();
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
 
@@ -123,6 +134,37 @@ export default function Header({ onOpenAuth, onOpenProfile, darkMode, onToggleDa
           ) : (
             /* Usuario Autenticado con Selector Dinámico de Rol */
             <div className="flex items-center gap-2">
+              {/* Botones de Acción Especializados por Rol */}
+              {(currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE') && onOpenVehicleDesigner && (
+                <button
+                  onClick={onOpenVehicleDesigner}
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm"
+                >
+                  <Car className="w-3.5 h-3.5" />
+                  <span>Diseñar Unidad</span>
+                </button>
+              )}
+
+              {currentRole === 'ENCARGADO_PARADERO' && onOpenDispatcherPanel && (
+                <button
+                  onClick={onOpenDispatcherPanel}
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Control Paradero</span>
+                </button>
+              )}
+
+              {currentRole === 'ADMIN_EMPRESA' && onOpenGroupManagement && (
+                <button
+                  onClick={onOpenGroupManagement}
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition shadow-sm"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Gestión Flota</span>
+                </button>
+              )}
+
               {/* Selector de Rol Dinámico */}
               <div className="relative">
                 <button

@@ -6,6 +6,9 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes.js';
 import publicRoutes from './routes/public.routes.js';
+import dispatcherRoutes from './routes/dispatcher.routes.js';
+import groupRoutes from './routes/group.routes.js';
+import vehicleRoutes from './routes/vehicle.routes.js';
 import { initializeSockets } from './sockets/index.js';
 
 dotenv.config();
@@ -25,11 +28,7 @@ app.use(helmet({
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Permisivo en desarrollo local / Vercel preview
-    }
+    callback(null, true);
   },
   credentials: true
 }));
@@ -37,7 +36,7 @@ app.use(cors({
 app.use(express.json());
 
 // Socket.io para tiempo real
-const io = new SocketIOServer(server, {
+export const io = new SocketIOServer(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
@@ -52,6 +51,7 @@ app.get('/health', (_req, res) => {
     status: 'healthy',
     system: 'RutaLink Backend API',
     scope: 'Provincia de Barranca / UNAB',
+    sprint: 'Sprint 2 (TBAC, Geovalla & Constructor 2D)',
     timestamp: new Date().toISOString()
   });
 });
@@ -59,6 +59,9 @@ app.get('/health', (_req, res) => {
 // Rutas API
 app.use('/api/auth', authRoutes);
 app.use('/api', publicRoutes);
+app.use('/api/dispatcher', dispatcherRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/vehicles', vehicleRoutes);
 
 const PORT = process.env.PORT || 5000;
 
@@ -66,9 +69,9 @@ if (process.env.NODE_ENV !== 'test') {
   server.listen(PORT, () => {
     console.log(`===================================================`);
     console.log(` [RutaLink API] Servidor activo en puerto ${PORT}`);
-    console.log(` [RutaLink Realtime] Socket.io inicializado`);
+    console.log(` [RutaLink S2] TBAC, Geovalla & Grupos Activos`);
     console.log(`===================================================`);
   });
 }
 
-export { app, server, io };
+export { app, server };
