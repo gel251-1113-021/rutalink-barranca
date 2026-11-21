@@ -98,7 +98,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <span className="text-[10px] uppercase font-semibold text-slate-400">Reputación en Barranca</span>
               <div className="flex items-center gap-1 font-bold text-slate-800 dark:text-slate-100 mt-0.5">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span>{profile?.rating?.toFixed(1) || '5.0'} / 5.0</span>
+                <span>{(parseFloat(String(profile?.rating || '5.0')) || 5.0).toFixed(1)} / 5.0</span>
                 <span className="text-slate-400 font-normal">({profile?.total_trips || 0} viajes)</span>
               </div>
             </div>

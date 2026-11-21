@@ -142,52 +142,66 @@ export default function BarrancaMap({
       <MapController selectedItem={selectedItem} />
 
       {/* Marcadores de Paraderos y Puntos de Abordaje */}
-      {stops.map((stop) => (
-        <Marker
-          key={stop.id}
-          position={[stop.latitude, stop.longitude]}
-          icon={createStopIcon(stop.type, stop.queued_vehicles_count)}
-          eventHandlers={{
-            click: () => onSelectItem({ type: 'stop', data: stop }),
-          }}
-        >
-          <Popup className="custom-map-popup">
-            <div className="p-1 text-xs">
-              <span className="font-bold text-slate-900 block">{stop.name}</span>
-              <span className="text-[11px] text-slate-500 block">{stop.address_reference}</span>
-              <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                <span className="font-semibold text-blue-600">{stop.type === 'BASE' ? 'Paradero Base' : 'Zona Tranquila'}</span>
-                <span className="font-bold text-slate-700">{stop.queued_vehicles_count} carros en cola</span>
+      {stops.map((stop) => {
+        const lat = Number(stop.latitude);
+        const lng = Number(stop.longitude);
+        if (isNaN(lat) || isNaN(lng)) return null;
+
+        return (
+          <Marker
+            key={stop.id}
+            position={[lat, lng]}
+            icon={createStopIcon(stop.type, stop.queued_vehicles_count || 0)}
+            eventHandlers={{
+              click: () => onSelectItem({ type: 'stop', data: stop }),
+            }}
+          >
+            <Popup className="custom-map-popup">
+              <div className="p-1 text-xs">
+                <span className="font-bold text-slate-900 block">{stop.name}</span>
+                <span className="text-[11px] text-slate-500 block">{stop.address_reference}</span>
+                <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                  <span className="font-semibold text-blue-600">{stop.type === 'BASE' ? 'Paradero Base' : 'Zona Tranquila'}</span>
+                  <span className="font-bold text-slate-700">{stop.queued_vehicles_count || 0} carros en cola</span>
+                </div>
               </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+            </Popup>
+          </Marker>
+        );
+      })}
 
       {/* Marcadores de Vehículos en Vivo */}
-      {vehicles.map((v) => (
-        <Marker
-          key={v.id}
-          position={[v.latitude, v.longitude]}
-          icon={createVehicleIcon(v.status, v.plate)}
-          eventHandlers={{
-            click: () => onSelectItem({ type: 'vehicle', data: v }),
-          }}
-        >
-          <Popup className="custom-map-popup">
-            <div className="p-1 text-xs">
-              <span className="font-bold text-slate-900 block">{v.brand_model} ({v.plate})</span>
-              <span className="text-[11px] text-slate-500 block">Chofer: {v.driver_name}</span>
-              <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                <span className={`font-bold ${v.status === 'DISPONIBLE' ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {v.status === 'DISPONIBLE' ? '● Disponible' : '● Unidad Llena'}
-                </span>
-                <span className="text-slate-600 font-medium">★ {v.driver_rating.toFixed(1)}</span>
+      {vehicles.map((v) => {
+        const lat = Number(v.latitude);
+        const lng = Number(v.longitude);
+        if (isNaN(lat) || isNaN(lng)) return null;
+
+        const ratingNum = typeof v.driver_rating === 'number' ? v.driver_rating : parseFloat(String(v.driver_rating || '5.0'));
+
+        return (
+          <Marker
+            key={v.id}
+            position={[lat, lng]}
+            icon={createVehicleIcon(v.status, v.plate)}
+            eventHandlers={{
+              click: () => onSelectItem({ type: 'vehicle', data: v }),
+            }}
+          >
+            <Popup className="custom-map-popup">
+              <div className="p-1 text-xs">
+                <span className="font-bold text-slate-900 block">{v.brand_model} ({v.plate})</span>
+                <span className="text-[11px] text-slate-500 block">Chofer: {v.driver_name}</span>
+                <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                  <span className={`font-bold ${v.status === 'DISPONIBLE' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {v.status === 'DISPONIBLE' ? '● Disponible' : '● Unidad Llena'}
+                  </span>
+                  <span className="text-slate-600 font-medium">★ {isNaN(ratingNum) ? '5.0' : ratingNum.toFixed(1)}</span>
+                </div>
               </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+            </Popup>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }

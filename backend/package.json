@@ -2,11 +2,11 @@
   "name": "rutalink-backend",
   "version": "1.0.0",
   "description": "Backend API REST y WebSockets en tiempo real para RutaLink (UNAB)",
-  "main": "dist/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "db:migrate": "ts-node-dev scripts/migrate.ts",
     "db:seed": "ts-node-dev scripts/seed.ts"
   },

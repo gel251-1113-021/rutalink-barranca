@@ -6,6 +6,7 @@ import MapWrapper from '../components/Map/MapWrapper';
 import BottomSheet from '../components/BottomSheet';
 import AuthModal from '../components/AuthModal';
 import ProfileModal from '../components/ProfileModal';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -88,7 +89,13 @@ export default function HomePage() {
         const vehiclesRes = await fetch(`${apiUrl}/api/vehicles`).catch(() => null);
         if (vehiclesRes && vehiclesRes.ok) {
           const data = await vehiclesRes.json();
-          setVehicles(data.vehicles || []);
+          const mappedVehicles: VehicleUnit[] = (data.vehicles || []).map((v: any) => ({
+            ...v,
+            latitude: Number(v.latitude),
+            longitude: Number(v.longitude),
+            driver_rating: parseFloat(String(v.driver_rating || '5.0')) || 5.0
+          }));
+          setVehicles(mappedVehicles);
         } else {
           // Fallback con datos sembrados
           setVehicles([
@@ -165,13 +172,15 @@ export default function HomePage() {
 
       {/* Mapa Interactivo de Barranca */}
       <div className="relative flex-1 w-full h-full">
-        <MapWrapper
-          stops={stops}
-          vehicles={vehicles}
-          selectedItem={selectedItem}
-          onSelectItem={setSelectedItem}
-          darkMode={darkMode}
-        />
+        <ErrorBoundary>
+          <MapWrapper
+            stops={stops}
+            vehicles={vehicles}
+            selectedItem={selectedItem}
+            onSelectItem={setSelectedItem}
+            darkMode={darkMode}
+          />
+        </ErrorBoundary>
       </div>
 
       {/* Bottom Sheet Deslizable con Niveles de Información */}

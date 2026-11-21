@@ -95,12 +95,12 @@ router.get('/vehicles', async (_req: Request, res: Response): Promise<void> => {
           v.max_cargo_kg,
           v.cargo_status,
           v.status,
-          ST_Y(v.current_location) AS latitude,
-          ST_X(v.current_location) AS longitude,
-          v.current_heading,
+          ST_Y(v.current_location)::float AS latitude,
+          ST_X(v.current_location)::float AS longitude,
+          v.current_heading::float AS current_heading,
           v.last_location_update,
           p.full_name AS driver_name,
-          p.rating AS driver_rating,
+          COALESCE(p.rating, 5.00)::float AS driver_rating,
           g.name AS group_name
         FROM public.vehicles v
         JOIN public.profiles p ON v.owner_id = p.id
