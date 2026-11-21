@@ -216,8 +216,8 @@ export default function BottomSheet({
         sheetState === 'minimized'
           ? 'h-16'
           : sheetState === 'half'
-          ? 'h-[52vh]'
-          : 'h-[calc(100dvh-130px)]'
+          ? 'h-[64vh]'
+          : 'h-[calc(100dvh-70px)]'
       }`}
     >
       {/* Tirador táctil sensible al dedo para arrastrar arriba/abajo */}
@@ -423,7 +423,7 @@ export default function BottomSheet({
         </div>
       ) : (
         /* VISTA GENERAL EXPLORADORA */
-        <div className="flex-1 flex flex-col px-4 pb-24 overflow-hidden">
+        <div className="flex-1 flex flex-col px-3.5 sm:px-4 pb-2 overflow-hidden">
           {/* Fila superior con buscador inteligente de destinos de Barranca */}
           <div className="pt-2 mb-2">
             <div className="relative">
@@ -433,13 +433,13 @@ export default function BottomSheet({
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="¿A dónde vas? (ej. UNAB, Hospital, Supe, Pativilca...)"
-                className="w-full pl-11 pr-4 py-2.5 text-sm sm:text-base rounded-2xl bg-slate-100 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                className="w-full pl-11 pr-4 py-2 text-sm sm:text-base rounded-2xl bg-slate-100 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -447,7 +447,7 @@ export default function BottomSheet({
             </div>
 
             {/* Chips rápidos de destino para toque rápido en celular */}
-            <div className="flex items-center gap-2 mt-2.5 overflow-x-auto no-scrollbar pb-1">
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar pb-1">
               {QUICK_DESTINATIONS.map(dest => (
                 <button
                   key={dest.name}
@@ -456,7 +456,7 @@ export default function BottomSheet({
                     setSearchQuery(dest.name);
                     if (onSelectDestination) onSelectDestination(dest.name, { lat: dest.lat, lng: dest.lng });
                   }}
-                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 whitespace-nowrap transition text-xs font-semibold border border-slate-200 dark:border-slate-700 shrink-0 active:scale-95"
+                  className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 whitespace-nowrap transition text-xs font-semibold border border-slate-200 dark:border-slate-700 shrink-0 active:scale-95"
                 >
                   {dest.name}
                 </button>
@@ -465,10 +465,10 @@ export default function BottomSheet({
           </div>
 
           {/* Pestañas de selección con tipografía grande */}
-          <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-2 mb-2 text-sm font-bold overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-1.5 mb-2 text-xs sm:text-sm font-bold overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('stops')}
-              className={`pb-1.5 border-b-2 transition whitespace-nowrap ${
+              className={`pb-1 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'stops'
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -478,7 +478,7 @@ export default function BottomSheet({
             </button>
             <button
               onClick={() => setActiveTab('vehicles')}
-              className={`pb-1.5 border-b-2 transition whitespace-nowrap ${
+              className={`pb-1 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'vehicles'
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -488,7 +488,7 @@ export default function BottomSheet({
             </button>
             <button
               onClick={() => setActiveTab('places')}
-              className={`pb-1.5 border-b-2 transition whitespace-nowrap ${
+              className={`pb-1 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'places'
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -498,7 +498,7 @@ export default function BottomSheet({
             </button>
             <button
               onClick={() => setActiveTab('routes')}
-              className={`pb-1.5 border-b-2 transition whitespace-nowrap ${
+              className={`pb-1 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'routes'
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -508,12 +508,12 @@ export default function BottomSheet({
             </button>
           </div>
 
-          {/* Listado con scroll fluido táctil */}
+          {/* Listado con scroll fluido táctil y densidad óptima */}
           <div 
             ref={scrollContainerRef}
             onTouchStart={handleTouchStart}
             onTouchMove={handleListTouchMove}
-            className="flex-1 overflow-y-auto overscroll-contain space-y-2.5 touch-scroll pr-1"
+            className="flex-1 overflow-y-auto overscroll-contain space-y-2 touch-scroll pr-1 pb-16"
           >
             {/* 1. Paraderos */}
             {activeTab === 'stops' && (
@@ -521,24 +521,24 @@ export default function BottomSheet({
                 <div
                   key={s.id}
                   onClick={() => onSelectItem({ type: 'stop', data: s })}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-blue-500 cursor-pointer transition flex items-center justify-between active:scale-98"
+                  className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-blue-500 cursor-pointer transition flex items-center justify-between active:scale-98"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl text-white ${s.type === 'BASE' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
-                      <MapPin className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-xl text-white shrink-0 ${s.type === 'BASE' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                      <MapPin className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100">{s.name}</h4>
-                      <p className="text-xs text-slate-500 line-clamp-1">{s.address_reference}</p>
-                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{s.name}</h4>
+                      <p className="text-[11px] text-slate-500 line-clamp-1">{s.address_reference}</p>
+                      <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">
                         {s.type === 'BASE' ? 'Paradero Físico Base' : 'Punto Tranquilo'}
                       </span>
                     </div>
                   </div>
-                  <div className="text-right flex items-center gap-2">
-                    <div className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#1a1d22] border border-slate-200 dark:border-slate-800 text-center font-bold text-sm text-slate-800 dark:text-slate-200">
+                  <div className="text-right flex items-center gap-2 shrink-0">
+                    <div className="px-2 py-0.5 rounded-xl bg-white dark:bg-[#1a1d22] border border-slate-200 dark:border-slate-800 text-center font-bold text-xs text-slate-800 dark:text-slate-200">
                       {s.queued_vehicles_count}
-                      <span className="block text-[10px] font-normal text-slate-400">en cola</span>
+                      <span className="block text-[9px] font-normal text-slate-400">en cola</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </div>
@@ -552,24 +552,24 @@ export default function BottomSheet({
                 <div
                   key={v.id}
                   onClick={() => onSelectItem({ type: 'vehicle', data: v })}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500 cursor-pointer transition flex items-center justify-between active:scale-98"
+                  className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500 cursor-pointer transition flex items-center justify-between active:scale-98"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-2xl text-white flex items-center justify-center text-xl ${v.status === 'DISPONIBLE' ? 'bg-emerald-600' : 'bg-rose-600'}`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-9 h-9 rounded-xl text-white flex items-center justify-center text-lg shrink-0 ${v.status === 'DISPONIBLE' ? 'bg-emerald-600' : 'bg-rose-600'}`}>
                       <span>{getVehicleEmoji(v.vehicle_type)}</span>
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-black font-mono text-sm sm:text-base text-slate-900 dark:text-slate-100 tracking-wider">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-black font-mono text-xs sm:text-sm text-slate-900 dark:text-slate-100 tracking-wider">
                           {v.plate}
                         </h4>
-                        <span className="text-xs font-semibold text-slate-500">{v.brand_model}</span>
+                        <span className="text-[11px] font-semibold text-slate-500 truncate max-w-[140px]">{v.brand_model}</span>
                       </div>
-                      <p className="text-xs text-slate-500">Chofer: <strong className="text-slate-700 dark:text-slate-300">{v.driver_name}</strong></p>
+                      <p className="text-[11px] text-slate-500">Chofer: <strong className="text-slate-700 dark:text-slate-300">{v.driver_name}</strong></p>
                     </div>
                   </div>
-                  <div className="text-right flex items-center gap-2">
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                  <div className="text-right flex items-center gap-2 shrink-0">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       v.status === 'DISPONIBLE'
                         ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
                         : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200'
@@ -592,21 +592,21 @@ export default function BottomSheet({
                       onSelectDestination(l.name, { lat: l.lat, lng: l.lng });
                     }
                   }}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500 cursor-pointer transition flex items-center justify-between active:scale-98"
+                  className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500 cursor-pointer transition flex items-center justify-between active:scale-98"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 border border-indigo-200/80">
-                      {l.category === 'UNIVERSIDAD' ? <GraduationCap className="w-5 h-5" /> : l.category === 'TURISMO' ? <Umbrella className="w-5 h-5" /> : l.category === 'COMERCIO' ? <Store className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 border border-indigo-200/80 shrink-0">
+                      {l.category === 'UNIVERSIDAD' ? <GraduationCap className="w-4 h-4" /> : l.category === 'TURISMO' ? <Umbrella className="w-4 h-4" /> : l.category === 'COMERCIO' ? <Store className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100">{l.name}</h4>
-                      <p className="text-xs text-slate-500">{l.address} · {l.district}</p>
-                      <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{l.name}</h4>
+                      <p className="text-[11px] text-slate-500">{l.address} · {l.district}</p>
+                      <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
                         Hito Geográfico WGS84
                       </span>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                 </div>
               ))
             )}
@@ -617,21 +617,21 @@ export default function BottomSheet({
                 <div
                   key={r.id}
                   onClick={() => onSelectItem({ type: 'route', data: r })}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-blue-500 cursor-pointer transition flex items-center justify-between active:scale-98"
+                  className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-blue-500 cursor-pointer transition flex items-center justify-between active:scale-98"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 border border-blue-200/80">
-                      <Route className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 border border-blue-200/80 shrink-0">
+                      <Route className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100">{r.name}</h4>
-                      <p className="text-xs text-slate-500">{r.origin_name} → {r.destination_name}</p>
-                      <span className="text-xs text-slate-400 font-medium">
+                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{r.name}</h4>
+                      <p className="text-[11px] text-slate-500">{r.origin_name} → {r.destination_name}</p>
+                      <span className="text-[10px] text-slate-400 font-medium">
                         {r.distance_km} km · ~{r.estimated_duration_min} min (ETA)
                       </span>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                 </div>
               ))
             )}

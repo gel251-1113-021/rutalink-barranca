@@ -1022,8 +1022,8 @@ export default function HomePage() {
         category={photoModalTarget?.category}
         onPhotoUploaded={(dataUrl) => {
           setNotificationToast({
-            title: 'Foto Real Guardada',
-            message: 'La imagen ha sido optimizada y vinculada sin costo adicional.',
+            title: 'Fotografía Guardada',
+            message: 'La imagen se ha optimizado y guardado con éxito.',
             type: 'success'
           });
           setTimeout(() => setNotificationToast(null), 3000);

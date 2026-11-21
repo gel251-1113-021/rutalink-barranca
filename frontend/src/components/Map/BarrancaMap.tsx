@@ -425,17 +425,19 @@ export default function BarrancaMap({
     address: string;
   } | null>(null);
 
-  // Servidores de Teselas de Cartografía Real (Google Maps Platform WGS84 + CartoDB Dark)
+  // Estado para confirmación táctil de "Me bajo aquí" (Timbre de parada)
+  const [dropoffPromptOpen, setDropoffPromptOpen] = useState(false);
+
+  // Servidores de Teselas de Cartografía Oficial (Google Maps Platform WGS84 Sin Marcas de Agua)
   const TILE_SERVERS: Record<string, string> = {
-    'google-streets': darkMode 
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    'google-streets': 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
     'google-hybrid': 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
     'google-satellite': 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     'google-traffic': 'https://mt1.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}',
-    'carto-dark': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    'carto-dark': 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
   };
 
+  const isDarkMap = mapLayer === 'carto-dark' || (mapLayer === 'google-streets' && darkMode);
   const currentTileUrl = TILE_SERVERS[mapLayer] || TILE_SERVERS['google-streets'];
 
   // Manejar clic en el mapa para fijar punto real
@@ -641,15 +643,47 @@ export default function BarrancaMap({
           </button>
         )}
 
-        {/* Botón: Me bajo aquí */}
-        {onRequestDropoff && (
+        {/* Diálogo de Confirmación: Timbre de Bajada */}
+        {dropoffPromptOpen && (
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-[#15181e] shadow-2xl border border-slate-200 dark:border-slate-700 text-left max-w-xs animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2 mb-1.5 text-rose-600 font-bold text-xs">
+              <span className="text-base">🛑</span>
+              <span>¿Solicitar parada al chofer?</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mb-3">
+              Se emitirá una señal acústica en el panel del vehículo para que se detenga en la próxima esquina segura.
+            </p>
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setDropoffPromptOpen(false)}
+                className="px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDropoffPromptOpen(false);
+                  if (onRequestDropoff) onRequestDropoff();
+                }}
+                className="px-3 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs"
+              >
+                Confirmar Bajada
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Botón: Me bajo aquí / Timbre de Parada */}
+        {onRequestDropoff && !dropoffPromptOpen && (
           <button
             type="button"
-            onClick={onRequestDropoff}
-            className="px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 animate-pulse"
-            title="Solicitar parada al chofer"
+            onClick={() => setDropoffPromptOpen(true)}
+            className="px-3.5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 border border-rose-500/80"
+            title="Avisar al chofer que deseas bajar en la próxima esquina"
           >
-            <span className="text-base">🛑</span>
+            <span className="text-sm">🛑</span>
             <span>Me bajo aquí</span>
           </button>
         )}
@@ -665,9 +699,10 @@ export default function BarrancaMap({
         attributionControl={false}
       >
         <TileLayer 
-          key={mapLayer}
+          key={`${mapLayer}-${darkMode}`}
           url={currentTileUrl} 
           maxZoom={20} 
+          className={isDarkMap ? 'dark-navigation-tiles' : ''}
         />
         <MapController selectedItem={selectedItem} userLocation={userLocation} />
         <MapClickHandler onMapClick={handleMapClick} />

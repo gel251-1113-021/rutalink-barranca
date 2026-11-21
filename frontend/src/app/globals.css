@@ -100,3 +100,8 @@ body {
   overscroll-behavior-y: contain;
   scroll-behavior: smooth;
 }
+
+/* Modo Nocturno Vial Oficial de Alta Definición (Sin Marcas de Agua CartoDB) */
+.dark-navigation-tiles img.leaflet-tile {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(120%) saturate(75%) !important;
+}

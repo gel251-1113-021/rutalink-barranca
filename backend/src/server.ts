@@ -47,15 +47,18 @@ export const io = new SocketIOServer(server, {
 initializeSockets(io);
 
 // Health check
-app.get('/health', (_req, res) => {
+const handleHealth = (_req: express.Request, res: express.Response) => {
   res.status(200).json({
     status: 'healthy',
     system: 'RutaLink Backend API',
     scope: 'Provincia de Barranca / UNAB',
-    sprint: 'Sprint 4 (Off-Grid Mode, SMS Gateway Fallback, Analytics & Final Telemetry)',
+    sprint: 'Sprint 5 (Producción, Rutas Geográficas WGS84, Alta Disponibilidad)',
     timestamp: new Date().toISOString()
   });
-});
+};
+
+app.get('/health', handleHealth);
+app.get('/api/health', handleHealth);
 
 // Rutas API
 app.use('/api/auth', authRoutes);

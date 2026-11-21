@@ -178,18 +178,18 @@ export default function VehicleInspectModal({
 
           {/* 4. Fotos y Calificaciones Reales */}
           <div className="grid grid-cols-2 gap-2">
-            {/* Ver / Subir Foto Real */}
+            {/* Ver / Subir Foto del Vehículo */}
             <button
               type="button"
               onClick={() => {
                 if (onOpenPhotoUpload) {
-                  onOpenPhotoUpload(`Foto Real del Vehículo ${vehicle.plate} (${vehicle.brand_model})`, 'VEHICULO');
+                  onOpenPhotoUpload(`Fotografía del Vehículo ${cleanPlate}`, 'VEHICULO');
                 }
               }}
               className="py-2 px-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 transition"
             >
               <span>📷</span>
-              <span>Foto Real</span>
+              <span>Foto de la Unidad</span>
             </button>
 
             {/* Dejar Reseña */}
