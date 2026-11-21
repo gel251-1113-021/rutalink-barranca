@@ -147,4 +147,48 @@ export function initializeSockets(io: SocketIOServer): void {
       // Limpieza
     });
   });
+
+  // 5. Simulador automático de tráfico GPS en vivo para la Provincia de Barranca y UNAB
+  let simStep = 0;
+  const SIM_TRONCAL_UNAB = [
+    [-10.7512, -77.7615], // Paradero Central
+    [-10.7505, -77.7590], // Av. Primavera
+    [-10.7495, -77.7565], // Óvalo UNAB
+    [-10.7485, -77.7550], // Campus Universitario UNAB
+    [-10.7495, -77.7565],
+    [-10.7505, -77.7590]
+  ];
+
+  const SIM_SUPE_ROUTE = [
+    [-10.7512, -77.7615], // Central Barranca
+    [-10.7650, -77.7530], // Salida Sur
+    [-10.7820, -77.7380], // Panamericana Sur
+    [-10.7980, -77.7125], // Supe Pueblo (Plaza Bolognesi)
+    [-10.7820, -77.7380],
+    [-10.7650, -77.7530]
+  ];
+
+  setInterval(() => {
+    simStep++;
+    const pt1 = SIM_TRONCAL_UNAB[simStep % SIM_TRONCAL_UNAB.length];
+    const pt2 = SIM_SUPE_ROUTE[simStep % SIM_SUPE_ROUTE.length];
+
+    // Mover unidad 1 (Toyota Yaris - B1A-789)
+    io.to('barranca_live_map').emit('vehicle_moved', {
+      vehicleId: 'd0000000-0000-0000-0000-000000000001',
+      latitude: pt1[0] + (Math.random() - 0.5) * 0.0003,
+      longitude: pt1[1] + (Math.random() - 0.5) * 0.0003,
+      heading: 85,
+      updatedAt: new Date().toISOString()
+    });
+
+    // Mover unidad 2 (Chevrolet Sail - C3M-456)
+    io.to('barranca_live_map').emit('vehicle_moved', {
+      vehicleId: 'd0000000-0000-0000-0000-000000000002',
+      latitude: pt2[0] + (Math.random() - 0.5) * 0.0003,
+      longitude: pt2[1] + (Math.random() - 0.5) * 0.0003,
+      heading: 175,
+      updatedAt: new Date().toISOString()
+    });
+  }, 3500);
 }

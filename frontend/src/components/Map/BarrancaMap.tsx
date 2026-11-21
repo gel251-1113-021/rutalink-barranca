@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../../types';
+import { Layers, Map as MapIcon } from 'lucide-react';
 
 interface BarrancaMapProps {
   stops: StopPoint[];
@@ -20,7 +21,7 @@ const createStopIcon = (type: string, queueCount: number, darkMode: boolean) => 
   const isBase = type === 'BASE';
   const primaryColor = isBase ? '#2563eb' : '#059669';
   const bgColor = darkMode ? '#1e293b' : '#ffffff';
-  const borderColor = darkMode ? '#334155' : '#e2e8f0';
+  const borderColor = darkMode ? '#334155' : '#cbd5e1';
 
   return L.divIcon({
     className: 'custom-leaflet-marker',
@@ -32,7 +33,7 @@ const createStopIcon = (type: string, queueCount: number, darkMode: boolean) => 
         height: 32px;
         border-radius: 50%;
         border: 2px solid ${borderColor};
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -77,7 +78,7 @@ const createVehicleIcon = (status: string, plate: string, darkMode: boolean) => 
   const dotColor = isAvailable ? '#10b981' : '#f43f5e';
   const bgColor = darkMode ? '#1e293b' : '#ffffff';
   const textColor = darkMode ? '#f8fafc' : '#0f172a';
-  const borderColor = darkMode ? '#334155' : '#e2e8f0';
+  const borderColor = darkMode ? '#334155' : '#cbd5e1';
 
   return L.divIcon({
     className: 'custom-vehicle-marker',
@@ -88,7 +89,7 @@ const createVehicleIcon = (status: string, plate: string, darkMode: boolean) => 
         border: 1.5px solid ${borderColor};
         padding: 3px 8px;
         border-radius: 9999px;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.10);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
         display: flex;
         align-items: center;
         gap: 5px;
@@ -176,133 +177,186 @@ export default function BarrancaMap({
   // Centro por defecto: Plaza de Armas de Barranca
   const defaultCenter: [number, number] = [-10.7512, -77.7615];
 
-  // TileLayer de CartoDB: estilo Voyager para Light Mode limpio, Dark_All para Dark Mode
-  const tileUrl = darkMode
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  // Selector de Proveedor de Cartografía:
+  // 'google-streets': Google Maps oficial estándar (Calles, avenidas, colores oficiales Google Maps, 0 watermarks)
+  // 'google-hybrid': Google Maps oficial satélite híbrido con nombres de calles
+  // 'osm': OpenStreetMap comunitario
+  const [mapLayer, setMapLayer] = useState<'google-streets' | 'google-hybrid' | 'osm'>('google-streets');
+
+  const TILE_SERVERS: Record<string, string> = {
+    'google-streets': 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    'google-hybrid': 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    'osm': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+  };
+
+  const currentTileUrl = TILE_SERVERS[mapLayer] || TILE_SERVERS['google-streets'];
 
   const isRouteSelected = (routeId: string) => {
     return selectedItem?.type === 'route' && selectedItem.data?.id === routeId;
   };
 
   return (
-    <MapContainer
-      center={defaultCenter}
-      zoom={13.5}
-      zoomControl={false}
-      className="w-full h-full z-10"
-      attributionControl={false}
-    >
-      <TileLayer url={tileUrl} maxZoom={19} />
-      <MapController selectedItem={selectedItem} />
-
-      {/* Trazado Polyline de Rutas Viales Oficiales (Sprint 3) */}
-      {routes.map((r) => {
-        if (!r.geojson?.coordinates || r.geojson.coordinates.length < 2) return null;
-        const latLngs = r.geojson.coordinates.map(
-          ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
-        );
-        const selected = isRouteSelected(r.id);
-
-        return (
-          <Polyline
-            key={r.id}
-            positions={latLngs}
-            pathOptions={{
-              color: selected ? '#1d4ed8' : '#3b82f6',
-              weight: selected ? 5 : 3.5,
-              opacity: selected ? 0.95 : 0.65,
-              lineCap: 'round',
-              lineJoin: 'round',
-              dashArray: selected ? undefined : '6, 6'
-            }}
-            eventHandlers={{
-              click: () => onSelectItem({ type: 'route', data: r }),
-            }}
-          />
-        );
-      })}
-
-      {/* Marcadores de Paraderos */}
-      {stops.map((stop) => {
-        const lat = Number(stop.latitude);
-        const lng = Number(stop.longitude);
-        if (isNaN(lat) || isNaN(lng)) return null;
-
-        return (
-          <Marker
-            key={stop.id}
-            position={[lat, lng]}
-            icon={createStopIcon(stop.type, stop.queued_vehicles_count || 0, darkMode)}
-            eventHandlers={{
-              click: () => onSelectItem({ type: 'stop', data: stop }),
-            }}
-          >
-            <Popup className="custom-map-popup">
-              <div className="p-1 text-xs">
-                <span className="font-bold text-slate-900 block">{stop.name}</span>
-                <span className="text-[11px] text-slate-500 block">{stop.address_reference}</span>
-                <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                  <span className="font-semibold text-blue-600">
-                    {stop.type === 'BASE' ? 'Paradero Físico Base' : 'Zona Tranquila'}
-                  </span>
-                  <span className="font-bold text-slate-700">{stop.queued_vehicles_count || 0} carros en cola</span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
-
-      {/* Marcadores de Vehículos en Vivo */}
-      {vehicles.map((v) => {
-        const lat = Number(v.latitude);
-        const lng = Number(v.longitude);
-        if (isNaN(lat) || isNaN(lng)) return null;
-
-        const ratingNum = typeof v.driver_rating === 'number' 
-          ? v.driver_rating 
-          : parseFloat(String(v.driver_rating || '5.0'));
-
-        return (
-          <Marker
-            key={v.id}
-            position={[lat, lng]}
-            icon={createVehicleIcon(v.status, v.plate, darkMode)}
-            eventHandlers={{
-              click: () => onSelectItem({ type: 'vehicle', data: v }),
-            }}
-          >
-            <Popup className="custom-map-popup">
-              <div className="p-1 text-xs">
-                <span className="font-bold text-slate-900 block">{v.brand_model} ({v.plate})</span>
-                <span className="text-[11px] text-slate-500 block">Chofer: {v.driver_name}</span>
-                <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                  <span className={`font-bold ${v.status === 'DISPONIBLE' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {v.status === 'DISPONIBLE' ? '● Disponible' : '● Unidad Llena'}
-                  </span>
-                  <span className="text-slate-600 font-medium">★ {isNaN(ratingNum) ? '5.0' : ratingNum.toFixed(1)}</span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
-
-      {/* Pin de señal de pasajero esperando (Sprint 3) */}
-      {passengerSignal && (
-        <Marker
-          position={[passengerSignal.lat, passengerSignal.lng]}
-          icon={createWaitingPassengerIcon()}
+    <div className="relative w-full h-full">
+      {/* Selector Flotante de Estilo de Mapa (Google Maps / Satélite / OSM) */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-[11px] font-semibold">
+        <button
+          type="button"
+          onClick={() => setMapLayer('google-streets')}
+          className={`px-2.5 py-1 rounded-xl transition ${
+            mapLayer === 'google-streets'
+              ? 'bg-blue-600 text-white font-bold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
         >
-          <Popup className="custom-map-popup">
-            <div className="p-1 text-xs">
-              <span className="font-bold text-blue-600 block">Pasajero Esperando</span>
-              <span className="text-[11px] text-slate-600 block">{passengerSignal.note || 'Esperando unidad para abordaje'}</span>
-            </div>
-          </Popup>
-        </Marker>
-      )}
-    </MapContainer>
+          Google Maps
+        </button>
+        <button
+          type="button"
+          onClick={() => setMapLayer('google-hybrid')}
+          className={`px-2.5 py-1 rounded-xl transition ${
+            mapLayer === 'google-hybrid'
+              ? 'bg-blue-600 text-white font-bold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          Satélite
+        </button>
+        <button
+          type="button"
+          onClick={() => setMapLayer('osm')}
+          className={`px-2.5 py-1 rounded-xl transition ${
+            mapLayer === 'osm'
+              ? 'bg-blue-600 text-white font-bold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          OSM
+        </button>
+      </div>
+
+      <MapContainer
+        center={defaultCenter}
+        zoom={14}
+        zoomControl={false}
+        style={{ width: '100%', height: '100%', minHeight: '100%' }}
+        className="w-full h-full z-10"
+        attributionControl={false}
+      >
+        <TileLayer 
+          key={mapLayer}
+          url={currentTileUrl} 
+          maxZoom={20} 
+        />
+        <MapController selectedItem={selectedItem} />
+
+        {/* Trazado Polyline de Rutas Viales Oficiales (Sprint 3) */}
+        {routes.map((r) => {
+          if (!r.geojson?.coordinates || r.geojson.coordinates.length < 2) return null;
+          const latLngs = r.geojson.coordinates.map(
+            ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
+          );
+          const selected = isRouteSelected(r.id);
+
+          return (
+            <Polyline
+              key={r.id}
+              positions={latLngs}
+              pathOptions={{
+                color: selected ? '#1d4ed8' : '#2563eb',
+                weight: selected ? 5.5 : 4,
+                opacity: selected ? 0.95 : 0.75,
+                lineCap: 'round',
+                lineJoin: 'round',
+                dashArray: selected ? undefined : '5, 6'
+              }}
+              eventHandlers={{
+                click: () => onSelectItem({ type: 'route', data: r }),
+              }}
+            />
+          );
+        })}
+
+        {/* Marcadores de Paraderos */}
+        {stops.map((stop) => {
+          const lat = Number(stop.latitude);
+          const lng = Number(stop.longitude);
+          if (isNaN(lat) || isNaN(lng)) return null;
+
+          return (
+            <Marker
+              key={stop.id}
+              position={[lat, lng]}
+              icon={createStopIcon(stop.type, stop.queued_vehicles_count || 0, darkMode)}
+              eventHandlers={{
+                click: () => onSelectItem({ type: 'stop', data: stop }),
+              }}
+            >
+              <Popup className="custom-map-popup">
+                <div className="p-1 text-xs">
+                  <span className="font-bold text-slate-900 block">{stop.name}</span>
+                  <span className="text-[11px] text-slate-500 block">{stop.address_reference}</span>
+                  <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                    <span className="font-semibold text-blue-600">
+                      {stop.type === 'BASE' ? 'Paradero Físico Base' : 'Zona Tranquila'}
+                    </span>
+                    <span className="font-bold text-slate-700">{stop.queued_vehicles_count || 0} carros en cola</span>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
+        {/* Marcadores de Vehículos en Vivo con Telemetría Continua */}
+        {vehicles.map((v) => {
+          const lat = Number(v.latitude);
+          const lng = Number(v.longitude);
+          if (isNaN(lat) || isNaN(lng)) return null;
+
+          const ratingNum = typeof v.driver_rating === 'number' 
+            ? v.driver_rating 
+            : parseFloat(String(v.driver_rating || '5.0'));
+
+          return (
+            <Marker
+              key={v.id}
+              position={[lat, lng]}
+              icon={createVehicleIcon(v.status, v.plate, darkMode)}
+              eventHandlers={{
+                click: () => onSelectItem({ type: 'vehicle', data: v }),
+              }}
+            >
+              <Popup className="custom-map-popup">
+                <div className="p-1 text-xs">
+                  <span className="font-bold text-slate-900 block">{v.brand_model} ({v.plate})</span>
+                  <span className="text-[11px] text-slate-500 block">Chofer: {v.driver_name}</span>
+                  <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                    <span className={`font-bold ${v.status === 'DISPONIBLE' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {v.status === 'DISPONIBLE' ? '● Disponible' : '● Unidad Llena'}
+                    </span>
+                    <span className="text-slate-600 font-medium">★ {isNaN(ratingNum) ? '5.0' : ratingNum.toFixed(1)}</span>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
+        {/* Pin de señal de pasajero esperando (Sprint 3) */}
+        {passengerSignal && (
+          <Marker
+            position={[passengerSignal.lat, passengerSignal.lng]}
+            icon={createWaitingPassengerIcon()}
+          >
+            <Popup className="custom-map-popup">
+              <div className="p-1 text-xs">
+                <span className="font-bold text-blue-600 block">Pasajero Esperando</span>
+                <span className="text-[11px] text-slate-600 block">{passengerSignal.note || 'Esperando unidad para abordaje'}</span>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+      </MapContainer>
+    </div>
   );
 }

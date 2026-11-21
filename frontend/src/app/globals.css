@@ -51,6 +51,12 @@ body {
 }
 
 /* Ajustes de Leaflet */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 10 !important;
+  background-color: #f1f5f9;
+}
 .leaflet-pane {
   z-index: 10 !important;
 }
