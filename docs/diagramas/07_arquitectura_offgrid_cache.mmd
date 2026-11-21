@@ -1,0 +1,30 @@
+flowchart TD
+    subgraph Navegador["Navegador Móvil / PWA"]
+        A["Detector de Estado (navigator.onLine)"]
+        B["Banner 'Modo Fuera de Línea'"]
+        C["offlineStore (LocalStorage / IndexedDB)"]
+        D["Mapa Leaflet & Cartografía"]
+    end
+
+    subgraph Red["Estado de Conexión"]
+        E{"¿Conexión 4G Activa?"}
+    end
+
+    subgraph Servidor["Backend API (Node.js / Express)"]
+        F["GET /api/stops"]
+        G["GET /api/routes"]
+        H["POST /api/analytics/telemetry"]
+    end
+
+    E -->|Sí: En línea| F
+    E -->|Sí: En línea| G
+    F -->|"Persiste paraderos"| C
+    G -->|"Persiste rutas"| C
+    C -->|"Renderiza unidades y paraderos"| D
+
+    E -->|No: Zonas rurales / valles| A
+    A -->|"Evento 'offline'"| B
+    A -->|"Fallback instantáneo"| C
+    C -->|"Suministra datos cacheados"| D
+    A -->|"Al recuperar señal: 'online'"| H
+    H -->|"Registra evento ONLINE_RESTORED"| Servidor

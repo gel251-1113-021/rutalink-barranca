@@ -14,7 +14,11 @@ import {
   ShieldCheck, 
   Car, 
   MapPin, 
-  Users 
+  Users,
+  MessageSquare,
+  BarChart3,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -23,39 +27,42 @@ interface HeaderProps {
   onOpenVehicleDesigner?: () => void;
   onOpenDispatcherPanel?: () => void;
   onOpenGroupManagement?: () => void;
+  onOpenSmsFallback?: () => void;
+  onOpenAnalytics?: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
+  isOffline?: boolean;
 }
 
 const ROLE_LABELS: Record<UserRole, { label: string; badgeClass: string; icon: any }> = {
   PASAJERO: {
     label: 'Pasajero',
-    badgeClass: 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+    badgeClass: 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200/60',
     icon: User
   },
   CONDUCTOR_AFILIADO: {
     label: 'Chofer Afiliado',
-    badgeClass: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+    badgeClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200/60',
     icon: Car
   },
   CONDUCTOR_INDEPENDIENTE: {
     label: 'Chofer Indep.',
-    badgeClass: 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    badgeClass: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200/60',
     icon: Car
   },
   ADMIN_EMPRESA: {
     label: 'Admin Empresa',
-    badgeClass: 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+    badgeClass: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200/60',
     icon: ShieldCheck
   },
   ENCARGADO_PARADERO: {
     label: 'Despachador',
-    badgeClass: 'bg-cyan-100 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800',
+    badgeClass: 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-200/60',
     icon: MapPin
   },
   SUPERADMIN: {
     label: 'SuperAdmin',
-    badgeClass: 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
+    badgeClass: 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200/60',
     icon: ShieldCheck
   }
 };
@@ -66,8 +73,11 @@ export default function Header({
   onOpenVehicleDesigner,
   onOpenDispatcherPanel,
   onOpenGroupManagement,
+  onOpenSmsFallback,
+  onOpenAnalytics,
   darkMode, 
-  onToggleDarkMode 
+  onToggleDarkMode,
+  isOffline = false
 }: HeaderProps) {
   const { user, profile, isGuest, logout, switchRole } = useAuth();
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
@@ -85,35 +95,72 @@ export default function Header({
   ];
 
   return (
-    <header className="relative z-30 w-full bg-white/95 dark:bg-[#121417]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 transition-colors duration-200">
+    <header className="relative z-30 w-full bg-white/95 dark:bg-[#121417]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 py-2.5 transition-colors duration-200">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
         {/* Logo & Marca */}
         <div className="flex items-center gap-2.5 cursor-pointer">
-          <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-bold shadow-sm">
-            <Compass className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
+          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-2xs">
+            <Compass className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-slate-50">
                 RutaLink
               </span>
-              <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/50">
                 Barranca
               </span>
+              {/* Indicador de Red */}
+              <div 
+                title={isOffline ? 'Sin conexión de red - Modo Off-Grid' : 'Conectado a la red de Barranca'}
+                className="flex items-center ml-1"
+              >
+                {isOffline ? (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200/60">
+                    <WifiOff className="w-3 h-3" /> Offline
+                  </span>
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                )}
+              </div>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block -mt-0.5">
+            <p className="text-[10.5px] text-slate-500 hidden sm:block -mt-0.5">
               UNAB · Supe · Pativilca · Paramonga
             </p>
           </div>
         </div>
 
         {/* Acciones de la barra */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Botón SMS Sin Datos */}
+          {onOpenSmsFallback && (
+            <button
+              onClick={onOpenSmsFallback}
+              title="Consultar por SMS sin datos móviles"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 hover:border-blue-200 text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden md:inline">SMS Sin Datos</span>
+            </button>
+          )}
+
+          {/* Botón Métricas / Analítica */}
+          {onOpenAnalytics && (
+            <button
+              onClick={onOpenAnalytics}
+              title="Ver métricas de transporte y analítica"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 hover:border-blue-200 text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden md:inline">Métricas</span>
+            </button>
+          )}
+
           {/* Alternador de Modo Claro / Oscuro */}
           <button
             onClick={onToggleDarkMode}
             aria-label="Alternar tema"
-            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition"
+            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition"
           >
             {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
           </button>
@@ -121,24 +168,25 @@ export default function Header({
           {isGuest ? (
             /* Modo Invitado */
             <div className="flex items-center gap-2">
-              <span className="hidden md:inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-medium">
+              <span className="hidden lg:inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-medium">
                 <Users className="w-3.5 h-3.5" /> Modo Invitado
               </span>
               <button
                 onClick={onOpenAuth}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white transition shadow-sm"
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition"
               >
-                <LogIn className="w-3.5 h-3.5" /> Iniciar Sesión
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Ingresar</span>
               </button>
             </div>
           ) : (
             /* Usuario Autenticado con Selector Dinámico de Rol */
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Botones de Acción Especializados por Rol */}
               {(currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE') && onOpenVehicleDesigner && (
                 <button
                   onClick={onOpenVehicleDesigner}
-                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm"
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 hover:bg-emerald-100 transition"
                 >
                   <Car className="w-3.5 h-3.5" />
                   <span>Diseñar Unidad</span>
@@ -148,7 +196,7 @@ export default function Header({
               {currentRole === 'ENCARGADO_PARADERO' && onOpenDispatcherPanel && (
                 <button
                   onClick={onOpenDispatcherPanel}
-                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-sm"
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200/70 hover:bg-blue-100 transition"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>Control Paradero</span>
@@ -158,7 +206,7 @@ export default function Header({
               {currentRole === 'ADMIN_EMPRESA' && onOpenGroupManagement && (
                 <button
                   onClick={onOpenGroupManagement}
-                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition shadow-sm"
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/70 hover:bg-purple-100 transition"
                 >
                   <Users className="w-3.5 h-3.5" />
                   <span>Gestión Flota</span>
@@ -169,7 +217,7 @@ export default function Header({
               <div className="relative">
                 <button
                   onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                  className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition ${roleInfo.badgeClass}`}
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl border transition ${roleInfo.badgeClass}`}
                 >
                   <RoleIcon className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">{roleInfo.label}</span>
@@ -177,8 +225,8 @@ export default function Header({
                 </button>
 
                 {roleMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1a1d21] rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1 z-50 text-xs">
-                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#16181d] rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 py-1.5 z-50 text-xs">
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
                       Alternar Rol Activo
                     </div>
                     {availableRoles.map((r) => {
@@ -194,7 +242,7 @@ export default function Header({
                           }}
                           className={`w-full text-left px-3 py-2 flex items-center justify-between transition ${
                             isCurrent
-                              ? 'bg-slate-100 dark:bg-slate-800/80 font-semibold text-emerald-600 dark:text-emerald-400'
+                              ? 'bg-blue-50/80 dark:bg-blue-950/40 font-bold text-blue-700 dark:text-blue-300'
                               : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                           }`}
                         >
@@ -202,7 +250,7 @@ export default function Header({
                             <Icon className="w-3.5 h-3.5" />
                             <span>{item.label}</span>
                           </div>
-                          {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                          {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
                         </button>
                       );
                     })}
@@ -213,10 +261,10 @@ export default function Header({
               {/* Botón de Perfil */}
               <button
                 onClick={onOpenProfile}
-                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition"
               >
                 <User className="w-3.5 h-3.5" />
-                <span className="hidden md:inline font-medium truncate max-w-[120px]">
+                <span className="hidden md:inline font-semibold truncate max-w-[120px]">
                   {profile?.full_name?.split(' ')[0] || 'Mi Perfil'}
                 </span>
               </button>
@@ -225,7 +273,7 @@ export default function Header({
               <button
                 onClick={logout}
                 title="Cerrar sesión"
-                className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
               >
                 <LogOut className="w-4 h-4" />
               </button>

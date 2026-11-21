@@ -1,0 +1,29 @@
+sequenceDiagram
+    autonumber
+    actor Usuario as Pasajero / Chofer (Celular sin Datos)
+    participant Nativo as App SMS Nativa (Android / iOS)
+    participant RedGSM as Red Móvil 2G / GSM (Claro, Movistar, Entel, Bitel)
+    participant Gateway as RutaLink SMS Gateway (Node.js / Express)
+    participant DB as PostgreSQL (public.sms_logs)
+
+    Note over Usuario,Nativo: El usuario no tiene datos en Panamericana Norte
+    Usuario->>Nativo: Abre sms:900123456 con comando (ej. "DONDE BARRANCA")
+    Nativo->>RedGSM: Envío de SMS estándar a 900123456
+    RedGSM->>Gateway: Webhook Inbound POST /api/sms/inbound { senderPhone, text }
+    
+    alt Comando: DONDE BARRANCA
+        Gateway->>Gateway: Consulta cola en Paradero Base Central (3 autos)
+        Gateway->>DB: INSERT INTO sms_logs (sender, command, reply, status)
+        Gateway-->>RedGSM: Respuesta SMS: "[RutaLink] Paradero Base: 3 en cola. Salidas continuas..."
+    else Comando: RUTA UNAB
+        Gateway->>Gateway: Consulta tiempo y tarifa Troncal 1 (3.8km, S/. 2.50)
+        Gateway->>DB: INSERT INTO sms_logs (sender, command, reply, status)
+        Gateway-->>RedGSM: Respuesta SMS: "[RutaLink] Troncal UNAB: 3.8 km (~10 min). Tarifa: S/. 2.50"
+    else Comando: SOS
+        Gateway->>Gateway: Activa protocolo de emergencia y contacto de seguridad
+        Gateway->>DB: INSERT INTO sms_logs & telemetry_logs
+        Gateway-->>RedGSM: Respuesta SMS: "[RutaLink SOS] ¡Alerta de seguridad activada!"
+    end
+
+    RedGSM-->>Nativo: Entrega de SMS en bandeja de entrada en < 3 seg
+    Nativo-->>Usuario: Visualiza información de viaje con 0 consumo de megas

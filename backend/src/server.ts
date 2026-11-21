@@ -11,6 +11,8 @@ import groupRoutes from './routes/group.routes.js';
 import vehicleRoutes from './routes/vehicle.routes.js';
 import routesRoutes from './routes/routes.routes.js';
 import tripsRoutes from './routes/trips.routes.js';
+import smsRoutes from './routes/sms.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
 import { initializeSockets } from './sockets/index.js';
 
 dotenv.config();
@@ -47,7 +49,7 @@ app.get('/health', (_req, res) => {
     status: 'healthy',
     system: 'RutaLink Backend API',
     scope: 'Provincia de Barranca / UNAB',
-    sprint: 'Sprint 3 (Realtime WebSockets, OSRM Routes, Cabin & Agreements)',
+    sprint: 'Sprint 4 (Off-Grid Mode, SMS Gateway Fallback, Analytics & Final Telemetry)',
     timestamp: new Date().toISOString()
   });
 });
@@ -60,6 +62,8 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/routes', routesRoutes);
 app.use('/api/trips', tripsRoutes);
+app.use('/api/sms', smsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 const PORT = process.env.PORT || 5000;
 

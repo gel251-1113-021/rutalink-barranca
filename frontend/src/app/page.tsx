@@ -11,10 +11,14 @@ import DispatcherPanel from '../components/Dispatcher/DispatcherPanel';
 import GroupManagementModal from '../components/Groups/GroupManagementModal';
 import AgreementRoomModal from '../components/Trips/AgreementRoomModal';
 import VehicleLiveCabinModal from '../components/VehicleViewer/VehicleLiveCabinModal';
+import OfflineBanner from '../components/Offline/OfflineBanner';
+import SmsFallbackModal from '../components/Offline/SmsFallbackModal';
+import AnalyticsModal from '../components/Analytics/AnalyticsModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { offlineStore } from '../lib/offlineStore';
 import { Compass, MapPin, CheckCircle2, BellRing, Route } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
@@ -34,6 +38,12 @@ export default function HomePage() {
   const [selectedDriverForAgreement, setSelectedDriverForAgreement] = useState<any | null>(null);
   const [cabinModalOpen, setCabinModalOpen] = useState<boolean>(false);
   const [selectedVehicleForCabin, setSelectedVehicleForCabin] = useState<VehicleUnit | null>(null);
+
+  // Modales Especializados Sprint 4 (Off-Grid, SMS Fallback y Analítica)
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [smsModalOpen, setSmsModalOpen] = useState<boolean>(false);
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState<boolean>(false);
 
   // Estados de Datos Cartográficos y Viales
   const [stops, setStops] = useState<StopPoint[]>([]);
@@ -56,7 +66,54 @@ export default function HomePage() {
     }
   }, [darkMode]);
 
-  // Cargar datos iniciales (Paraderos, Vehículos y Rutas Viales)
+  // Detector de estado de red (Online / Offline) y telemetría de resiliencia (Sprint 4)
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+    const handleOnline = () => {
+      setIsOffline(false);
+      fetch(`${apiUrl}/api/analytics/telemetry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          eventType: 'ONLINE_RESTORED',
+          networkType: '4G',
+          latencyMs: 38
+        })
+      }).catch(() => {});
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      fetch(`${apiUrl}/api/analytics/telemetry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          eventType: 'OFFLINE_DETECTED',
+          networkType: 'OFFLINE',
+          latencyMs: 0
+        })
+      }).catch(() => {});
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOffline(true);
+    }
+
+    setLastSyncTime(offlineStore.getLastSync());
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [user?.id]);
+
+  // Cargar datos (con sincronización en caché local para soporte Off-Grid)
   const loadData = useCallback(async () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -65,39 +122,49 @@ export default function HomePage() {
       const stopsRes = await fetch(`${apiUrl}/api/stops`).catch(() => null);
       if (stopsRes && stopsRes.ok) {
         const data = await stopsRes.json();
-        setStops(data.stops || []);
+        const loadedStops = data.stops || [];
+        setStops(loadedStops);
+        offlineStore.saveStops(loadedStops);
+        setLastSyncTime(new Date().toISOString());
       } else {
-        const { data: stopsData } = await supabase
-          .from('stops')
-          .select(`
-            id, name, type, address_reference, group_id,
-            stop_live_status (queued_vehicles_count, status_note, photo_url, updated_at)
-          `);
-        if (stopsData) {
-          const coordsMap: Record<string, [number, number]> = {
-            'c0000000-0000-0000-0000-000000000001': [-10.7512, -77.7615],
-            'c0000000-0000-0000-0000-000000000002': [-10.7485, -77.7550],
-            'c0000000-0000-0000-0000-000000000003': [-10.7980, -77.7125],
-            'c0000000-0000-0000-0000-000000000004': [-10.6970, -77.7845],
-            'c0000000-0000-0000-0000-000000000005': [-10.6720, -77.8150]
-          };
-          const mappedStops: StopPoint[] = stopsData.map((s: any) => {
-            const live = s.stop_live_status?.[0] || {};
-            const coords = coordsMap[s.id] || [-10.7512, -77.7615];
-            return {
-              id: s.id,
-              name: s.name,
-              type: s.type,
-              latitude: coords[0],
-              longitude: coords[1],
-              address_reference: s.address_reference,
-              queued_vehicles_count: live.queued_vehicles_count || 0,
-              status_note: live.status_note,
-              photo_url: live.photo_url,
-              last_status_update: live.updated_at
+        // Fallback a caché local o Supabase directo
+        const cachedStops = offlineStore.getStops();
+        if (cachedStops.length > 0) {
+          setStops(cachedStops);
+        } else {
+          const { data: stopsData } = await supabase
+            .from('stops')
+            .select(`
+              id, name, type, address_reference, group_id,
+              stop_live_status (queued_vehicles_count, status_note, photo_url, updated_at)
+            `);
+          if (stopsData) {
+            const coordsMap: Record<string, [number, number]> = {
+              'c0000000-0000-0000-0000-000000000001': [-10.7512, -77.7615],
+              'c0000000-0000-0000-0000-000000000002': [-10.7485, -77.7550],
+              'c0000000-0000-0000-0000-000000000003': [-10.7980, -77.7125],
+              'c0000000-0000-0000-0000-000000000004': [-10.6970, -77.7845],
+              'c0000000-0000-0000-0000-000000000005': [-10.6720, -77.8150]
             };
-          });
-          setStops(mappedStops);
+            const mappedStops: StopPoint[] = stopsData.map((s: any) => {
+              const live = s.stop_live_status?.[0] || {};
+              const coords = coordsMap[s.id] || [-10.7512, -77.7615];
+              return {
+                id: s.id,
+                name: s.name,
+                type: s.type,
+                latitude: coords[0],
+                longitude: coords[1],
+                address_reference: s.address_reference,
+                queued_vehicles_count: live.queued_vehicles_count || 0,
+                status_note: live.status_note,
+                photo_url: live.photo_url,
+                last_status_update: live.updated_at
+              };
+            });
+            setStops(mappedStops);
+            offlineStore.saveStops(mappedStops);
+          }
         }
       }
 
@@ -112,68 +179,83 @@ export default function HomePage() {
           driver_rating: parseFloat(String(v.driver_rating || '5.0')) || 5.0
         }));
         setVehicles(mappedVehicles);
+        offlineStore.saveVehicles(mappedVehicles);
+      } else {
+        const cachedVehicles = offlineStore.getVehicles();
+        if (cachedVehicles.length > 0) {
+          setVehicles(cachedVehicles);
+        }
       }
 
       // 3. Cargar Rutas Viales OSRM / GeoJSON
       const routesRes = await fetch(`${apiUrl}/api/routes`).catch(() => null);
       if (routesRes && routesRes.ok) {
         const routesData = await routesRes.json();
-        setRoutes(routesData.routes || []);
+        const loadedRoutes = routesData.routes || [];
+        setRoutes(loadedRoutes);
+        offlineStore.saveRoutes(loadedRoutes);
       } else {
-        // Fallback local con las 3 rutas troncales oficiales
-        setRoutes([
-          {
-            id: 'e0000000-0000-0000-0000-000000000001',
-            name: 'Ruta Troncal 1: Barranca Centro — Campus UNAB',
-            origin_name: 'Paradero Base Central Barranca',
-            destination_name: 'Punto UNAB (Av. Toribio de Luzuriaga)',
-            distance_km: 3.8,
-            estimated_duration_min: 10,
-            geojson: {
-              type: 'LineString',
-              coordinates: [
-                [-77.7615, -10.7512],
-                [-77.7590, -10.7505],
-                [-77.7565, -10.7495],
-                [-77.7550, -10.7485]
-              ]
+        const cachedRoutes = offlineStore.getRoutes();
+        if (cachedRoutes.length > 0) {
+          setRoutes(cachedRoutes);
+        } else {
+          // Fallback con los 3 corredores oficiales
+          const defaultRoutes: RouteCorridor[] = [
+            {
+              id: 'e0000000-0000-0000-0000-000000000001',
+              name: 'Ruta Troncal 1: Barranca Centro — Campus UNAB',
+              origin_name: 'Paradero Base Central Barranca',
+              destination_name: 'Punto UNAB (Av. Toribio de Luzuriaga)',
+              distance_km: 3.8,
+              estimated_duration_min: 10,
+              geojson: {
+                type: 'LineString',
+                coordinates: [
+                  [-77.7615, -10.7512],
+                  [-77.7590, -10.7505],
+                  [-77.7565, -10.7495],
+                  [-77.7550, -10.7485]
+                ] as [number, number][]
+              }
+            },
+            {
+              id: 'e0000000-0000-0000-0000-000000000002',
+              name: 'Ruta Interdistrital 2: Barranca — Supe Pueblo',
+              origin_name: 'Paradero Base Central Barranca',
+              destination_name: 'Paradero Supe Pueblo',
+              distance_km: 9.2,
+              estimated_duration_min: 18,
+              geojson: {
+                type: 'LineString',
+                coordinates: [
+                  [-77.7615, -10.7512],
+                  [-77.7530, -10.7650],
+                  [-77.7380, -10.7820],
+                  [-77.7125, -10.7980]
+                ] as [number, number][]
+              }
+            },
+            {
+              id: 'e0000000-0000-0000-0000-000000000003',
+              name: 'Ruta Norte 3: Barranca — Pativilca — Paramonga',
+              origin_name: 'Paradero Base Central Barranca',
+              destination_name: 'Entrada Paramonga (Fortaleza)',
+              distance_km: 14.5,
+              estimated_duration_min: 25,
+              geojson: {
+                type: 'LineString',
+                coordinates: [
+                  [-77.7615, -10.7512],
+                  [-77.7700, -10.7200],
+                  [-77.7845, -10.6970],
+                  [-77.8150, -10.6720]
+                ] as [number, number][]
+              }
             }
-          },
-          {
-            id: 'e0000000-0000-0000-0000-000000000002',
-            name: 'Ruta Interdistrital 2: Barranca — Supe Pueblo',
-            origin_name: 'Paradero Base Central Barranca',
-            destination_name: 'Paradero Supe Pueblo',
-            distance_km: 9.2,
-            estimated_duration_min: 18,
-            geojson: {
-              type: 'LineString',
-              coordinates: [
-                [-77.7615, -10.7512],
-                [-77.7530, -10.7650],
-                [-77.7380, -10.7820],
-                [-77.7125, -10.7980]
-              ]
-            }
-          },
-          {
-            id: 'e0000000-0000-0000-0000-000000000003',
-            name: 'Ruta Norte 3: Barranca — Pativilca — Paramonga',
-            origin_name: 'Paradero Base Central Barranca',
-            destination_name: 'Entrada Paramonga (Fortaleza)',
-            distance_km: 14.5,
-            estimated_duration_min: 25,
-            geojson: {
-              type: 'LineString',
-              coordinates: [
-                [-77.7615, -10.7512],
-                [-77.7700, -10.7200],
-                [-77.7845, -10.6970],
-                [-77.8150, -10.6720]
-              ]
-            }
-          }
-        ]);
+          ];
+          setRoutes(defaultRoutes);
+          offlineStore.saveRoutes(defaultRoutes);
+        }
       }
     } catch (err) {
       console.error('[LoadData Exception]:', err);
@@ -184,7 +266,7 @@ export default function HomePage() {
     loadData();
   }, [loadData]);
 
-  // Sincronización en Vivo mediante Socket.io (Sprint 3)
+  // Sincronización en Vivo mediante Socket.io (Sprint 3 & 4)
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     const socket = io(socketUrl, {
@@ -289,7 +371,6 @@ export default function HomePage() {
       return;
     }
 
-    // Coordenadas actuales o del centro de Barranca
     const currentLat = -10.7512;
     const currentLng = -77.7615;
 
@@ -318,7 +399,7 @@ export default function HomePage() {
     setTimeout(() => setNotificationToast(null), 4000);
   };
 
-  // Apertura de modales especializados de Sprint 3
+  // Apertura de modales especializados
   const handleOpenLiveCabin = (vehicle: VehicleUnit) => {
     setSelectedVehicleForCabin(vehicle);
     setCabinModalOpen(true);
@@ -331,15 +412,25 @@ export default function HomePage() {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden flex flex-col bg-slate-50 dark:bg-[#0c0d0f]">
-      {/* Barra de Navegación Superior */}
+      {/* Barra de Navegación Superior con Soporte de Métricas y SMS Fallback */}
       <Header
         onOpenAuth={() => setAuthModalOpen(true)}
         onOpenProfile={() => setProfileModalOpen(true)}
         onOpenVehicleDesigner={() => setVehicleDesignerOpen(true)}
         onOpenDispatcherPanel={() => setDispatcherPanelOpen(true)}
         onOpenGroupManagement={() => setGroupManagementOpen(true)}
+        onOpenSmsFallback={() => setSmsModalOpen(true)}
+        onOpenAnalytics={() => setAnalyticsModalOpen(true)}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
+        isOffline={isOffline}
+      />
+
+      {/* Banner de Modo Fuera de Línea (Sprint 4) */}
+      <OfflineBanner
+        isOffline={isOffline}
+        onOpenSms={() => setSmsModalOpen(true)}
+        lastSyncTime={lastSyncTime}
       />
 
       {/* Notificación Toast Flotante */}
@@ -422,6 +513,17 @@ export default function HomePage() {
         isOpen={agreementModalOpen}
         onClose={() => setAgreementModalOpen(false)}
         driverData={selectedDriverForAgreement}
+      />
+
+      {/* Modales Especializados Sprint 4 */}
+      <SmsFallbackModal
+        isOpen={smsModalOpen}
+        onClose={() => setSmsModalOpen(false)}
+      />
+
+      <AnalyticsModal
+        isOpen={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
       />
     </main>
   );
