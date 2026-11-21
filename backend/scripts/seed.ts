@@ -78,7 +78,10 @@ async function seedDatabase() {
       await client.query(`
         INSERT INTO auth.users (
           id, instance_id, email, encrypted_password, email_confirmed_at,
-          raw_app_meta_data, raw_user_meta_data, role, aud, created_at, updated_at
+          raw_app_meta_data, raw_user_meta_data, role, aud, created_at, updated_at,
+          confirmation_token, recovery_token, email_change_token_new, email_change,
+          email_change_token_current, phone_change, phone_change_token, reauthentication_token,
+          is_sso_user, is_anonymous
         ) VALUES (
           $1,
           '00000000-0000-0000-0000-000000000000',
@@ -90,12 +93,16 @@ async function seedDatabase() {
           'authenticated',
           'authenticated',
           NOW(),
-          NOW()
+          NOW(),
+          '', '', '', '', '', '', '', '',
+          false, false
         )
         ON CONFLICT (id) DO UPDATE SET
           email = EXCLUDED.email,
           encrypted_password = crypt($3, gen_salt('bf')),
           raw_user_meta_data = EXCLUDED.raw_user_meta_data,
+          confirmation_token = COALESCE(auth.users.confirmation_token, ''),
+          recovery_token = COALESCE(auth.users.recovery_token, ''),
           updated_at = NOW();
       `, [u.id, u.email, u.password, u.fullName, u.phone, u.role]);
 
