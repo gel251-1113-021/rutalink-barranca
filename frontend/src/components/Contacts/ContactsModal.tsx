@@ -154,113 +154,123 @@ export default function ContactsModal({ isOpen, onClose }: ContactsModalProps) {
         </div>
 
         {/* Buscador y Pestañas */}
-        <div className="p-3 bg-slate-50 dark:bg-[#181c22] border-b border-slate-200 dark:border-slate-800 space-y-2">
+        <div className="p-3.5 bg-slate-50 dark:bg-[#181c22] border-b border-slate-200 dark:border-slate-800 space-y-2.5">
           {/* Buscador */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nombre, placa o número..."
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#20252d] border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              placeholder="Buscar por nombre, placa o teléfono..."
+              className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-[#20252d] border border-slate-200 dark:border-slate-700 rounded-2xl text-sm sm:text-base text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-medium"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Pestañas */}
-          <div className="grid grid-cols-3 gap-1.5 text-xs font-semibold">
+          <div className="grid grid-cols-3 gap-2 text-xs sm:text-sm font-bold">
             <button
               type="button"
               onClick={() => setActiveTab('CHOFER')}
-              className={`py-2 rounded-xl transition flex items-center justify-center gap-1.5 ${
+              className={`py-2.5 rounded-2xl transition flex items-center justify-center gap-1.5 active:scale-95 ${
                 activeTab === 'CHOFER'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'bg-white dark:bg-[#20252d] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
+              <Users className="w-4 h-4" />
               <span>Choferes</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('PARADERO')}
-              className={`py-2 rounded-xl transition flex items-center justify-center gap-1.5 ${
+              className={`py-2.5 rounded-2xl transition flex items-center justify-center gap-1.5 active:scale-95 ${
                 activeTab === 'PARADERO'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'bg-white dark:bg-[#20252d] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              <Bus className="w-3.5 h-3.5" />
+              <Bus className="w-4 h-4" />
               <span>Paraderos</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('EMERGENCIA')}
-              className={`py-2 rounded-xl transition flex items-center justify-center gap-1.5 ${
+              className={`py-2.5 rounded-2xl transition flex items-center justify-center gap-1.5 active:scale-95 ${
                 activeTab === 'EMERGENCIA'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'bg-white dark:bg-[#20252d] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              <ShieldAlert className="w-3.5 h-3.5" />
-              <span>Emergencias</span>
+              <ShieldAlert className="w-4 h-4" />
+              <span>Emergencia</span>
             </button>
           </div>
         </div>
 
-        {/* Lista de Contactos */}
-        <div className="p-4 overflow-y-auto space-y-3 flex-1">
+        {/* Lista de Contactos con Scroll Fluido */}
+        <div className="p-4 overflow-y-auto overscroll-contain touch-scroll space-y-3 flex-1 pb-10">
           {filtered.length === 0 ? (
-            <div className="text-center py-8 text-xs text-slate-500">
+            <div className="text-center py-10 text-sm text-slate-500">
               No se encontraron contactos en esta categoría.
             </div>
           ) : (
             filtered.map((c) => {
               const cleanPhone = c.phone.replace(/[^0-9]/g, '');
-              const waLink = `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola ${c.name}, te contacto desde la plataforma RutaLink.`)}`;
+              const waLink = `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola ${c.name}, te contacto desde la plataforma RutaLink Barranca.`)}`;
 
               return (
                 <div
                   key={c.id}
-                  className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181c22] shadow-2xs hover:border-blue-300 dark:hover:border-slate-700 transition flex items-center justify-between gap-3"
+                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181c22] shadow-2xs hover:border-blue-300 dark:hover:border-slate-700 transition flex items-center justify-between gap-3 active:scale-98"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
                         {c.name}
                       </span>
                       {c.badge && (
-                        <span className="text-[9px] px-1.5 py-0.2 rounded-md font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 shrink-0">
+                        <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 shrink-0">
                           {c.badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
                       {c.detail}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="font-mono text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
                         {c.phone}
                       </span>
                       {c.plate && (
-                        <span className="font-mono text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-300">
+                        <span className="font-mono text-xs font-black bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg text-slate-700 dark:text-slate-300">
                           {c.plate}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Botones de Contacto (1 toque) */}
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Botones de Contacto (Grandes, cómodos para dedos) */}
+                  <div className="flex items-center gap-2 shrink-0">
                     {/* Botón Llamar */}
                     <a
                       href={`tel:${c.phone}`}
-                      className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-300 transition shadow-2xs"
+                      className="p-3 rounded-2xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-300 transition shadow-2xs active:scale-90 flex items-center justify-center"
                       title="Llamar por teléfono"
+                      aria-label="Llamar"
                     >
-                      <Phone className="w-4 h-4" />
+                      <Phone className="w-5 h-5" />
                     </a>
 
                     {/* Botón WhatsApp */}
@@ -268,10 +278,11 @@ export default function ContactsModal({ isOpen, onClose }: ContactsModalProps) {
                       href={waLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 transition shadow-2xs"
+                      className="p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 transition shadow-2xs active:scale-90 flex items-center justify-center"
                       title="Abrir chat de WhatsApp"
+                      aria-label="WhatsApp"
                     >
-                      <MessageCircle className="w-4 h-4" />
+                      <MessageCircle className="w-5 h-5" />
                     </a>
                   </div>
                 </div>

@@ -7,20 +7,17 @@ import RutaLinkLogo from '../Branding/RutaLinkLogo';
 interface ShareAppModalProps {
   isOpen: boolean;
   onClose: () => void;
-  appUrl?: string;
 }
 
-export default function ShareAppModal({ isOpen, onClose, appUrl: externalUrl }: ShareAppModalProps) {
+export default function ShareAppModal({ isOpen, onClose }: ShareAppModalProps) {
   const [copied, setCopied] = useState(false);
-  const [appUrl, setAppUrl] = useState(externalUrl || 'https://rutalink-barranca.pe');
+  const [appUrl, setAppUrl] = useState('https://rutalink-barranca.pe');
 
   useEffect(() => {
-    if (externalUrl) {
-      setAppUrl(externalUrl);
-    } else if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       setAppUrl(window.location.origin);
     }
-  }, [externalUrl]);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -46,7 +43,7 @@ export default function ShareAppModal({ isOpen, onClose, appUrl: externalUrl }: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white dark:bg-[#14161a] w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]">
-        
+
         {/* Cabecera */}
         <div className="px-5 py-4 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -68,7 +65,7 @@ export default function ShareAppModal({ isOpen, onClose, appUrl: externalUrl }: 
 
         {/* Contenido */}
         <div className="p-5 overflow-y-auto space-y-4 text-center">
-          
+
           {/* Logo y Tarjeta QR Imprimible */}
           <div className="p-5 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-[#1b1f26] dark:to-[#13161c] rounded-3xl border border-slate-200 dark:border-slate-700 shadow-inner flex flex-col items-center">
             <RutaLinkLogo size="sm" showSubtitle={false} className="mb-2" />
@@ -124,24 +121,24 @@ export default function ShareAppModal({ isOpen, onClose, appUrl: externalUrl }: 
             </span>
           </div>
 
-          {/* Botones de Compartir */}
-          <div className="space-y-2">
+          {/* Botones de Compartir con toques amplios */}
+          <div className="space-y-2.5">
             {/* WhatsApp */}
             <button
               type="button"
               onClick={handleShareWhatsApp}
-              className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-95"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-5 h-5" />
               <span>Compartir en Grupos de WhatsApp</span>
             </button>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {/* Copiar enlace */}
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="py-2.5 px-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#191d24] text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 transition flex items-center justify-center gap-1.5"
+                className="py-3 px-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#191d24] text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm hover:bg-slate-100 transition flex items-center justify-center gap-2 active:scale-95"
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-blue-600" />}
                 <span>{copied ? '¡Copiado!' : 'Copiar Enlace'}</span>
@@ -151,7 +148,7 @@ export default function ShareAppModal({ isOpen, onClose, appUrl: externalUrl }: 
               <button
                 type="button"
                 onClick={handlePrintQR}
-                className="py-2.5 px-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#191d24] text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 transition flex items-center justify-center gap-1.5"
+                className="py-3 px-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#191d24] text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm hover:bg-slate-100 transition flex items-center justify-center gap-2 active:scale-95"
               >
                 <Printer className="w-4 h-4 text-indigo-600" />
                 <span>Imprimir Cartel QR</span>

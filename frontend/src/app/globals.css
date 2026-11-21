@@ -93,3 +93,10 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Scroll táctil nativo fluido con inercia para teléfonos móviles */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}

@@ -208,19 +208,19 @@ export default function DriverCockpitModal({
           </div>
         )}
 
-        {/* Contenido Táctil con Scroll */}
-        <div className="p-5 overflow-y-auto space-y-5">
+        {/* Contenido Táctil con Scroll Fluido */}
+        <div className="p-5 overflow-y-auto overscroll-contain touch-scroll space-y-5 pb-12">
           
           {/* 1. Selector de Estado Táctil (1 toque) */}
           <div>
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
+            <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2.5">
               ¿Qué estás haciendo ahora? (Toca para cambiar)
             </label>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => handleSelectStatus('EN_RUTA', 'Conduciendo ahora')}
-                className={`p-3.5 rounded-2xl border text-left transition flex items-center justify-between ${
+                className={`p-4 rounded-2xl border text-left transition flex items-center justify-between active:scale-95 ${
                   currentStatus === 'EN_RUTA'
                     ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 shadow-xs'
                     : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -228,18 +228,18 @@ export default function DriverCockpitModal({
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
-                    <span className="font-bold text-xs">Conduciendo ahora</span>
+                    <span className="w-3 h-3 rounded-full bg-blue-600 animate-pulse"></span>
+                    <span className="font-bold text-sm sm:text-base">Conduciendo</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">En marcha por la ruta</span>
+                  <span className="text-xs text-slate-500 block mt-1">En marcha por la ruta</span>
                 </div>
-                {currentStatus === 'EN_RUTA' && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
+                {currentStatus === 'EN_RUTA' && <Check className="w-5 h-5 text-blue-600 shrink-0" />}
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSelectStatus('DISPONIBLE', 'Esperando en paradero')}
-                className={`p-3.5 rounded-2xl border text-left transition flex items-center justify-between ${
+                className={`p-4 rounded-2xl border text-left transition flex items-center justify-between active:scale-95 ${
                   currentStatus === 'DISPONIBLE'
                     ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-xs'
                     : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -247,18 +247,18 @@ export default function DriverCockpitModal({
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-                    <span className="font-bold text-xs">Esperando en paradero</span>
+                    <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
+                    <span className="font-bold text-sm sm:text-base">Esperando</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Llenando asientos</span>
+                  <span className="text-xs text-slate-500 block mt-1">Llenando en paradero</span>
                 </div>
-                {currentStatus === 'DISPONIBLE' && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                {currentStatus === 'DISPONIBLE' && <Check className="w-5 h-5 text-emerald-600 shrink-0" />}
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSelectStatus('LLENO', 'Vehículo lleno')}
-                className={`p-3.5 rounded-2xl border text-left transition flex items-center justify-between ${
+                className={`p-4 rounded-2xl border text-left transition flex items-center justify-between active:scale-95 ${
                   currentStatus === 'LLENO'
                     ? 'border-rose-600 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 shadow-xs'
                     : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -266,18 +266,18 @@ export default function DriverCockpitModal({
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
-                    <span className="font-bold text-xs">Vehículo lleno</span>
+                    <span className="w-3 h-3 rounded-full bg-rose-600"></span>
+                    <span className="font-bold text-sm sm:text-base">Lleno</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">No recibe abordajes</span>
+                  <span className="text-xs text-slate-500 block mt-1">Completo</span>
                 </div>
-                {currentStatus === 'LLENO' && <Check className="w-4 h-4 text-rose-600 shrink-0" />}
+                {currentStatus === 'LLENO' && <Check className="w-5 h-5 text-rose-600 shrink-0" />}
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSelectStatus('FUERA_SERVICIO', 'Fuera de turno')}
-                className={`p-3.5 rounded-2xl border text-left transition flex items-center justify-between ${
+                className={`p-4 rounded-2xl border text-left transition flex items-center justify-between active:scale-95 ${
                   currentStatus === 'FUERA_SERVICIO'
                     ? 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs'
                     : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -285,12 +285,12 @@ export default function DriverCockpitModal({
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-                    <span className="font-bold text-xs">Descansando</span>
+                    <span className="w-3 h-3 rounded-full bg-slate-400"></span>
+                    <span className="font-bold text-sm sm:text-base">Descanso</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Fuera de servicio</span>
+                  <span className="text-xs text-slate-500 block mt-1">Fuera de servicio</span>
                 </div>
-                {currentStatus === 'FUERA_SERVICIO' && <Check className="w-4 h-4 text-slate-700 dark:text-slate-200 shrink-0" />}
+                {currentStatus === 'FUERA_SERVICIO' && <Check className="w-5 h-5 text-slate-700 dark:text-slate-200 shrink-0" />}
               </button>
             </div>
           </div>
@@ -326,43 +326,43 @@ export default function DriverCockpitModal({
 
           {/* 3. Mensajería Rápida para Pasajeros y Despachador (1 toque) */}
           <div>
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
+            <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2.5">
               Mensajes Rápidos a Pasajeros (1 toque)
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => sendCannedMessage('Salgo en 2 minutos')}
-                className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 bg-white dark:bg-[#16181e] text-left text-xs font-medium text-slate-700 dark:text-slate-200 transition flex items-center gap-2 active:bg-blue-50"
+                className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 bg-white dark:bg-[#16181e] text-left text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition flex items-center gap-2 active:scale-95"
               >
-                <Send className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <Send className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>«Salgo en 2 minutos»</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => sendCannedMessage('Hay tráfico en la Panamericana')}
-                className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-amber-400 bg-white dark:bg-[#16181e] text-left text-xs font-medium text-slate-700 dark:text-slate-200 transition flex items-center gap-2 active:bg-amber-50"
+                className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-amber-400 bg-white dark:bg-[#16181e] text-left text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition flex items-center gap-2 active:scale-95"
               >
-                <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>«Hay tráfico en Panamericana»</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => sendCannedMessage('Último asiento disponible')}
-                className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-400 bg-white dark:bg-[#16181e] text-left text-xs font-medium text-slate-700 dark:text-slate-200 transition flex items-center gap-2 active:bg-emerald-50"
+                className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-400 bg-white dark:bg-[#16181e] text-left text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition flex items-center gap-2 active:scale-95"
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>«Último asiento disponible»</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => sendCannedMessage('Llegando al Paradero UNAB')}
-                className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 bg-white dark:bg-[#16181e] text-left text-xs font-medium text-slate-700 dark:text-slate-200 transition flex items-center gap-2 active:bg-indigo-50"
+                className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 bg-white dark:bg-[#16181e] text-left text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition flex items-center gap-2 active:scale-95"
               >
-                <Volume2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <Volume2 className="w-4 h-4 text-indigo-600 shrink-0" />
                 <span>«Llegando a paradero UNAB»</span>
               </button>
             </div>
@@ -370,12 +370,12 @@ export default function DriverCockpitModal({
 
         </div>
 
-        {/* Pie del modal con botón de cierre */}
+        {/* Pie del modal con botón de cierre grande */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111317] flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+            className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm sm:text-base rounded-2xl shadow-md transition active:scale-95"
           >
             Listo, volver al mapa
           </button>

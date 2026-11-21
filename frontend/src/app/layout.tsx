@@ -10,9 +10,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: '#121417',
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: '#1d4ed8',
+  viewportFit: 'cover'
 };
 
 export default function RootLayout({
@@ -22,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="bg-slate-50 dark:bg-[#0c0d0f] text-slate-900 dark:text-slate-100 min-h-screen antialiased flex flex-col">
+      <body className="bg-slate-50 dark:bg-[#0c0d0f] text-slate-900 dark:text-slate-100 h-[100dvh] min-h-[100dvh] w-full overflow-hidden antialiased flex flex-col">
         <AuthProvider>
           {children}
         </AuthProvider>

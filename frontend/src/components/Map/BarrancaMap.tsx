@@ -110,15 +110,16 @@ const createVehicleIcon = (status: string, plate: string, darkMode: boolean, veh
         position: relative;
         background-color: ${bgColor};
         border: 2px solid ${isAvailable ? '#10b981' : '#2563eb'};
-        padding: 4px 9px;
+        padding: 5px 10px;
         border-radius: 9999px;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
         color: ${textColor};
         white-space: nowrap;
         cursor: pointer;
+        user-select: none;
       ">
         <span style="
           width: 8px;
@@ -128,12 +129,12 @@ const createVehicleIcon = (status: string, plate: string, darkMode: boolean, veh
           display: inline-block;
           box-shadow: 0 0 6px ${dotColor};
         "></span>
-        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.3px; font-family: ui-monospace, monospace;">${plate}</span>
-        <span style="font-size: 11px;">${emoji}</span>
+        <span style="font-size: 12px; font-weight: 900; letter-spacing: 0.3px; font-family: ui-monospace, monospace;">${plate}</span>
+        <span style="font-size: 13px;">${emoji}</span>
       </div>
     `,
-    iconSize: [88, 28],
-    iconAnchor: [44, 14],
+    iconSize: [96, 32],
+    iconAnchor: [48, 16],
     popupAnchor: [0, -16],
   });
 };
@@ -295,54 +296,57 @@ export default function BarrancaMap({
   return (
     <div className="relative w-full h-full">
       {/* Selector de Modo de Rutas (Puntos Marcados vs Trazado Vial) */}
-      <div className="absolute top-3 left-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-[11px] font-semibold">
+      <div className="absolute top-3 left-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-xs font-bold">
         <button
           type="button"
           onClick={() => setRouteDisplayMode('POINTS')}
-          className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 ${
+          className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
             routeDisplayMode === 'POINTS'
-              ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+              ? 'bg-emerald-600 text-white font-extrabold shadow-2xs'
               : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
-          title="Modo Puntos Marcados: Paraderos oficiales limpios sin líneas que crucen manzanas"
+          title="Modo Puntos: Paraderos oficiales limpios"
         >
           <span>📍</span>
-          <span>Puntos Marcados</span>
+          <span className="hidden sm:inline">Puntos Marcados</span>
+          <span className="sm:hidden">Puntos</span>
         </button>
         <button
           type="button"
           onClick={() => setRouteDisplayMode('ROADS')}
-          className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 ${
+          className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
             routeDisplayMode === 'ROADS'
-              ? 'bg-blue-600 text-white font-bold shadow-2xs'
+              ? 'bg-blue-600 text-white font-extrabold shadow-2xs'
               : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
-          title="Modo Trazo Vial: Líneas continuas que siguen las avenidas y pistas reales de Barranca"
+          title="Modo Pistas: Líneas continuas en avenidas de Barranca"
         >
           <span>🛣️</span>
-          <span>Trazo Vial</span>
+          <span className="hidden sm:inline">Trazo Vial</span>
+          <span className="sm:hidden">Pistas</span>
         </button>
       </div>
 
       {/* Selector Flotante de Estilo de Mapa */}
-      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-[11px] font-semibold">
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-xs font-bold">
         <button
           type="button"
           onClick={() => setMapLayer('google-streets')}
-          className={`px-2.5 py-1 rounded-xl transition ${
+          className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition ${
             mapLayer === 'google-streets'
-              ? 'bg-blue-600 text-white font-bold shadow-2xs'
+              ? 'bg-blue-600 text-white font-extrabold shadow-2xs'
               : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          Google Maps
+          <span className="hidden sm:inline">Google Maps</span>
+          <span className="sm:hidden">Calles</span>
         </button>
         <button
           type="button"
           onClick={() => setMapLayer('google-hybrid')}
-          className={`px-2.5 py-1 rounded-xl transition ${
+          className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition ${
             mapLayer === 'google-hybrid'
-              ? 'bg-blue-600 text-white font-bold shadow-2xs'
+              ? 'bg-blue-600 text-white font-extrabold shadow-2xs'
               : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -351,9 +355,9 @@ export default function BarrancaMap({
         <button
           type="button"
           onClick={() => setMapLayer('osm')}
-          className={`px-2.5 py-1 rounded-xl transition ${
+          className={`hidden sm:inline px-2.5 py-1.5 rounded-xl transition ${
             mapLayer === 'osm'
-              ? 'bg-blue-600 text-white font-bold shadow-2xs'
+              ? 'bg-blue-600 text-white font-extrabold shadow-2xs'
               : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -362,16 +366,17 @@ export default function BarrancaMap({
       </div>
 
       {/* Botones Flotantes Táctiles Móviles (Ubicación GPS + Me Bajo Aquí) */}
-      <div className="absolute right-3 bottom-24 z-20 flex flex-col gap-2.5">
-        {/* Botón: Activar mi ubicación */}
+      <div className="absolute right-3 bottom-24 sm:bottom-28 z-20 flex flex-col items-end gap-2.5 pointer-events-auto">
+        {/* Botón: Activar mi ubicación (48px táctil) */}
         {onLocateUser && (
           <button
             type="button"
             onClick={onLocateUser}
-            className="w-11 h-11 rounded-2xl bg-white dark:bg-[#1a1d24] text-blue-600 dark:text-blue-400 shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-blue-50 transition active:scale-95"
-            title="Centrar en mi ubicación GPS"
+            className="w-12 h-12 rounded-2xl bg-white dark:bg-[#1a1d24] text-blue-600 dark:text-blue-400 shadow-xl border border-slate-200/90 dark:border-slate-700 flex items-center justify-center hover:bg-blue-50 transition active:scale-90"
+            title="Centrar en mi ubicación GPS exacta"
+            aria-label="Ubicar mi posición GPS"
           >
-            <Locate className="w-5 h-5" />
+            <Locate className="w-6 h-6" />
           </button>
         )}
 
@@ -380,10 +385,10 @@ export default function BarrancaMap({
           <button
             type="button"
             onClick={onRequestDropoff}
-            className="px-3.5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 transition active:scale-95 animate-pulse"
+            className="px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 animate-pulse"
             title="Solicitar parada al chofer"
           >
-            <span>🛑</span>
+            <span className="text-base">🛑</span>
             <span>Me bajo aquí</span>
           </button>
         )}

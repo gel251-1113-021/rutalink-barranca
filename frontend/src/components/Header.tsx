@@ -20,7 +20,9 @@ import {
   Wifi,
   WifiOff,
   Clock,
-  Share2
+  Share2,
+  Menu,
+  X
 } from 'lucide-react';
 import RutaLinkLogo from './Branding/RutaLinkLogo';
 
@@ -93,6 +95,7 @@ export default function Header({
 }: HeaderProps) {
   const { user, profile, isGuest, logout, switchRole } = useAuth();
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const currentRole = profile?.active_role || 'PASAJERO';
   const roleInfo = ROLE_LABELS[currentRole] || ROLE_LABELS.PASAJERO;
@@ -301,8 +304,162 @@ export default function Header({
               </button>
             </div>
           )}
+
+          {/* Botón Menú Móvil Hamburger (Solo teléfonos) */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Abrir menú de herramientas"
+            className="sm:hidden p-2 rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </div>
       </div>
+
+      {/* Drawer Desplegable Móvil Completo */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 sm:hidden flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-4/5 max-w-xs h-full bg-white dark:bg-[#13161a] border-l border-slate-200 dark:border-slate-800 flex flex-col p-5 overflow-y-auto animate-in slide-in-from-right duration-200 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <RutaLinkLogo size="sm" showSubtitle={false} />
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Usuario Actual o Ingreso */}
+            <div className="py-4 border-b border-slate-100 dark:border-slate-800">
+              {isGuest ? (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenAuth(); }}
+                  className="w-full py-3 px-4 rounded-2xl bg-blue-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Iniciar Sesión / Registro</span>
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{profile?.full_name}</p>
+                      <p className="text-xs text-slate-500 truncate">{profile?.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); onOpenProfile(); }}
+                    className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold text-center"
+                  >
+                    Ver y Editar Perfil
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Herramientas Principales Táctiles (48px alto) */}
+            <div className="py-4 space-y-1.5 flex-1">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Herramientas</p>
+              
+              {onOpenShareApp && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenShareApp(); }}
+                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-emerald-600 dark:text-emerald-400"
+                >
+                  <Share2 className="w-5 h-5" />
+                  <span>Compartir App y QR</span>
+                </button>
+              )}
+
+              {onOpenAnalytics && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenAnalytics(); }}
+                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200"
+                >
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                  <span>Reporte de Viajes (PDF)</span>
+                </button>
+              )}
+
+              {onOpenSmsFallback && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenSmsFallback(); }}
+                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200"
+                >
+                  <MessageSquare className="w-5 h-5 text-blue-600" />
+                  <span>Modo Sin Saldo (SMS)</span>
+                </button>
+              )}
+
+              {onOpenHistory && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenHistory(); }}
+                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200"
+                >
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  <span>Historial de Viajes</span>
+                </button>
+              )}
+
+              {/* Botones especializados según rol */}
+              {(currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE') && onOpenVehicleDesigner && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenVehicleDesigner(); }}
+                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200"
+                >
+                  <Car className="w-5 h-5 text-emerald-600" />
+                  <span>Diseñador 2D de Unidad</span>
+                </button>
+              )}
+
+              {currentRole === 'ENCARGADO_PARADERO' && onOpenDispatcherPanel && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenDispatcherPanel(); }}
+                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200"
+                >
+                  <ShieldCheck className="w-5 h-5 text-blue-600" />
+                  <span>Control de Paradero Base</span>
+                </button>
+              )}
+
+              {(currentRole === 'ADMIN_EMPRESA' || currentRole === 'ADMIN_GRUPO_PASAJEROS') && onOpenGroupManagement && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenGroupManagement(); }}
+                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200"
+                >
+                  <Users className="w-5 h-5 text-purple-600" />
+                  <span>{currentRole === 'ADMIN_EMPRESA' ? 'Gestión de Flota' : 'Gestión de Grupos'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Alternar Tema y Cerrar Sesión */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+              <button
+                onClick={onToggleDarkMode}
+                className="w-full p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold flex items-center justify-between"
+              >
+                <span>Tema: {darkMode ? 'Oscuro' : 'Claro'}</span>
+                {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+              </button>
+
+              {!isGuest && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); logout(); }}
+                  className="w-full p-3 rounded-2xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-sm font-bold flex items-center justify-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Cerrar Sesión</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

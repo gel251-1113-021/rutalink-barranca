@@ -18,25 +18,27 @@ export default function BottomNavBar({
 }: BottomNavBarProps) {
   const isDriver = userRole === 'CONDUCTOR_AFILIADO' || userRole === 'CONDUCTOR_INDEPENDIENTE';
   const isAdmin = userRole === 'ADMIN_EMPRESA' || userRole === 'SUPERADMIN';
-  const isPassenger = userRole === 'PASAJERO';
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#111317]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/90 shadow-lg px-2 py-1 safe-area-bottom">
-      <div className="max-w-md mx-auto flex items-center justify-around">
-        {/* 1. Mapa */}
+    <nav 
+      aria-label="Navegación principal inferior"
+      className="fixed bottom-0 left-0 right-0 z-40 h-[62px] bg-white/98 dark:bg-[#111317]/98 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-2 safe-area-bottom select-none"
+    >
+      <div className="max-w-md mx-auto h-full flex items-center justify-around">
+        {/* 1. Mapa Interactivo */}
         <button
           type="button"
           onClick={() => onSelectTab('map')}
-          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all ${
+          className={`flex-1 h-full flex flex-col items-center justify-center py-1 rounded-2xl transition-all ${
             activeTab === 'map'
               ? 'text-blue-600 dark:text-blue-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-xl transition ${activeTab === 'map' ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
-            <Map className="w-5 h-5" />
+          <div className={`p-1.5 rounded-xl transition ${activeTab === 'map' ? 'bg-blue-50 dark:bg-blue-900/40 ring-1 ring-blue-500/20' : ''}`}>
+            <Map className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <span className="text-[11px] mt-0.5">Mapa</span>
+          <span className="text-xs font-semibold mt-0.5 tracking-tight">Mapa</span>
         </button>
 
         {/* 2. Para Conductor: Mi Cabina | Para Pasajero: Mis Viajes */}
@@ -44,86 +46,86 @@ export default function BottomNavBar({
           <button
             type="button"
             onClick={() => onSelectTab('driver')}
-            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all relative ${
+            className={`flex-1 h-full flex flex-col items-center justify-center py-1 rounded-2xl transition-all relative ${
               activeTab === 'driver'
                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
-            <div className={`p-1 rounded-xl transition ${activeTab === 'driver' ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
-              <Car className="w-5 h-5" />
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'driver' ? 'bg-blue-50 dark:bg-blue-900/40 ring-1 ring-blue-500/20' : ''}`}>
+              <Car className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="text-[11px] mt-0.5">Mi Cabina</span>
+            <span className="text-xs font-semibold mt-0.5 tracking-tight">Mi Cabina</span>
           </button>
         ) : (
           <button
             type="button"
             onClick={() => onSelectTab('history')}
-            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all relative ${
+            className={`flex-1 h-full flex flex-col items-center justify-center py-1 rounded-2xl transition-all relative ${
               activeTab === 'history'
                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
-            <div className={`p-1 rounded-xl transition ${activeTab === 'history' ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
-              <Clock className="w-5 h-5" />
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'history' ? 'bg-blue-50 dark:bg-blue-900/40 ring-1 ring-blue-500/20' : ''}`}>
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="text-[11px] mt-0.5">Mis Viajes</span>
+            <span className="text-xs font-semibold mt-0.5 tracking-tight">Mis Viajes</span>
           </button>
         )}
 
-        {/* 3. Chat Grupal (WhatsApp) */}
+        {/* 3. Grupos WhatsApp (Comité y Pasajeros) */}
         <button
           type="button"
           onClick={() => onSelectTab('chat')}
-          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all relative ${
+          className={`flex-1 h-full flex flex-col items-center justify-center py-1 rounded-2xl transition-all relative ${
             activeTab === 'chat'
               ? 'text-emerald-600 dark:text-emerald-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-xl transition relative ${activeTab === 'chat' ? 'bg-emerald-50 dark:bg-emerald-900/30' : ''}`}>
-            <MessageSquare className="w-5 h-5" />
+          <div className={`p-1.5 rounded-xl transition relative ${activeTab === 'chat' ? 'bg-emerald-50 dark:bg-emerald-900/40 ring-1 ring-emerald-500/20' : ''}`}>
+            <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
             {unreadChatCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
                 {unreadChatCount}
               </span>
             )}
           </div>
-          <span className="text-[11px] mt-0.5">Grupos</span>
+          <span className="text-xs font-semibold mt-0.5 tracking-tight">Grupos</span>
         </button>
 
         {/* 4. Contactos Telefónicos */}
         <button
           type="button"
           onClick={() => onSelectTab('contacts')}
-          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all ${
+          className={`flex-1 h-full flex flex-col items-center justify-center py-1 rounded-2xl transition-all ${
             activeTab === 'contacts'
               ? 'text-blue-600 dark:text-blue-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-xl transition ${activeTab === 'contacts' ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
-            <PhoneCall className="w-5 h-5" />
+          <div className={`p-1.5 rounded-xl transition ${activeTab === 'contacts' ? 'bg-blue-50 dark:bg-blue-900/40 ring-1 ring-blue-500/20' : ''}`}>
+            <PhoneCall className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <span className="text-[11px] mt-0.5">Contactos</span>
+          <span className="text-xs font-semibold mt-0.5 tracking-tight">Contactos</span>
         </button>
 
-        {/* 5. Creador de Rutas (Para Administradores o conductores autorizados) */}
+        {/* 5. Creador de Rutas (Administrador) */}
         {isAdmin && (
           <button
             type="button"
             onClick={() => onSelectTab('builder')}
-            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all ${
+            className={`flex-1 h-full flex flex-col items-center justify-center py-1 rounded-2xl transition-all ${
               activeTab === 'builder'
                 ? 'text-indigo-600 dark:text-indigo-400 font-bold'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
-            <div className={`p-1 rounded-xl transition ${activeTab === 'builder' ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
-              <Route className="w-5 h-5" />
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'builder' ? 'bg-indigo-50 dark:bg-indigo-900/40 ring-1 ring-indigo-500/20' : ''}`}>
+              <Route className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="text-[11px] mt-0.5">Trazar</span>
+            <span className="text-xs font-semibold mt-0.5 tracking-tight">Trazar</span>
           </button>
         )}
       </div>

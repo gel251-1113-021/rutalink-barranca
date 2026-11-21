@@ -479,14 +479,14 @@ export default function GroupChatModal({
         </div>
 
         {/* Barra de Pestañas de Grupos + Botón '+ Crear Grupo' */}
-        <div className="flex items-center gap-1.5 p-2 bg-slate-100 dark:bg-[#181c22] border-b border-slate-200 dark:border-slate-800 overflow-x-auto text-[11px] font-semibold no-scrollbar">
+        <div className="flex items-center gap-2 p-2.5 bg-slate-100 dark:bg-[#181c22] border-b border-slate-200 dark:border-slate-800 overflow-x-auto text-xs sm:text-sm font-bold no-scrollbar">
           {/* Botón Crear Nuevo Grupo */}
           <button
             type="button"
             onClick={() => setShowCreateGroup(true)}
-            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 shrink-0 shadow-2xs"
+            className="px-3.5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold transition flex items-center gap-1.5 shrink-0 shadow-2xs active:scale-95"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>Crear Grupo</span>
           </button>
 
@@ -498,13 +498,13 @@ export default function GroupChatModal({
                 setSelectedGroup(g);
                 setShowGroupInfo(false);
               }}
-              className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition shrink-0 flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 rounded-2xl whitespace-nowrap transition shrink-0 flex items-center gap-1.5 active:scale-95 ${
                 selectedGroup.id === g.id
-                  ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white font-bold shadow-2xs'
-                  : 'bg-white dark:bg-[#20242b] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white font-black shadow-2xs'
+                  : 'bg-white dark:bg-[#20242b] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold'
               }`}
             >
-              {g.isPrivate ? <Lock className="w-3 h-3 text-amber-500" /> : <Globe className="w-3 h-3 text-blue-500" />}
+              {g.isPrivate ? <Lock className="w-3.5 h-3.5 text-amber-500" /> : <Globe className="w-3.5 h-3.5 text-blue-500" />}
               <span>{g.badge}</span>
             </button>
           ))}
@@ -888,9 +888,9 @@ export default function GroupChatModal({
         ) : (
           /* VISTA 4: CHAT ACTIVO ESTILO WHATSAPP */
           <>
-            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#efeae2] dark:bg-[#0b141a] bg-opacity-95">
+            <div className="flex-1 p-4 overflow-y-auto overscroll-contain touch-scroll space-y-3 bg-[#efeae2] dark:bg-[#0b141a] bg-opacity-95 pb-6">
               {loading && messages.length === 0 && (
-                <div className="text-center py-6 text-xs text-slate-500">
+                <div className="text-center py-6 text-sm text-slate-500">
                   Cargando mensajes del grupo...
                 </div>
               )}
@@ -906,7 +906,7 @@ export default function GroupChatModal({
                     className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2 shadow-xs text-xs relative ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-xs text-xs sm:text-sm relative ${
                         isNotice
                           ? 'bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-100'
                           : isMe
@@ -917,10 +917,10 @@ export default function GroupChatModal({
                       {/* Remitente si no soy yo */}
                       {!isMe && (
                         <div className="flex items-center gap-1.5 mb-1">
-                          <span className="font-bold text-[11px] text-[#008069] dark:text-[#25d366]">
+                          <span className="font-bold text-xs text-[#008069] dark:text-[#25d366]">
                             {m.sender_name}
                           </span>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold">
                             {m.sender_role === 'CONDUCTOR_AFILIADO' ? 'Chofer' : m.sender_role === 'ENCARGADO_PARADERO' ? 'Despachador' : m.sender_role.includes('ADMIN') ? 'Admin' : 'Pasajero'}
                           </span>
                         </div>
@@ -928,25 +928,25 @@ export default function GroupChatModal({
 
                       {/* Aviso oficial */}
                       {isNotice && (
-                        <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-bold mb-1 text-[10.5px]">
-                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-bold mb-1 text-xs">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
                           <span>Aviso Oficial de Ruta / Tráfico</span>
                         </div>
                       )}
 
                       {/* Ubicación compartida */}
                       {isLocation && (
-                        <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-300 font-bold mb-1 text-[10.5px]">
-                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-300 font-bold mb-1 text-xs">
+                          <MapPin className="w-4 h-4 shrink-0" />
                           <span>Ubicación Compartida en Tiempo Real</span>
                         </div>
                       )}
 
-                      <p className="leading-relaxed whitespace-pre-wrap">{m.message}</p>
+                      <p className="leading-relaxed whitespace-pre-wrap font-medium">{m.message}</p>
 
-                      <div className="flex items-center justify-end gap-1 mt-1 text-[9.5px] text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                         <span>{formatTime(m.created_at)}</span>
-                        {isMe && <CheckCheck className="w-3.5 h-3.5 text-blue-500" />}
+                        {isMe && <CheckCheck className="w-4 h-4 text-blue-500" />}
                       </div>
                     </div>
                   </div>
@@ -956,22 +956,22 @@ export default function GroupChatModal({
             </div>
 
             {/* Acciones Rápidas (1 Toque) */}
-            <div className="px-3 py-1.5 bg-slate-50 dark:bg-[#161a20] border-t border-slate-200/80 dark:border-slate-800 flex items-center gap-2 overflow-x-auto text-[11px] no-scrollbar">
+            <div className="px-3 py-2 bg-slate-50 dark:bg-[#161a20] border-t border-slate-200/80 dark:border-slate-800 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
               <button
                 type="button"
                 onClick={() => handleSendMessage('📍 Me encuentro esperando en el paradero ahora mismo.', 'UBICACION')}
-                className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#20242b] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 whitespace-nowrap flex items-center gap-1 shadow-2xs"
+                className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#20242b] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 whitespace-nowrap flex items-center gap-1.5 shadow-2xs font-semibold active:scale-95"
               >
-                <MapPin className="w-3 h-3 text-blue-600" />
+                <MapPin className="w-3.5 h-3.5 text-blue-600" />
                 <span>Compartir ubicación</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSendMessage('⚠️ Tráfico lento en Panamericana Norte altura Óvalo Pativilca.', 'AVISO_RUTA')}
-                className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#20242b] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 whitespace-nowrap flex items-center gap-1 shadow-2xs"
+                className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#20242b] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 whitespace-nowrap flex items-center gap-1.5 shadow-2xs font-semibold active:scale-95"
               >
-                <AlertTriangle className="w-3 h-3 text-amber-600" />
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                 <span>Aviso de tráfico</span>
               </button>
             </div>
@@ -982,21 +982,22 @@ export default function GroupChatModal({
                 e.preventDefault();
                 handleSendMessage();
               }}
-              className="p-2.5 bg-white dark:bg-[#1e242b] border-t border-slate-200 dark:border-slate-800 flex items-center gap-2"
+              className="p-3 bg-white dark:bg-[#1e242b] border-t border-slate-200 dark:border-slate-800 flex items-center gap-2"
             >
               <input
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Escribe un mensaje al grupo..."
-                className="flex-1 px-4 py-2.5 rounded-2xl bg-slate-100 dark:bg-[#2a3942] text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-[#2a3942] text-slate-900 dark:text-white placeholder-slate-400 text-sm sm:text-base focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
               />
               <button
                 type="submit"
                 disabled={!inputText.trim()}
-                className="p-2.5 rounded-2xl bg-[#008069] hover:bg-[#006e5a] text-white disabled:opacity-40 transition shadow-xs"
+                className="w-12 h-12 rounded-2xl bg-[#008069] hover:bg-[#006e5a] text-white disabled:opacity-40 transition shadow-xs flex items-center justify-center shrink-0 active:scale-95"
+                aria-label="Enviar mensaje"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
               </button>
             </form>
           </>
