@@ -1,0 +1,71 @@
+classDiagram
+    class UsuarioBase {
+        +String id
+        +String email
+        +String fullName
+        +String phone
+        +UserRole activeRole
+        +AccountStatus status
+        +cambiarRol(UserRole nuevoRol)
+        +actualizarPerfil(Map datos)
+        +solicitarEliminacionCuenta()
+    }
+
+    class Pasajero {
+        +List~Paradero~ puntosHabituales
+        +activarPinEspera(GeoPoint ubicacion)
+        +iniciarAcuerdo(Conductor conductor, float precio)
+        +activarBotonPanico()
+    }
+
+    class Conductor {
+        +String numeroLicencia
+        +Vehiculo vehiculoAsignado
+        +actualizarDisponibilidad(VehicleStatus estado)
+        +reportarUbicacionGPS(GeoPoint coords)
+    }
+
+    class ConductorAfiliado {
+        +String empresaId
+        +verRadarDemandaGrupo()
+    }
+
+    class ConductorIndependiente {
+        +List~GrupoComunitario~ avales
+        +pactarSalaEfimera(Pasajero pasajero)
+    }
+
+    class EncargadoParadero {
+        +String paraderoAsignadoId
+        +Time turnoInicio
+        +Time turnoFin
+        +validarCandadoHorario() Boolean
+        +validarGeovallaGPS(GeoPoint gps) Boolean
+        +ajustarColaVehicular(int delta)
+        +subirFotoVerificacion(File imagen)
+    }
+
+    class AdministradorEmpresa {
+        +String empresaId
+        +aprobarConductor(String conductorId)
+        +asignarTurnoDespachador(EncargadoParadero despachador)
+        +configurarPuntosParada(List~Paradero~ puntos)
+    }
+
+    class Vehiculo {
+        +String placa
+        +String modelo
+        +VehicleType tipo
+        +List~Asiento~ distribucionAsientos
+        +CapacidadCarga carga
+        +GeoPoint ubicacionActual
+        +cambiarEstadoAsiento(String asientoId, SeatStatus nuevoEstado)
+    }
+
+    UsuarioBase <|-- Pasajero
+    UsuarioBase <|-- Conductor
+    Conductor <|-- ConductorAfiliado
+    Conductor <|-- ConductorIndependiente
+    UsuarioBase <|-- EncargadoParadero
+    UsuarioBase <|-- AdministradorEmpresa
+    Conductor o-- Vehiculo

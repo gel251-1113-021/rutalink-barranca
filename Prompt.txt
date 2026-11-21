@@ -1,0 +1,84 @@
+Actúa como un Arquitecto de Software Senior, Especialista en Ciberseguridad e Ingeniero Full-Stack. Construiremos desde cero el sistema "RutaLink" dentro de la carpeta madre "PROYET0_FERIA", organizado en 4 Sprints iterativos (Scrum) para tener el sistema 100% desplegado en producción, seguro y documentado.
+
+================================================================================
+1. LECTURA DE CONTEXTO OBLIGATORIA ANTES DE TOCAR CÓDIGO
+================================================================================
+Lee primero los archivos ubicados en la raíz de "PROYET0_FERIA":
+- "credenciales.txt" (contiene llaves de Supabase, GitHub, tokens MCP y variables de entorno).
+- "CONCEPTO.txt" (contiene la especificación funcional, reglas de negocio, roles, vehículos 2D y arquitectura completa del ecosistema RutaLink para la provincia de Barranca).
+- "Informe_Tecnico_RutaLink_UNAB-v2.docx" (documento base del informe académico de la UNAB).
+
+================================================================================
+2. REGLAS ESTRICTAS DE SEGURIDAD Y CALIDAD DE CÓDIGO (OBLIGATORIAS)
+================================================================================
+- SEGURIDAD DE CREDENCIALES: Jamás escribas llaves, tokens ni contraseñas en el código fuente. Usa exclusivamente variables de entorno (.env.local en frontend, .env en backend) y asegúrate desde el minuto 1 de que ".gitignore" bloquee todos los archivos ".env*", "credenciales.txt" y llaves privadas antes de cualquier commit.
+- VALIDACIÓN Y BLINDAJE BACKEND/BD:
+  * Activa Row Level Security (RLS) en TODAS las tablas de Supabase desde su creación, con políticas explícitas por rol.
+  * Valida todos los payloads de entrada en API REST y eventos de WebSockets usando esquemas estrictos (Zod) para prevenir inyecciones, datos corruptos o manipulación de roles desde el cliente.
+  * Sanitiza mensajes de chat y reseñas para evitar ataques XSS.
+  * Implementa Rate Limiting básico en endpoints críticos (login, envío de alertas de pánico, creación de salas) y verificación de JWT en el handshake de Socket.io.
+  * La lógica del Candado Horario (TBAC) y Geovalla (Geofencing) del Encargado de Paradero debe validarse estrictamente en el servidor/base de datos (usando zona horaria America/Lima), nunca solo ocultando botones en el frontend.
+- ESTILO DE CÓDIGO HUMANO (ANTI-IA):
+  * Código limpio, modular y escrito como un ingeniero senior. Prohibido dejar comentarios obvios, redundantes o estilo tutorial generados por IA; usa comentarios breves y técnicos en español únicamente donde expliquen una regla de negocio compleja.
+  * Aplica Programación Orientada a Objetos (POO) real en TypeScript (clases, interfaces, herencia, polimorfismo y patrones de diseño en el dominio).
+
+================================================================================
+3. REGLAS DE DISEÑO UI/UX (MINIMALISTA, EDITORIAL Y RESPONSIVO)
+================================================================================
+- Prohibido usar estéticas genéricas de IA (nada de gradientes morados/neón, tarjetas recargadas ni exceso de emojis).
+- Diseño sobrio, limpio, tipo editorial/mapa urbano (blanco hueso, gris pizarra, negro carbón y acentos semánticos funcionales solo para estados operativos: verde libre, ámbar alerta, rojo ocupado).
+- Prioriza la interactividad gráfica sobre el texto: planos SVG interactivos de los vehículos para tocar asientos/carga, Bottom Sheets deslizables sobre el mapa y tarjetas con revelación progresiva (3 niveles).
+- Responsividad total sin fallos: Cuidar z-index, márgenes seguros (safe-areas en móviles), desbordes de texto y superposición de controles tanto en celular (Mobile-First) como en tablet, laptop y PC.
+- Incluye selector de Modo Claro / Modo Oscuro (optimizado para conducción nocturna) y una Guía de Usuario interactiva integrada dentro de la propia web.
+
+================================================================================
+4. ESTRUCTURA DEL PROYECTO Y PROTOCOLO DE DOCUMENTACIÓN CONTINUA
+================================================================================
+Estructura de carpetas en "PROYET0_FERIA":
+- "/frontend": Next.js (App Router) + TypeScript + Tailwind CSS + React-Leaflet (CartoDB Voyager) + OSRM + PWA (manifest + service worker) + caché offline (IndexedDB).
+- "/backend": Node.js + TypeScript + Express + Socket.io + Zod.
+- "/docs": Documentación viva del proyecto y scripts SQL ("/docs/sql/").
+
+En CADA Sprint debes actualizar automáticamente los siguientes 3 documentos en "/docs" (manteniendo el formato académico monocromático del informe):
+1) "Informe_Tecnico_RutaLink_UNAB-v2.docx": Agrega el registro íntegro de cada script SQL ejecutado en Supabase (también guárdalos como archivos .sql numerados en "/docs/sql/"), arquitectura aplicada, avance Scrum y resultados de pruebas.
+2) "Manual_Funcionalidades_y_Guia_Usuario_RutaLink.docx": Documenta detalladamente cada herramienta y flujo paso a paso por rol (Invitado, Pasajero, Conductor, Grupo, Encargado de Paradero y Admin).
+3) "Diagramas_Arquitectura_RutaLink.docx": Crea y actualiza este documento incluyendo los diagramas técnicos (DER, Clases UML, Arquitectura de Red/Despliegue y Secuencias de WebSockets/TBAC) guardando también sus fuentes editables en "/docs/diagramas/".
+
+================================================================================
+5. PLAN DE DESARROLLO EN 4 SPRINTS Y REGLA DE ENTREGA POR SPRINT
+================================================================================
+Trabajaremos Sprint por Sprint. Al finalizar cada Sprint, DETENTE y entrégame obligatoriamente:
+1) Resumen técnico de lo implementado y los archivos/documentos actualizados.
+2) Credenciales o acceso de las cuentas de prueba creadas en Supabase.
+3) Una CHECKLIST DE PRUEBAS PASO A PASO indicándome exactamente qué debo probar en PC y celular (incluyendo pruebas de seguridad) antes de autorizarte a iniciar el siguiente Sprint.
+
+ALCANCE POR SPRINT:
+- SPRINT 1 (Cimientos, Seguridad de Cuentas y Despliegue Vivo):
+  * Conexión MCP a Supabase, activación de PostGIS, creación del esquema SQL completo con políticas RLS y guardado en "/docs/sql/01_schema_rutalink.sql" + informe Word.
+  * Creación automática vía script Seed (usando Supabase Admin API) de 5 cuentas de prueba verificadas (Admin Empresa, Encargado Paradero, Conductor Afiliado, Conductor Independiente y Pasajero) con datos reales de Barranca (UNAB, Supe, Pativilca, Paramonga).
+  * Ciclo completo de cuentas: Registro (Correo/Contraseña + flujo preparado para Google OAuth), Inicio de sesión, Cierre de sesión seguro (limpieza de sesión/tokens), Recuperación de contraseña, Edición de perfil base, Eliminación de cuenta (con confirmación y borrado seguro) y Modo Invitado sin login.
+  * Mapa interactivo base centrado en Barranca con Bottom Sheet inicial, cambio de Modo Claro/Oscuro y configuración lista para desplegar hoy mismo en Vercel (frontend) y Render (backend) con HTTPS.
+
+- SPRINT 2 (Grupos, Encargado con Candado Horario y Constructor 2D de Vehículos):
+  * Creación y gestión de Grupos Empresariales y Comunitarios (invitaciones, aprobación de choferes "en espera", roles intercambiables estilo WhatsApp).
+  * Gestión de Paradero Base Físico y Puntos de Parada en Zonas Tranquilas.
+  * Módulo de Encargado de Paradero con validación estricta en backend de Candado Horario (TBAC) y Geovalla GPS (100m), contador +1/-1 de unidades en cola y captura fotográfica en vivo desde cámara hacia Supabase Storage.
+  * Constructor Interactivo 2D (SVG) de Vehículos ("Diseña tu Unidad": plantillas Sedán, SUV, Miniván, Combi, edición de asientos y configuración de maletera/parrilla/carga).
+
+- SPRINT 3 (Tiempo Real WebSockets, Cabina Táctil, Rutas OSRM y Mensajería):
+  * Tracking GPS en vivo con throttling (5s / >15m), filtrado espacial Bounding Box (PostGIS ST_Within) e interpolación suave de marcadores.
+  * Control táctil de Cabina en Vivo (tocar asientos Libre/Ocupado y estado de carga sincronizado por Socket.io en <1s) y vista "Ver Vehículo" digital para el pasajero.
+  * Buscador "¿A dónde vas?" y trazado de rutas bajo demanda (Nivel 1 hitos y Nivel 2 calles vía OSRM/GeoJSON).
+  * Mensajería multinivel: Chat persistente de grupo, alertas rápidas "Estoy esperando aquí" con lectura por voz (Web Speech API) para el chofer, y Salas Efímeras 1 a 1 obligatorias para cerrar acuerdos auditados con Conductores Independientes.
+
+- SPRINT 4 (Seguridad Activa, Dashboards, Offline, Guía Integrada y Cierre):
+  * Modo "Viaje Seguro" (enlace público temporal compartible por WhatsApp) y Botón de Pánico (pulsación 3s con alerta a Admin y contacto SOS).
+  * Dashboards personalizables por jerarquía de importancia y analítica operativa para empresas.
+  * Resiliencia Offline (IndexedDB para GPS de chofer en carretera/anexos + Modo Lista Ligera para pasajeros) y configuración PWA completa.
+  * Guía de Usuario interactiva integrada dentro de la interfaz web y Simulador GPS oculto para demostración en vivo.
+  * Revisión final de seguridad, pruebas integrales y cierre completo de los 3 documentos en "/docs".
+
+================================================================================
+INSTRUCCIÓN DE ARRANQUE INMEDIATO
+================================================================================
+Lee ahora mismo "credenciales.txt", "CONCEPTO.txt" e "Informe_Tecnico_RutaLink_UNAB-v2.docx". Preséntame brevemente tu verificación de lectura y comienza de inmediato con la ejecución completa del SPRINT 1.

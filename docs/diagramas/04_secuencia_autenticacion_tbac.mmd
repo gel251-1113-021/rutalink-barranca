@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+    actor U as Usuario (Invitado / Registrado)
+    participant F as Frontend Next.js PWA
+    participant B as Backend Express API
+    participant S as Supabase Auth & PostgreSQL
+    actor D as Despachador de Paradero
+
+    %% Escenario 1: Modo Invitado
+    Note over U,S: Escenario 1: Navegación Cero Fricción (Modo Invitado)
+    U->>F: Abre la plataforma web RutaLink
+    F->>B: GET /api/stops & GET /api/vehicles
+    B->>S: SELECT ST_X, ST_Y, queued_count FROM stops/vehicles
+    S-->>B: Datos públicos geoespaciales
+    B-->>F: Lista de paraderos y unidades activas
+    F-->>U: Renderiza mapa de Barranca y Bottom Sheet de 3 niveles
+
+    %% Escenario 2: Autenticación e Intercambio de Rol
+    Note over U,S: Escenario 2: Login y Switch de Rol Dinámico
+    U->>F: Ingresa credenciales (email + contraseña)
+    F->>S: supabase.auth.signInWithPassword()
+    S-->>F: Retorna JWT Session Token + Profile
+    F-->>U: Actualiza Header con insignia de rol y selector activo
+
+    %% Escenario 3: Validación TBAC y Geofencing de Despachador
+    Note over D,S: Escenario 3: Actualización de Cola Vehicular (Candado Horario TBAC)
+    D->>F: Presiona botón "+1 Carro en cola" en Paradero Central
+    F->>B: POST /api/dispatcher/update-queue (Token + GPS actual)
+    B->>B: 1. Valida hora local en America/Lima dentro del turno (06:00 - 21:00)
+    B->>S: 2. Valida PostGIS ST_DWithin(gps_despachador, ubicacion_paradero, 100m)
+    alt Validación Exitosa
+        B->>S: UPDATE stop_live_status SET queued_count = queued_count + 1
+        S-->>B: OK
+        B->>F: Broadcast Socket.io ('stop_updated') a todos los clientes
+        F-->>U: Actualiza globo en mapa de pasajeros en < 1 segundo
+    else Fuera de Turno o Fuera de Geovalla
+        B-->>F: HTTP 403 Forbidden ("Fuera de horario operativo o radio GPS")
+        F-->>D: Muestra alerta de bloqueo de seguridad
+    end

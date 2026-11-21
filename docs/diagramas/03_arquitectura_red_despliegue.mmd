@@ -1,0 +1,32 @@
+graph TD
+    subgraph CLIENTE["Frontend PWA (Vercel)"]
+        UI["Next.js 14 App Router + Tailwind CSS"]
+        MAP["React-Leaflet + CartoDB Voyager"]
+        OFFLINE["IndexedDB + Service Worker PWA"]
+        AUTH_CTX["AuthContext (Supabase Auth Client)"]
+    end
+
+    subgraph API_SERVER["Backend API & Realtime (Render)"]
+        EXPRESS["Node.js + Express REST API"]
+        SOCKET["Socket.io Server (WSS Realtime)"]
+        TBAC["Middleware TBAC & Geofencing (America/Lima)"]
+        ZOD["Validación de Esquemas Zod"]
+    end
+
+    subgraph CLOUD_DATA["Infraestructura de Datos (Supabase Cloud)"]
+        PG["PostgreSQL 15+"]
+        POSTGIS["Extensión PostGIS (Spatial GIST)"]
+        RLS["Row Level Security (RLS)"]
+        STORAGE["Supabase Storage (Fotos en vivo Paradero)"]
+        AUTH_DB["auth.users (JWT + Refresh Tokens)"]
+    end
+
+    CLIENTE -->|HTTPS REST| EXPRESS
+    CLIENTE -->|WSS WebSockets| SOCKET
+    CLIENTE -->|JWT Auth Handshake| AUTH_DB
+    EXPRESS -->|Zod Validated| TBAC
+    TBAC -->|Pool Conexión Directa| PG
+    SOCKET -->|Eventos Tiempo Real| PG
+    PG --- POSTGIS
+    PG --- RLS
+    EXPRESS -->|API Upload| STORAGE
