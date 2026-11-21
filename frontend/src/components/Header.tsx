@@ -271,22 +271,22 @@ export default function Header({
                 )}
               </div>
 
-              {/* Botón de Historial de Viajes */}
+              {/* Botón de Historial de Viajes (Visible en sm y superior; en móvil está en barra inferior y drawer) */}
               {onOpenHistory && (
                 <button
                   onClick={onOpenHistory}
                   title="Ver mi historial de viajes"
-                  className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition"
+                  className="hidden sm:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition"
                 >
                   <Clock className="w-3.5 h-3.5 text-blue-600" />
                   <span className="hidden sm:inline font-semibold">Historial</span>
                 </button>
               )}
 
-              {/* Botón de Perfil */}
+              {/* Botón de Perfil (Visible en sm y superior; en móvil está en drawer) */}
               <button
                 onClick={onOpenProfile}
-                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition"
+                className="hidden sm:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition"
               >
                 <User className="w-3.5 h-3.5" />
                 <span className="hidden md:inline font-semibold truncate max-w-[120px]">
@@ -305,13 +305,14 @@ export default function Header({
             </div>
           )}
 
-          {/* Botón Menú Móvil Hamburger (Solo teléfonos - Da acceso a TODAS las opciones sin cortes) */}
+          {/* Botón Menú Móvil (Solo teléfonos - Acceso a todas las opciones y herramientas) */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            aria-label="Abrir menú de herramientas"
-            className="sm:hidden p-2.5 rounded-2xl text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center shrink-0 shadow-2xs border border-slate-200/80 dark:border-slate-700 active:scale-95"
+            aria-label="Abrir menú de opciones"
+            className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition shrink-0 border border-slate-200/80 dark:border-slate-700 active:scale-95 text-xs font-bold shadow-2xs mr-0.5"
           >
-            <Menu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <Menu className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Menú</span>
           </button>
         </div>
       </div>

@@ -108,9 +108,9 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     max_cargo_kg: 45,
     cargo_status: 'VACIO',
     status: 'DISPONIBLE',
-    latitude: -10.7500,
-    longitude: -77.7580,
-    current_heading: 85,
+    latitude: -10.7538,
+    longitude: -77.7612,
+    current_heading: 110,
     driver_name: 'Jorge Huamán Castillo',
     driver_phone: '+51 987654323',
     driver_rating: 4.8,
@@ -145,9 +145,9 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     max_cargo_kg: 150,
     cargo_status: 'DISPONIBLE',
     status: 'DISPONIBLE',
-    latitude: -10.7535,
-    longitude: -77.7630,
-    current_heading: 120,
+    latitude: -10.7280,
+    longitude: -77.7580,
+    current_heading: 340,
     driver_name: 'Pedro Chumpitaz Solís',
     driver_phone: '+51 987654330',
     driver_rating: 4.9,
@@ -174,8 +174,8 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     max_cargo_kg: 80,
     cargo_status: 'DISPONIBLE',
     status: 'DISPONIBLE',
-    latitude: -10.7485,
-    longitude: -77.7550,
+    latitude: -10.7435,
+    longitude: -77.7480,
     current_heading: 45,
     driver_name: 'Carlos Morales Echevarría',
     driver_phone: '+51 987654313',
@@ -201,9 +201,9 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     max_cargo_kg: 120,
     cargo_status: 'DISPONIBLE',
     status: 'DISPONIBLE',
-    latitude: -10.7510,
-    longitude: -77.7595,
-    current_heading: 180,
+    latitude: -10.7780,
+    longitude: -77.7420,
+    current_heading: 150,
     driver_name: 'Walter Rosales Díaz',
     driver_phone: '+51 987654324',
     driver_rating: 4.7,
@@ -227,8 +227,8 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     max_cargo_kg: 20,
     cargo_status: 'DISPONIBLE',
     status: 'DISPONIBLE',
-    latitude: -10.7525,
-    longitude: -77.7600,
+    latitude: -10.7505,
+    longitude: -77.7635,
     current_heading: 270,
     driver_name: 'Luis Morales Pajuelo',
     driver_phone: '+51 987654329',
@@ -734,22 +734,24 @@ export default function HomePage() {
             </button>
           </div>
         ) : (
-          /* Pasajero: Selector de estado contextual fluido sin desbordes */
-          <div className="w-full flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 px-1">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0">
-              Mi estado:
-            </span>
-            <div className="flex items-center gap-1.5 shrink-0">
+          /* Pasajero: Selector de estado contextual adaptativo (4 columnas en móvil, barra completa en PC) */
+          <div className="w-full grid grid-cols-4 gap-1.5 sm:flex sm:items-center sm:justify-between sm:gap-2">
+            <div className="contents sm:flex sm:items-center sm:gap-2">
+              <span className="hidden sm:inline text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0">
+                Mi estado:
+              </span>
               <button
                 type="button"
                 onClick={() => setPassengerContextState('CAMINO')}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 shrink-0 whitespace-nowrap ${
+                className={`py-1.5 px-1 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 flex items-center justify-center gap-1 ${
                   passengerContextState === 'CAMINO'
                     ? 'bg-blue-600 text-white shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
               >
-                🚶 En camino
+                <span>🚶</span>
+                <span className="hidden sm:inline">En camino</span>
+                <span className="sm:hidden text-[11px]">Camino</span>
               </button>
               <button
                 type="button"
@@ -762,24 +764,28 @@ export default function HomePage() {
                   });
                   setTimeout(() => setNotificationToast(null), 3000);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 shrink-0 whitespace-nowrap ${
+                className={`py-1.5 px-1 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 flex items-center justify-center gap-1 ${
                   passengerContextState === 'ESPERANDO'
                     ? 'bg-emerald-600 text-white shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
               >
-                📍 Esperando
+                <span>📍</span>
+                <span className="hidden sm:inline">Esperando</span>
+                <span className="sm:hidden text-[11px]">Espera</span>
               </button>
               <button
                 type="button"
                 onClick={() => setPassengerContextState('A_BORDO')}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 shrink-0 whitespace-nowrap ${
+                className={`py-1.5 px-1 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 flex items-center justify-center gap-1 ${
                   passengerContextState === 'A_BORDO'
                     ? 'bg-indigo-600 text-white shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
               >
-                🚗 A bordo
+                <span>🚗</span>
+                <span className="hidden sm:inline">A bordo</span>
+                <span className="sm:hidden text-[11px]">A bordo</span>
               </button>
             </div>
 
@@ -789,11 +795,11 @@ export default function HomePage() {
                 setSelectedDriverForAgreement(null);
                 setAgreementModalOpen(true);
               }}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-xs flex items-center gap-1.5 transition active:scale-95 shrink-0 whitespace-nowrap"
+              className="py-1.5 px-1 sm:px-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-1 transition active:scale-95"
             >
               <span>🚖</span>
               <span className="hidden sm:inline">Pactar Carrera Expreso</span>
-              <span className="sm:hidden">Pactar Carrera</span>
+              <span className="sm:hidden text-[11px]">Carrera</span>
             </button>
           </div>
         )}

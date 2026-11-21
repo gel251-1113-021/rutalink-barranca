@@ -108,7 +108,7 @@ export default function RutaLinkLogo({ size = 'md', showSubtitle = true, classNa
           </span>
         </div>
         {showSubtitle && (
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-tight mt-0.5">
+          <span className="hidden sm:block text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-tight mt-0.5">
             Red de Movilidad Provincial · UNAB
           </span>
         )}
