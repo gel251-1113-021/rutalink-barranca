@@ -254,4 +254,49 @@ router.get('/custom', async (_req: Request, res: Response): Promise<void> => {
   }
 });
 
+// POST /api/routes/assign (El administrador asigna una ruta a todos los vehículos de su empresa/comité)
+router.post('/assign', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { routeId, routeName, groupId } = req.body;
+
+    if (!groupId || !routeName) {
+      res.status(400).json({ error: 'Se requiere groupId y routeName' });
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      const updateQuery = `
+        UPDATE public.vehicles
+        SET route_id = $1,
+            last_location_update = NOW()
+        WHERE group_id = $2
+        RETURNING id, plate, brand_model, route_id;
+      `;
+      const result = await client.query(updateQuery, [routeId || null, groupId]);
+
+      if (io) {
+        io.to('barranca_live_map').emit('route_assigned_to_fleet', {
+          groupId,
+          routeId,
+          routeName,
+          updatedVehiclesCount: result.rowCount,
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      res.json({
+        message: `Ruta asignada a ${result.rowCount} unidades de la flota`,
+        assignedCount: result.rowCount,
+        routeName
+      });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Assign Route Error]:', err);
+    res.status(500).json({ error: 'Error al asignar ruta a la flota' });
+  }
+});
+
 export default router;

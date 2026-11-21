@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Map, Car, MessageSquare, PhoneCall, Route, Shield } from 'lucide-react';
+import { Map, Car, MessageSquare, PhoneCall, Route, Clock } from 'lucide-react';
 
 interface BottomNavBarProps {
-  activeTab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder';
-  onSelectTab: (tab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder') => void;
+  activeTab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder' | 'history';
+  onSelectTab: (tab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder' | 'history') => void;
   userRole?: string;
   unreadChatCount?: number;
 }
@@ -18,6 +18,7 @@ export default function BottomNavBar({
 }: BottomNavBarProps) {
   const isDriver = userRole === 'CONDUCTOR_AFILIADO' || userRole === 'CONDUCTOR_INDEPENDIENTE';
   const isAdmin = userRole === 'ADMIN_EMPRESA' || userRole === 'SUPERADMIN';
+  const isPassenger = userRole === 'PASAJERO';
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#111317]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/90 shadow-lg px-2 py-1 safe-area-bottom">
@@ -38,21 +39,38 @@ export default function BottomNavBar({
           <span className="text-[11px] mt-0.5">Mapa</span>
         </button>
 
-        {/* 2. Cabina de Conductor / Mi Viaje */}
-        <button
-          type="button"
-          onClick={() => onSelectTab('driver')}
-          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all relative ${
-            activeTab === 'driver'
-              ? 'text-blue-600 dark:text-blue-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-          }`}
-        >
-          <div className={`p-1 rounded-xl transition ${activeTab === 'driver' ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
-            <Car className="w-5 h-5" />
-          </div>
-          <span className="text-[11px] mt-0.5">{isDriver ? 'Mi Cabina' : 'Chofer'}</span>
-        </button>
+        {/* 2. Para Conductor: Mi Cabina | Para Pasajero: Mis Viajes */}
+        {isDriver ? (
+          <button
+            type="button"
+            onClick={() => onSelectTab('driver')}
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all relative ${
+              activeTab === 'driver'
+                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <div className={`p-1 rounded-xl transition ${activeTab === 'driver' ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
+              <Car className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] mt-0.5">Mi Cabina</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onSelectTab('history')}
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all relative ${
+              activeTab === 'history'
+                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <div className={`p-1 rounded-xl transition ${activeTab === 'history' ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
+              <Clock className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] mt-0.5">Mis Viajes</span>
+          </button>
+        )}
 
         {/* 3. Chat Grupal (WhatsApp) */}
         <button
@@ -91,21 +109,23 @@ export default function BottomNavBar({
           <span className="text-[11px] mt-0.5">Contactos</span>
         </button>
 
-        {/* 5. Creador de Rutas (Para Administradores o trazado) */}
-        <button
-          type="button"
-          onClick={() => onSelectTab('builder')}
-          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all ${
-            activeTab === 'builder'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-          }`}
-        >
-          <div className={`p-1 rounded-xl transition ${activeTab === 'builder' ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
-            <Route className="w-5 h-5" />
-          </div>
-          <span className="text-[11px] mt-0.5">Trazar</span>
-        </button>
+        {/* 5. Creador de Rutas (Para Administradores o conductores autorizados) */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => onSelectTab('builder')}
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all ${
+              activeTab === 'builder'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <div className={`p-1 rounded-xl transition ${activeTab === 'builder' ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
+              <Route className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] mt-0.5">Trazar</span>
+          </button>
+        )}
       </div>
     </nav>
   );

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X, Phone, MessageCircle, Star, Users, MapPin, CheckCircle, Navigation } from 'lucide-react';
+import VehicleDigitalModel, { VehicleCategoryIcon } from '../Branding/VehicleModels';
 
 interface Seat {
   id: string;
@@ -69,7 +70,7 @@ export default function VehicleInspectModal({
         <div className="px-5 py-4 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-lg">
-              🚗
+              <VehicleCategoryIcon category={vehicle.vehicle_type || 'SEDAN'} />
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold tracking-wider text-blue-200 block">
@@ -106,61 +107,13 @@ export default function VehicleInspectModal({
               </span>
             </div>
 
-            {/* Chasis estilizado del carro (Vista aérea) */}
-            <div className="relative w-44 mx-auto bg-white dark:bg-[#0f1115] rounded-[36px] p-4 border-2 border-slate-400 dark:border-slate-600 shadow-md">
-              
-              {/* Luces y Parabrisas Delantero */}
-              <div className="w-full h-3 bg-blue-200 dark:bg-blue-900/50 rounded-full mb-3 border border-blue-300 dark:border-blue-700 flex items-center justify-center">
-                <span className="text-[7.5px] font-bold text-blue-700 dark:text-blue-300">PARABRISAS</span>
-              </div>
-
-              {/* Fila Delantera */}
-              <div className="grid grid-cols-2 gap-2.5 mb-3">
-                {/* Conductor */}
-                <div className="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 flex flex-col items-center">
-                  <span className="text-xs">🧑‍✈️</span>
-                  <span className="text-[8px] font-bold text-slate-600 dark:text-slate-400 mt-0.5">Chofer</span>
-                </div>
-
-                {/* Copiloto */}
-                <div className={`p-2 rounded-xl border flex flex-col items-center transition ${
-                  seats.find(s => s.id === 's1')?.status === 'occupied'
-                    ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 text-rose-700 dark:text-rose-300'
-                    : 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 text-emerald-700 dark:text-emerald-300'
-                }`}>
-                  <span className="text-xs">{seats.find(s => s.id === 's1')?.status === 'occupied' ? '👤' : '💺'}</span>
-                  <span className="text-[8px] font-bold mt-0.5">
-                    {seats.find(s => s.id === 's1')?.status === 'occupied' ? 'Ocupado' : 'LIBRE'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Fila Trasera */}
-              <div className="grid grid-cols-3 gap-1.5">
-                {['s2', 's3', 's4'].map((id) => {
-                  const s = seats.find(item => item.id === id);
-                  const isOcc = s?.status === 'occupied';
-
-                  return (
-                    <div
-                      key={id}
-                      className={`p-1.5 rounded-xl border flex flex-col items-center ${
-                        isOcc
-                          ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 text-rose-700 dark:text-rose-300'
-                          : 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 text-emerald-700 dark:text-emerald-300'
-                      }`}
-                    >
-                      <span className="text-[10px]">{isOcc ? '👤' : '💺'}</span>
-                      <span className="text-[7.5px] font-bold mt-0.5">
-                        {isOcc ? 'Ocupado' : 'LIBRE'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Luneta y Maletera Trasera */}
-              <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full mt-3 border border-slate-300 dark:border-slate-700"></div>
+            {/* Modelo Digital SVG Vectorial */}
+            <div className="py-2 flex justify-center">
+              <VehicleDigitalModel
+                category={vehicle.vehicle_type || 'SEDAN'}
+                seats={seats}
+                interactive={false}
+              />
             </div>
           </div>
 

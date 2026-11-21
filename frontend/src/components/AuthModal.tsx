@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { X, Mail, Lock, User, Phone, CheckCircle2, AlertCircle, Compass } from 'lucide-react';
+import { X, Mail, Lock, User, Phone, CheckCircle2, AlertCircle } from 'lucide-react';
+import { RutaLinkIsotype } from './Branding/RutaLinkLogo';
+import AvatarSelector from './Branding/AvatarSelector';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -20,6 +22,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<UserRole>('PASAJERO');
+  const [avatarId, setAvatarId] = useState('av_passenger_work');
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -93,9 +96,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         {/* Cabecera del Modal */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/50 flex items-center justify-center font-bold">
-              <Compass className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </div>
+            <RutaLinkIsotype className="w-8 h-8" />
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 {tab === 'login' ? 'Iniciar Sesión' : tab === 'register' ? 'Crear Cuenta' : 'Recuperar Contraseña'}
@@ -319,6 +320,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </div>
               </div>
 
+              {/* Selector de Avatar Digital Ligero (Zero Storage) */}
+              <div className="pt-1">
+                <AvatarSelector selectedId={avatarId} onSelect={setAvatarId} />
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -350,6 +356,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                   />
                 </div>
+              </div>
+
+              {/* Selector de Avatar Digital Ligero (Zero Storage) */}
+              <div className="pt-1">
+                <AvatarSelector selectedId={avatarId} onSelect={setAvatarId} />
               </div>
 
               <button

@@ -18,12 +18,15 @@ import {
   MessageSquare,
   BarChart3,
   Wifi,
-  WifiOff
+  WifiOff,
+  Clock
 } from 'lucide-react';
+import RutaLinkLogo from './Branding/RutaLinkLogo';
 
 interface HeaderProps {
   onOpenAuth: () => void;
   onOpenProfile: () => void;
+  onOpenHistory?: () => void;
   onOpenVehicleDesigner?: () => void;
   onOpenDispatcherPanel?: () => void;
   onOpenGroupManagement?: () => void;
@@ -70,6 +73,7 @@ const ROLE_LABELS: Record<UserRole, { label: string; badgeClass: string; icon: a
 export default function Header({ 
   onOpenAuth, 
   onOpenProfile, 
+  onOpenHistory,
   onOpenVehicleDesigner,
   onOpenDispatcherPanel,
   onOpenGroupManagement,
@@ -97,36 +101,21 @@ export default function Header({
   return (
     <header className="relative z-30 w-full bg-white/95 dark:bg-[#121417]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 py-2.5 transition-colors duration-200">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-        {/* Logo & Marca */}
-        <div className="flex items-center gap-2.5 cursor-pointer">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-2xs">
-            <Compass className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-slate-50">
-                RutaLink
+        {/* Logo Oficial de Barranca & Marca */}
+        <div className="flex items-center gap-2 cursor-pointer">
+          <RutaLinkLogo size="md" showSubtitle={true} />
+          {/* Indicador de Red */}
+          <div 
+            title={isOffline ? 'Sin conexión de red - Modo Off-Grid' : 'Conectado a la red de Barranca'}
+            className="flex items-center ml-1"
+          >
+            {isOffline ? (
+              <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-full border border-amber-200/60">
+                <WifiOff className="w-3 h-3" /> Offline
               </span>
-              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/50">
-                Barranca
-              </span>
-              {/* Indicador de Red */}
-              <div 
-                title={isOffline ? 'Sin conexión de red - Modo Off-Grid' : 'Conectado a la red de Barranca'}
-                className="flex items-center ml-1"
-              >
-                {isOffline ? (
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200/60">
-                    <WifiOff className="w-3 h-3" /> Offline
-                  </span>
-                ) : (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                )}
-              </div>
-            </div>
-            <p className="text-[10.5px] text-slate-500 hidden sm:block -mt-0.5">
-              UNAB · Supe · Pativilca · Paramonga
-            </p>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            )}
           </div>
         </div>
 
@@ -257,6 +246,18 @@ export default function Header({
                   </div>
                 )}
               </div>
+
+              {/* Botón de Historial de Viajes */}
+              {onOpenHistory && (
+                <button
+                  onClick={onOpenHistory}
+                  title="Ver mi historial de viajes"
+                  className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition"
+                >
+                  <Clock className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="hidden sm:inline font-semibold">Historial</span>
+                </button>
+              )}
 
               {/* Botón de Perfil */}
               <button

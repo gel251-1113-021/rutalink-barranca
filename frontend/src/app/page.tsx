@@ -20,6 +20,7 @@ import GroupChatModal from '../components/Chat/GroupChatModal';
 import ContactsModal from '../components/Contacts/ContactsModal';
 import VehicleInspectModal from '../components/VehicleViewer/VehicleInspectModal';
 import RouteBuilderModal from '../components/RouteBuilder/RouteBuilderModal';
+import TripHistoryModal from '../components/Trips/TripHistoryModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -196,11 +197,12 @@ export default function HomePage() {
 
   // Estados de Tema y Navegación Móvil
   const [darkMode, setDarkMode] = useState<boolean>(false);
-  const [activeMobileTab, setActiveMobileTab] = useState<'map' | 'driver' | 'chat' | 'contacts' | 'builder'>('map');
+  const [activeMobileTab, setActiveMobileTab] = useState<'map' | 'driver' | 'chat' | 'contacts' | 'builder' | 'history'>('map');
 
   // Modales Generales
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
+  const [tripHistoryOpen, setTripHistoryOpen] = useState<boolean>(false);
   const [vehicleDesignerOpen, setVehicleDesignerOpen] = useState<boolean>(false);
   const [dispatcherPanelOpen, setDispatcherPanelOpen] = useState<boolean>(false);
   const [groupManagementOpen, setGroupManagementOpen] = useState<boolean>(false);
@@ -466,10 +468,11 @@ export default function HomePage() {
     }
   };
 
-  // Manejador de navegación inferior
-  const handleSelectBottomTab = (tab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder') => {
+  // Manejador de navegación inferior adaptado por rol
+  const handleSelectBottomTab = (tab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder' | 'history') => {
     setActiveMobileTab(tab);
     if (tab === 'driver') setDriverCockpitOpen(true);
+    if (tab === 'history') setTripHistoryOpen(true);
     if (tab === 'chat') setGroupChatOpen(true);
     if (tab === 'contacts') setContactsOpen(true);
     if (tab === 'builder') setRouteBuilderOpen(true);
@@ -481,6 +484,7 @@ export default function HomePage() {
       <Header
         onOpenAuth={() => setAuthModalOpen(true)}
         onOpenProfile={() => setProfileModalOpen(true)}
+        onOpenHistory={() => setTripHistoryOpen(true)}
         onOpenVehicleDesigner={() => setVehicleDesignerOpen(true)}
         onOpenDispatcherPanel={() => setDispatcherPanelOpen(true)}
         onOpenGroupManagement={() => setGroupManagementOpen(true)}
@@ -684,6 +688,14 @@ export default function HomePage() {
         onRouteSaved={(newR) => {
           setRoutes(prev => [...prev, newR]);
         }}
+      />
+
+      {/* 6. Modal Historial de Viajes (Pasajero y Conductor) */}
+      <TripHistoryModal
+        isOpen={tripHistoryOpen}
+        onClose={() => setTripHistoryOpen(false)}
+        userId={user?.id}
+        userRole={currentRole}
       />
 
       {/* Modales Existentes */}

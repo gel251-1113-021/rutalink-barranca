@@ -78,7 +78,10 @@ export default function RouteBuilderModal({
     }
   };
 
-  // Guardar ruta construida
+  const [assignToFleet, setAssignToFleet] = useState(true);
+  const [selectedGroupId, setSelectedGroupId] = useState('b0000000-0000-0000-0000-000000000001');
+
+  // Guardar ruta construida y asignar a la flota si está marcado
   const handleSaveRoute = async () => {
     if (!routeName.trim() || !calculatedRoute) return;
 
@@ -97,8 +100,25 @@ export default function RouteBuilderModal({
 
       if (res.ok) {
         const data = await res.json();
-        setSuccessMsg(`¡Ruta "${routeName}" guardada con éxito!`);
-        if (onRouteSaved) onRouteSaved(data.route);
+        const saved = data.route;
+
+        // Si se seleccionó asignar a la flota del comité
+        if (assignToFleet && selectedGroupId) {
+          await fetch('/api/routes/assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              routeId: saved.id,
+              routeName: routeName.trim(),
+              groupId: selectedGroupId
+            })
+          });
+          setSuccessMsg(`¡Ruta "${routeName}" guardada y asignada a toda la flota de la empresa!`);
+        } else {
+          setSuccessMsg(`¡Ruta "${routeName}" guardada con éxito!`);
+        }
+
+        if (onRouteSaved) onRouteSaved(saved);
         setTimeout(() => {
           onClose();
         }, 1500);
@@ -234,7 +254,7 @@ export default function RouteBuilderModal({
 
           {/* Resumen del cálculo vial */}
           {calculatedRoute && (
-            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 animate-in fade-in space-y-1 text-xs">
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 animate-in fade-in space-y-2 text-xs">
               <div className="flex items-center justify-between font-bold">
                 <span>✓ Trazado sobre pista calculado</span>
                 <span className="text-emerald-700 dark:text-emerald-300">{calculatedRoute.distanceKm} km</span>
@@ -242,6 +262,33 @@ export default function RouteBuilderModal({
               <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
                 Tiempo estimado de viaje: <strong>{calculatedRoute.durationMin} minutos</strong> a velocidad crucero.
               </p>
+
+              {/* Asignación masiva a la flota del comité */}
+              <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800 space-y-1.5">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={assignToFleet}
+                    onChange={(e) => setAssignToFleet(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 rounded"
+                  />
+                  <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                    Asignar esta ruta a toda la flota de mi empresa / comité
+                  </span>
+                </label>
+
+                {assignToFleet && (
+                  <select
+                    value={selectedGroupId}
+                    onChange={(e) => setSelectedGroupId(e.target.value)}
+                    className="w-full mt-1 px-3 py-2 bg-white dark:bg-[#1a1e25] border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 font-semibold"
+                  >
+                    <option value="b0000000-0000-0000-0000-000000000001">Comité 1 de Transporte Barranca - Supe - UNAB</option>
+                    <option value="b0000000-0000-0000-0000-000000000002">Comunidad Universitaria UNAB - Viajes Compartidos</option>
+                    <option value="b0000000-0000-0000-0000-000000000003">Línea Expreso Pativilca - Paramonga - Barranca</option>
+                  </select>
+                )}
+              </div>
             </div>
           )}
 

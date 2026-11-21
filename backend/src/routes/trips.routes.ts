@@ -149,4 +149,92 @@ router.post('/:id/messages', requireAuth, async (req: AuthenticatedRequest, res:
   }
 });
 
+// GET /api/trips/history/:userId (Historial de viajes de pasajero o conductor)
+router.get('/history/:userId', async (req, res): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const client = await pool.connect();
+    try {
+      const query = `
+        SELECT 
+          ta.id,
+          ta.origin_name,
+          ta.destination_name,
+          ta.agreed_price,
+          ta.status,
+          ta.rating,
+          ta.review_comment,
+          ta.created_at,
+          p_driver.full_name AS driver_name,
+          p_pass.full_name AS passenger_name,
+          v.plate AS vehicle_plate,
+          v.brand_model AS vehicle_model
+        FROM public.trips_and_agreements ta
+        LEFT JOIN public.profiles p_driver ON ta.driver_id = p_driver.id
+        LEFT JOIN public.profiles p_pass ON ta.passenger_id = p_pass.id
+        LEFT JOIN public.vehicles v ON ta.vehicle_id = v.id
+        WHERE ta.passenger_id = $1 OR ta.driver_id = $1
+        ORDER BY ta.created_at DESC
+        LIMIT 30;
+      `;
+      const result = await client.query(query, [userId]);
+
+      if (result.rows.length > 0) {
+        res.json({ trips: result.rows });
+        return;
+      }
+
+      // Si no tiene viajes aún en base de datos, retornar viajes modelo de Barranca
+      const defaultTrips = [
+        {
+          id: 't-demo-01',
+          origin_name: 'Paradero Base Central Gálvez',
+          destination_name: 'Campus Universitario UNAB (Luzuriaga)',
+          agreed_price: 2.50,
+          status: 'FINALIZADO',
+          rating: 5,
+          review_comment: 'Excelente servicio, viaje rápido y seguro.',
+          created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+          driver_name: 'Jorge Huamán Castillo',
+          vehicle_plate: 'B1A-789',
+          vehicle_model: 'Toyota Yaris Sedán'
+        },
+        {
+          id: 't-demo-02',
+          origin_name: 'Plaza de Supe Pueblo',
+          destination_name: 'Terminal Terrestre de Barranca',
+          agreed_price: 3.50,
+          status: 'FINALIZADO',
+          rating: 5,
+          review_comment: 'Puntualidad en la salida.',
+          created_at: new Date(Date.now() - 3600000 * 26).toISOString(),
+          driver_name: 'Luis Alberto Alva',
+          vehicle_plate: 'T5F-330',
+          vehicle_model: 'Hyundai Elantra'
+        },
+        {
+          id: 't-demo-03',
+          origin_name: 'Óvalo Pativilca (Cruce Panamericana)',
+          destination_name: 'Mercado Modelo de Barranca',
+          agreed_price: 4.00,
+          status: 'FINALIZADO',
+          rating: 4,
+          review_comment: 'Todo conforme.',
+          created_at: new Date(Date.now() - 3600000 * 52).toISOString(),
+          driver_name: 'Ricardo Pantoja Gómez',
+          vehicle_plate: 'D2K-881',
+          vehicle_model: 'Nissan Versa'
+        }
+      ];
+
+      res.json({ trips: defaultTrips });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Trip History Error]:', err);
+    res.status(500).json({ error: 'Error al consultar historial de viajes' });
+  }
+});
+
 export default router;
