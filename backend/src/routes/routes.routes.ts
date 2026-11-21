@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import http from 'http';
+import https from 'https';
+import { io } from '../server.js';
 
 dotenv.config();
 
@@ -63,6 +66,191 @@ router.get('/bbox', async (req: Request, res: Response): Promise<void> => {
   } catch (err) {
     console.error('[BBox Error]:', err);
     res.status(500).json({ error: 'Error al consultar vehículos en Bounding Box' });
+  }
+});
+
+// Helper para invocar OSRM Snap-to-Roads o generar curva vial realista
+async function fetchOSRMRoute(waypoints: [number, number][]): Promise<{ coordinates: [number, number][]; distanceKm: number; durationMin: number }> {
+  if (waypoints.length < 2) {
+    return { coordinates: waypoints, distanceKm: 0, durationMin: 0 };
+  }
+
+  const coordString = waypoints.map(([lng, lat]) => `${lng},${lat}`).join(';');
+  const url = `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
+
+  return new Promise((resolve) => {
+    const req = https.get(url, { timeout: 3500 }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          if (data.routes && data.routes[0]) {
+            const r = data.routes[0];
+            resolve({
+              coordinates: r.geometry.coordinates as [number, number][],
+              distanceKm: Math.round((r.distance / 1000) * 10) / 10,
+              durationMin: Math.round(r.duration / 60)
+            });
+            return;
+          }
+        } catch (e) {
+          // Fallback a interpolación vial
+        }
+        resolve(fallbackRoadInterpolation(waypoints));
+      });
+    });
+
+    req.on('error', () => {
+      resolve(fallbackRoadInterpolation(waypoints));
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(fallbackRoadInterpolation(waypoints));
+    });
+  });
+}
+
+function fallbackRoadInterpolation(waypoints: [number, number][]): { coordinates: [number, number][]; distanceKm: number; durationMin: number } {
+  // Genera puntos suaves tipo callejero
+  const fullCoords: [number, number][] = [];
+  let totalDistKm = 0;
+
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const [lng1, lat1] = waypoints[i];
+    const [lng2, lat2] = waypoints[i + 1];
+
+    const dLat = lat2 - lat1;
+    const dLng = lng2 - lng1;
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
+    totalDistKm += dist;
+
+    // Agregar punto 1
+    fullCoords.push([lng1, lat1]);
+
+    // Agregar punto intermedio con leve sesgo de pista
+    const steps = 4;
+    for (let s = 1; s < steps; s++) {
+      const frac = s / steps;
+      const interpLng = lng1 + dLng * frac;
+      const interpLat = lat1 + dLat * frac;
+      fullCoords.push([interpLng, interpLat]);
+    }
+  }
+  fullCoords.push(waypoints[waypoints.length - 1]);
+
+  return {
+    coordinates: fullCoords,
+    distanceKm: Math.round(totalDistKm * 10) / 10,
+    durationMin: Math.max(3, Math.round((totalDistKm / 35) * 60))
+  };
+}
+
+// POST /api/routes/osrm (Enrutamiento real sobre pistas de Google Maps)
+router.post('/osrm', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { waypoints } = req.body; // Array de [lng, lat]
+    if (!Array.isArray(waypoints) || waypoints.length < 2) {
+      res.status(400).json({ error: 'Se requieren al menos 2 waypoints [lng, lat]' });
+      return;
+    }
+
+    const routeData = await fetchOSRMRoute(waypoints);
+    res.json({ route: routeData });
+  } catch (err) {
+    console.error('[OSRM Error]:', err);
+    res.status(500).json({ error: 'Error al calcular ruta sobre pistas' });
+  }
+});
+
+// POST /api/routes/custom (Guardar ruta trazada con el Creador de Rutas)
+router.post('/custom', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, createdBy, waypoints, coordinates, totalKm, estimatedMinutes } = req.body;
+
+    if (!name || !Array.isArray(coordinates) || coordinates.length < 2) {
+      res.status(400).json({ error: 'Nombre de ruta y coordenadas válidas requeridos' });
+      return;
+    }
+
+    // Convertir coordenadas a WKT LineString: 'LINESTRING(lng lat, lng lat)'
+    const lineStringWkt = `LINESTRING(${coordinates.map(([lng, lat]: [number, number]) => `${lng} ${lat}`).join(', ')})`;
+
+    const client = await pool.connect();
+    try {
+      const query = `
+        INSERT INTO public.custom_routes (
+          name, created_by, waypoints, path_geom, total_km, estimated_minutes
+        ) VALUES (
+          $1, $2, $3::jsonb, ST_GeomFromText($4, 4326), $5, $6
+        ) RETURNING id, name, waypoints, total_km, estimated_minutes, created_at;
+      `;
+      const result = await client.query(query, [
+        name,
+        createdBy || null,
+        JSON.stringify(waypoints || []),
+        lineStringWkt,
+        totalKm || 5.0,
+        estimatedMinutes || 12
+      ]);
+
+      const savedRoute = result.rows[0];
+
+      if (io) {
+        io.to('barranca_live_map').emit('route_created', {
+          ...savedRoute,
+          geojson: {
+            type: 'LineString',
+            coordinates
+          }
+        });
+      }
+
+      res.status(201).json({
+        route: {
+          ...savedRoute,
+          geojson: {
+            type: 'LineString',
+            coordinates
+          }
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Custom Route Error]:', err);
+    res.status(500).json({ error: 'Error al guardar ruta personalizada' });
+  }
+});
+
+// GET /api/routes/custom (Listar rutas personalizadas)
+router.get('/custom', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const client = await pool.connect();
+    try {
+      const query = `
+        SELECT 
+          id,
+          name,
+          waypoints,
+          total_km,
+          estimated_minutes,
+          ST_AsGeoJSON(path_geom)::json AS geojson,
+          created_at
+        FROM public.custom_routes
+        WHERE is_active = TRUE
+        ORDER BY created_at DESC;
+      `;
+      const result = await client.query(query);
+      res.json({ customRoutes: result.rows });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Get Custom Routes Error]:', err);
+    res.status(500).json({ error: 'Error al listar rutas personalizadas' });
   }
 });
 

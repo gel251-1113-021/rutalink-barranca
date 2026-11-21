@@ -132,27 +132,27 @@ export default function Header({
 
         {/* Acciones de la barra */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Botón SMS Sin Datos */}
+          {/* Botón Modo Sin Internet (SMS) */}
           {onOpenSmsFallback && (
             <button
               onClick={onOpenSmsFallback}
-              title="Consultar por SMS sin datos móviles"
+              title="Consultar horarios y carros por SMS tradicional (sin saldo ni megas)"
               className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 hover:border-blue-200 text-xs font-semibold transition flex items-center gap-1.5"
             >
               <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden md:inline">SMS Sin Datos</span>
+              <span className="hidden md:inline">Sin Internet (SMS)</span>
             </button>
           )}
 
-          {/* Botón Métricas / Analítica */}
+          {/* Botón Reporte de Viajes */}
           {onOpenAnalytics && (
             <button
               onClick={onOpenAnalytics}
-              title="Ver métricas de transporte y analítica"
+              title="Ver reporte de viajes y flota"
               className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 hover:border-blue-200 text-xs font-semibold transition flex items-center gap-1.5"
             >
               <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden md:inline">Métricas</span>
+              <span className="hidden md:inline">Reporte Viajes</span>
             </button>
           )}
 

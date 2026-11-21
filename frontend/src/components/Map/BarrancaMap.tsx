@@ -4,7 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../../types';
-import { Layers, Map as MapIcon } from 'lucide-react';
+import { Layers, Locate, Flag, Navigation } from 'lucide-react';
+
+interface DropoffPoint {
+  id: string;
+  latitude: number;
+  longitude: number;
+  landmark_reference: string;
+  passenger_name?: string;
+}
 
 interface BarrancaMapProps {
   stops: StopPoint[];
@@ -14,9 +22,14 @@ interface BarrancaMapProps {
   onSelectItem: (item: { type: 'stop' | 'vehicle' | 'route'; data: any } | null) => void;
   darkMode: boolean;
   passengerSignal?: { lat: number; lng: number; note?: string } | null;
+  userLocation?: { lat: number; lng: number } | null;
+  dropoffs?: DropoffPoint[];
+  onVehicleTap?: (vehicle: VehicleUnit) => void;
+  onRequestDropoff?: () => void;
+  onLocateUser?: () => void;
 }
 
-// Iconos personalizados refinados (White, Navy Blue, Soft Emerald/Rose)
+// Icono de Paradero Refinado
 const createStopIcon = (type: string, queueCount: number, darkMode: boolean) => {
   const isBase = type === 'BASE';
   const primaryColor = isBase ? '#2563eb' : '#059669';
@@ -73,9 +86,10 @@ const createStopIcon = (type: string, queueCount: number, darkMode: boolean) => 
   });
 };
 
+// Icono de Vehículo en Vivo (Táctil con placa)
 const createVehicleIcon = (status: string, plate: string, darkMode: boolean) => {
   const isAvailable = status === 'DISPONIBLE';
-  const dotColor = isAvailable ? '#10b981' : '#f43f5e';
+  const dotColor = isAvailable ? '#10b981' : '#3b82f6';
   const bgColor = darkMode ? '#1e293b' : '#ffffff';
   const textColor = darkMode ? '#f8fafc' : '#0f172a';
   const borderColor = darkMode ? '#334155' : '#cbd5e1';
@@ -86,32 +100,94 @@ const createVehicleIcon = (status: string, plate: string, darkMode: boolean) => 
       <div style="
         position: relative;
         background-color: ${bgColor};
-        border: 1.5px solid ${borderColor};
-        padding: 3px 8px;
+        border: 2px solid ${isAvailable ? '#10b981' : '#2563eb'};
+        padding: 4px 9px;
         border-radius: 9999px;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
         display: flex;
         align-items: center;
         gap: 5px;
         color: ${textColor};
         white-space: nowrap;
+        cursor: pointer;
       ">
         <span style="
-          width: 7px;
-          height: 7px;
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
           background-color: ${dotColor};
           display: inline-block;
+          box-shadow: 0 0 6px ${dotColor};
         "></span>
-        <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.3px; font-family: ui-monospace, monospace;">${plate}</span>
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.3px; font-family: ui-monospace, monospace;">${plate}</span>
+        <span style="font-size: 10px;">🚗</span>
       </div>
     `,
-    iconSize: [68, 24],
-    iconAnchor: [34, 12],
+    iconSize: [84, 28],
+    iconAnchor: [42, 14],
+    popupAnchor: [0, -16],
+  });
+};
+
+// Icono de Ubicación del Usuario (Punto Azul GPS Pulsante)
+const createUserGpsIcon = () => {
+  return L.divIcon({
+    className: 'custom-user-gps-marker',
+    html: `
+      <div style="
+        position: relative;
+        width: 18px;
+        height: 18px;
+        background: #2563eb;
+        border: 3px solid #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.35);
+      ">
+        <div style="
+          position: absolute;
+          inset: -6px;
+          border-radius: 50%;
+          border: 1.5px solid #2563eb;
+          animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+        "></div>
+      </div>
+    `,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -10],
+  });
+};
+
+// Icono de "Me bajo aquí" (Bandera Roja de Parada Solicitada)
+const createDropoffMarkerIcon = (landmark: string) => {
+  return L.divIcon({
+    className: 'custom-dropoff-marker',
+    html: `
+      <div style="
+        background: #ef4444;
+        color: #ffffff;
+        padding: 3px 7px;
+        border-radius: 12px;
+        border: 2px solid #ffffff;
+        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+      ">
+        <span>🛑</span>
+        <span>${landmark || 'Bajada'}</span>
+      </div>
+    `,
+    iconSize: [80, 24],
+    iconAnchor: [40, 12],
     popupAnchor: [0, -14],
   });
 };
 
+// Icono de Pasajero Esperando
 const createWaitingPassengerIcon = () => {
   return L.divIcon({
     className: 'custom-waiting-passenger-marker',
@@ -127,7 +203,6 @@ const createWaitingPassengerIcon = () => {
         align-items: center;
         justify-content: center;
         box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25);
-        animation: pulse 2s infinite;
       ">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="7" r="4"/>
@@ -141,9 +216,21 @@ const createWaitingPassengerIcon = () => {
   });
 };
 
-// Sincronizador de cámara y zoom
-function MapController({ selectedItem }: { selectedItem: any }) {
+// Controlador de Cámara
+function MapController({
+  selectedItem,
+  userLocation
+}: {
+  selectedItem: any;
+  userLocation?: { lat: number; lng: number } | null;
+}) {
   const map = useMap();
+
+  useEffect(() => {
+    if (userLocation) {
+      map.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
+    }
+  }, [userLocation, map]);
 
   useEffect(() => {
     if (!selectedItem) return;
@@ -173,14 +260,14 @@ export default function BarrancaMap({
   onSelectItem,
   darkMode,
   passengerSignal,
+  userLocation,
+  dropoffs = [],
+  onVehicleTap,
+  onRequestDropoff,
+  onLocateUser
 }: BarrancaMapProps) {
-  // Centro por defecto: Plaza de Armas de Barranca
   const defaultCenter: [number, number] = [-10.7512, -77.7615];
 
-  // Selector de Proveedor de Cartografía:
-  // 'google-streets': Google Maps oficial estándar (Calles, avenidas, colores oficiales Google Maps, 0 watermarks)
-  // 'google-hybrid': Google Maps oficial satélite híbrido con nombres de calles
-  // 'osm': OpenStreetMap comunitario
   const [mapLayer, setMapLayer] = useState<'google-streets' | 'google-hybrid' | 'osm'>('google-streets');
 
   const TILE_SERVERS: Record<string, string> = {
@@ -197,7 +284,7 @@ export default function BarrancaMap({
 
   return (
     <div className="relative w-full h-full">
-      {/* Selector Flotante de Estilo de Mapa (Google Maps / Satélite / OSM) */}
+      {/* Selector Flotante de Estilo de Mapa */}
       <div className="absolute top-3 right-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-[11px] font-semibold">
         <button
           type="button"
@@ -234,6 +321,34 @@ export default function BarrancaMap({
         </button>
       </div>
 
+      {/* Botones Flotantes Táctiles Móviles (Ubicación GPS + Me Bajo Aquí) */}
+      <div className="absolute right-3 bottom-24 z-20 flex flex-col gap-2.5">
+        {/* Botón: Activar mi ubicación */}
+        {onLocateUser && (
+          <button
+            type="button"
+            onClick={onLocateUser}
+            className="w-11 h-11 rounded-2xl bg-white dark:bg-[#1a1d24] text-blue-600 dark:text-blue-400 shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-blue-50 transition active:scale-95"
+            title="Centrar en mi ubicación GPS"
+          >
+            <Locate className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Botón: Me bajo aquí */}
+        {onRequestDropoff && (
+          <button
+            type="button"
+            onClick={onRequestDropoff}
+            className="px-3.5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 transition active:scale-95 animate-pulse"
+            title="Solicitar parada al chofer"
+          >
+            <span>🛑</span>
+            <span>Me bajo aquí</span>
+          </button>
+        )}
+      </div>
+
       <MapContainer
         center={defaultCenter}
         zoom={14}
@@ -247,9 +362,9 @@ export default function BarrancaMap({
           url={currentTileUrl} 
           maxZoom={20} 
         />
-        <MapController selectedItem={selectedItem} />
+        <MapController selectedItem={selectedItem} userLocation={userLocation} />
 
-        {/* Trazado Polyline de Rutas Viales Oficiales (Sprint 3) */}
+        {/* Trazado Polyline de Rutas Viales Oficiales */}
         {routes.map((r) => {
           if (!r.geojson?.coordinates || r.geojson.coordinates.length < 2) return null;
           const latLngs = r.geojson.coordinates.map(
@@ -307,15 +422,11 @@ export default function BarrancaMap({
           );
         })}
 
-        {/* Marcadores de Vehículos en Vivo con Telemetría Continua */}
+        {/* Marcadores de Vehículos en Vivo (Táctiles) */}
         {vehicles.map((v) => {
           const lat = Number(v.latitude);
           const lng = Number(v.longitude);
           if (isNaN(lat) || isNaN(lng)) return null;
-
-          const ratingNum = typeof v.driver_rating === 'number' 
-            ? v.driver_rating 
-            : parseFloat(String(v.driver_rating || '5.0'));
 
           return (
             <Marker
@@ -323,26 +434,50 @@ export default function BarrancaMap({
               position={[lat, lng]}
               icon={createVehicleIcon(v.status, v.plate, darkMode)}
               eventHandlers={{
-                click: () => onSelectItem({ type: 'vehicle', data: v }),
+                click: () => {
+                  if (onVehicleTap) {
+                    onVehicleTap(v);
+                  } else {
+                    onSelectItem({ type: 'vehicle', data: v });
+                  }
+                },
               }}
-            >
-              <Popup className="custom-map-popup">
-                <div className="p-1 text-xs">
-                  <span className="font-bold text-slate-900 block">{v.brand_model} ({v.plate})</span>
-                  <span className="text-[11px] text-slate-500 block">Chofer: {v.driver_name}</span>
-                  <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                    <span className={`font-bold ${v.status === 'DISPONIBLE' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {v.status === 'DISPONIBLE' ? '● Disponible' : '● Unidad Llena'}
-                    </span>
-                    <span className="text-slate-600 font-medium">★ {isNaN(ratingNum) ? '5.0' : ratingNum.toFixed(1)}</span>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
+            />
           );
         })}
 
-        {/* Pin de señal de pasajero esperando (Sprint 3) */}
+        {/* Marcador GPS de la Ubicación del Usuario */}
+        {userLocation && (
+          <Marker
+            position={[userLocation.lat, userLocation.lng]}
+            icon={createUserGpsIcon()}
+          >
+            <Popup className="custom-map-popup">
+              <div className="p-1 text-xs text-center font-bold text-blue-600">
+                📍 Tu ubicación actual
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        {/* Marcadores de "Me bajo aquí" (Paradas solicitadas por pasajeros) */}
+        {dropoffs.map((d) => (
+          <Marker
+            key={d.id}
+            position={[d.latitude, d.longitude]}
+            icon={createDropoffMarkerIcon(d.landmark_reference)}
+          >
+            <Popup className="custom-map-popup">
+              <div className="p-1 text-xs">
+                <span className="font-bold text-rose-600 block">🛑 Parada Solicitada</span>
+                <span className="text-[11px] text-slate-600 block">{d.landmark_reference}</span>
+                <span className="text-[10px] text-slate-400 block mt-1">Pasajero: {d.passenger_name || 'A bordo'}</span>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Pin de señal de pasajero esperando */}
         {passengerSignal && (
           <Marker
             position={[passengerSignal.lat, passengerSignal.lng]}

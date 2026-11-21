@@ -4,6 +4,14 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../../types';
 
+interface DropoffPoint {
+  id: string;
+  latitude: number;
+  longitude: number;
+  landmark_reference: string;
+  passenger_name?: string;
+}
+
 interface MapWrapperProps {
   stops: StopPoint[];
   vehicles: VehicleUnit[];
@@ -12,6 +20,11 @@ interface MapWrapperProps {
   onSelectItem: (item: { type: 'stop' | 'vehicle' | 'route'; data: any } | null) => void;
   darkMode: boolean;
   passengerSignal?: { lat: number; lng: number; note?: string } | null;
+  userLocation?: { lat: number; lng: number } | null;
+  dropoffs?: DropoffPoint[];
+  onVehicleTap?: (vehicle: VehicleUnit) => void;
+  onRequestDropoff?: () => void;
+  onLocateUser?: () => void;
 }
 
 // Carga dinámica del mapa deshabilitando SSR para evitar incompatibilidad de window en Node.js

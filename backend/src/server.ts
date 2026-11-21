@@ -13,6 +13,9 @@ import routesRoutes from './routes/routes.routes.js';
 import tripsRoutes from './routes/trips.routes.js';
 import smsRoutes from './routes/sms.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import chatRoutes from './routes/chat.routes.js';
+import dropoffRoutes from './routes/dropoff.routes.js';
+import driverRoutes from './routes/driver.routes.js';
 import { initializeSockets } from './sockets/index.js';
 
 dotenv.config();
@@ -64,6 +67,9 @@ app.use('/api/routes', routesRoutes);
 app.use('/api/trips', tripsRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/dropoffs', dropoffRoutes);
+app.use('/api/driver', driverRoutes);
 
 const PORT = process.env.PORT || 5000;
 

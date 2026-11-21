@@ -1,0 +1,94 @@
+import { Router, Request, Response } from 'express';
+import { Pool } from 'pg';
+import dotenv from 'dotenv';
+import { io } from '../server.js';
+
+dotenv.config();
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+const router = Router();
+
+// GET /api/chat/groups/:groupId (Listar historial de mensajes estilo WhatsApp)
+router.get('/groups/:groupId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { groupId } = req.params;
+    const client = await pool.connect();
+    try {
+      const query = `
+        SELECT 
+          id,
+          group_id,
+          sender_id,
+          sender_name,
+          sender_role,
+          message,
+          message_type,
+          created_at
+        FROM public.group_chat_messages
+        WHERE group_id = $1
+        ORDER BY created_at ASC
+        LIMIT 100;
+      `;
+      const result = await client.query(query, [groupId]);
+      res.json({ messages: result.rows });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Chat Error]:', err);
+    res.status(500).json({ error: 'Error al consultar mensajes de chat' });
+  }
+});
+
+// POST /api/chat/groups/:groupId (Enviar mensaje grupal en tiempo real)
+router.post('/groups/:groupId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { groupId } = req.params;
+    const { senderId, senderName, senderRole, message, messageType } = req.body;
+
+    if (!message || !message.trim()) {
+      res.status(400).json({ error: 'El mensaje no puede estar vacío' });
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      const insertQuery = `
+        INSERT INTO public.group_chat_messages (
+          group_id, sender_id, sender_name, sender_role, message, message_type
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6
+        ) RETURNING *;
+      `;
+      const result = await client.query(insertQuery, [
+        groupId,
+        senderId || 'a0000000-0000-0000-0000-000000000005',
+        senderName || 'Usuario RutaLink',
+        senderRole || 'PASAJERO',
+        message.trim(),
+        messageType || 'TEXTO'
+      ]);
+
+      const newMessage = result.rows[0];
+
+      // Emitir en tiempo real a la sala del grupo y al mapa general
+      if (io) {
+        io.to(`group_${groupId}`).emit('group_chat_message', newMessage);
+        io.to('barranca_live_map').emit('group_chat_message', newMessage);
+      }
+
+      res.status(201).json({ message: newMessage });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Send Chat Error]:', err);
+    res.status(500).json({ error: 'Error al enviar mensaje grupal' });
+  }
+});
+
+export default router;

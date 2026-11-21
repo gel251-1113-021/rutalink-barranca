@@ -55,8 +55,10 @@ export interface VehicleUnit {
   longitude: number;
   current_heading?: number;
   driver_name: string;
+  driver_phone?: string;
   driver_rating: number;
   group_name?: string;
+  route_name?: string;
   last_location_update: string;
 }
 

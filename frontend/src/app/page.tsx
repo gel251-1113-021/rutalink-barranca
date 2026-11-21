@@ -14,15 +14,19 @@ import VehicleLiveCabinModal from '../components/VehicleViewer/VehicleLiveCabinM
 import OfflineBanner from '../components/Offline/OfflineBanner';
 import SmsFallbackModal from '../components/Offline/SmsFallbackModal';
 import AnalyticsModal from '../components/Analytics/AnalyticsModal';
+import BottomNavBar from '../components/Mobile/BottomNavBar';
+import DriverCockpitModal from '../components/Driver/DriverCockpitModal';
+import GroupChatModal from '../components/Chat/GroupChatModal';
+import ContactsModal from '../components/Contacts/ContactsModal';
+import VehicleInspectModal from '../components/VehicleViewer/VehicleInspectModal';
+import RouteBuilderModal from '../components/RouteBuilder/RouteBuilderModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
 import { offlineStore } from '../lib/offlineStore';
-import { Compass, MapPin, CheckCircle2, BellRing, Route } from 'lucide-react';
+import { BellRing, Car, Check, MapPin, Navigation } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
-// Datos iniciales verificados precargados para asegurar 0 retrasos y disponibilidad visual instantánea
 const INITIAL_STOPS: StopPoint[] = [
   {
     id: 'c0000000-0000-0000-0000-000000000001',
@@ -83,7 +87,7 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
   {
     id: 'd0000000-0000-0000-0000-000000000001',
     plate: 'B1A-789',
-    brand_model: 'Toyota Yaris Sedán 2022',
+    brand_model: 'Toyota Yaris Sedán 2023',
     vehicle_type: 'SEDAN',
     seat_layout: [
       { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Conductor', status: 'occupied' },
@@ -101,7 +105,8 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     longitude: -77.7580,
     current_heading: 85,
     driver_name: 'Jorge Huamán Castillo',
-    driver_rating: 5.0,
+    driver_phone: '+51 987654323',
+    driver_rating: 4.8,
     group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
     last_location_update: new Date().toISOString()
   },
@@ -126,7 +131,8 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     longitude: -77.7520,
     current_heading: 180,
     driver_name: 'Walter Rosales Díaz',
-    driver_rating: 5.0,
+    driver_phone: '+51 987654324',
+    driver_rating: 4.6,
     last_location_update: new Date().toISOString()
   }
 ];
@@ -188,39 +194,53 @@ const INITIAL_ROUTES: RouteCorridor[] = [
 export default function HomePage() {
   const { user, profile, isGuest } = useAuth();
 
-  // Estados de Tema y Modales (Light Mode por defecto para estética blanco, azul y negro)
+  // Estados de Tema y Navegación Móvil
   const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [activeMobileTab, setActiveMobileTab] = useState<'map' | 'driver' | 'chat' | 'contacts' | 'builder'>('map');
+
+  // Modales Generales
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
   const [vehicleDesignerOpen, setVehicleDesignerOpen] = useState<boolean>(false);
   const [dispatcherPanelOpen, setDispatcherPanelOpen] = useState<boolean>(false);
   const [groupManagementOpen, setGroupManagementOpen] = useState<boolean>(false);
-
-  // Modales Especializados Sprint 3
   const [agreementModalOpen, setAgreementModalOpen] = useState<boolean>(false);
   const [selectedDriverForAgreement, setSelectedDriverForAgreement] = useState<any | null>(null);
   const [cabinModalOpen, setCabinModalOpen] = useState<boolean>(false);
   const [selectedVehicleForCabin, setSelectedVehicleForCabin] = useState<VehicleUnit | null>(null);
 
-  // Modales Especializados Sprint 4 (Off-Grid, SMS Fallback y Analítica)
+  // Modales Sprint 4 (Off-Grid y Analítica)
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [smsModalOpen, setSmsModalOpen] = useState<boolean>(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState<boolean>(false);
 
-  // Estados de Datos Cartográficos y Viales (Precargados desde segundo 0)
+  // Modales Sprint 5 (Cabina Conductor, Chat Grupal, Contactos, Visualizador Vehículo, Creador Rutas)
+  const [driverCockpitOpen, setDriverCockpitOpen] = useState<boolean>(false);
+  const [groupChatOpen, setGroupChatOpen] = useState<boolean>(false);
+  const [contactsOpen, setContactsOpen] = useState<boolean>(false);
+  const [routeBuilderOpen, setRouteBuilderOpen] = useState<boolean>(false);
+  const [inspectedVehicle, setInspectedVehicle] = useState<any | null>(null);
+
+  // Estados de Usuario y Ubicación
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [dropoffs, setDropoffs] = useState<any[]>([]);
+  const [passengerContextState, setPassengerContextState] = useState<'CAMINO' | 'ESPERANDO' | 'A_BORDO'>('CAMINO');
+
+  // Estados de Datos Cartográficos
   const [stops, setStops] = useState<StopPoint[]>(INITIAL_STOPS);
   const [vehicles, setVehicles] = useState<VehicleUnit[]>(INITIAL_VEHICLES);
   const [routes, setRoutes] = useState<RouteCorridor[]>(INITIAL_ROUTES);
   const [selectedItem, setSelectedItem] = useState<{ type: 'stop' | 'vehicle' | 'route'; data: any } | null>(null);
-
-  // Señal en tiempo real de pasajero esperando
   const [passengerSignal, setPassengerSignal] = useState<{ lat: number; lng: number; note?: string } | null>(null);
   const [notificationToast, setNotificationToast] = useState<{ title: string; message: string; type?: 'info' | 'success' } | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
 
-  // Efecto para tema Dark Mode / Light Mode
+  const currentRole = profile?.active_role || 'PASAJERO';
+  const isDriver = currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE';
+
+  // Sincronización de tema
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -229,59 +249,30 @@ export default function HomePage() {
     }
   }, [darkMode]);
 
-  // Detector de estado de red (Online / Offline) y telemetría de resiliencia (Sprint 4)
+  // Detector de conectividad
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
-    const handleOnline = () => {
-      setIsOffline(false);
-      fetch(`${apiUrl}/api/analytics/telemetry`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user?.id,
-          eventType: 'ONLINE_RESTORED',
-          networkType: '4G',
-          latencyMs: 38
-        })
-      }).catch(() => {});
-    };
-
-    const handleOffline = () => {
-      setIsOffline(true);
-      fetch(`${apiUrl}/api/analytics/telemetry`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user?.id,
-          eventType: 'OFFLINE_DETECTED',
-          networkType: 'OFFLINE',
-          latencyMs: 0
-        })
-      }).catch(() => {});
-    };
-
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setIsOffline(true);
     }
-
     setLastSyncTime(offlineStore.getLastSync() || new Date().toISOString());
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [user?.id]);
+  }, []);
 
-  // Cargar datos (con sincronización en caché local para soporte Off-Grid)
+  // Cargar datos iniciales
   const loadData = useCallback(async () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
     try {
-      // 1. Cargar Paraderos
+      // 1. Paraderos
       const stopsRes = await fetch(`${apiUrl}/api/stops`).catch(() => null);
       if (stopsRes && stopsRes.ok) {
         const data = await stopsRes.json();
@@ -294,11 +285,10 @@ export default function HomePage() {
         if (loadedStops.length > 0) {
           setStops(loadedStops);
           offlineStore.saveStops(loadedStops);
-          setLastSyncTime(new Date().toISOString());
         }
       }
 
-      // 2. Cargar Vehículos
+      // 2. Vehículos
       const vehiclesRes = await fetch(`${apiUrl}/api/vehicles`).catch(() => null);
       if (vehiclesRes && vehiclesRes.ok) {
         const data = await vehiclesRes.json();
@@ -314,7 +304,7 @@ export default function HomePage() {
         }
       }
 
-      // 3. Cargar Rutas Viales OSRM / GeoJSON
+      // 3. Rutas Viales
       const routesRes = await fetch(`${apiUrl}/api/routes`).catch(() => null);
       if (routesRes && routesRes.ok) {
         const routesData = await routesRes.json();
@@ -323,6 +313,13 @@ export default function HomePage() {
           setRoutes(loadedRoutes);
           offlineStore.saveRoutes(loadedRoutes);
         }
+      }
+
+      // 4. Bajadas Solicitadas Activas ("Me bajo aquí")
+      const dropoffsRes = await fetch(`${apiUrl}/api/dropoffs/active`).catch(() => null);
+      if (dropoffsRes && dropoffsRes.ok) {
+        const dData = await dropoffsRes.json();
+        setDropoffs(dData.dropoffs || []);
       }
     } catch (err) {
       console.error('[LoadData Exception]:', err);
@@ -333,7 +330,7 @@ export default function HomePage() {
     loadData();
   }, [loadData]);
 
-  // Sincronización en Vivo mediante Socket.io (Sprint 3 & 4)
+  // Sockets en tiempo real
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     const socket = io(socketUrl, {
@@ -342,7 +339,7 @@ export default function HomePage() {
     });
     socketRef.current = socket;
 
-    // 1. Escuchar actualización continua de GPS de vehículos
+    // Movimiento continuo de vehículos
     socket.on('vehicle_moved', (data: { vehicleId: string; latitude: number; longitude: number; heading?: number }) => {
       setVehicles(prev => prev.map(v => {
         if (v.id === data.vehicleId) {
@@ -358,7 +355,7 @@ export default function HomePage() {
       }));
     });
 
-    // 2. Escuchar cambios de estado de cabina (asientos ocupados/libres)
+    // Asientos actualizados
     socket.on('cabin_seat_updated', (data: { vehicleId: string; seatLayout: any[] }) => {
       setVehicles(prev => prev.map(v => {
         if (v.id === data.vehicleId) {
@@ -366,120 +363,121 @@ export default function HomePage() {
         }
         return v;
       }));
-
-      setSelectedVehicleForCabin(prev => {
-        if (prev && prev.id === data.vehicleId) {
-          return { ...prev, seat_layout: data.seatLayout };
-        }
-        return prev;
-      });
     });
 
-    // 3. Escuchar actualizaciones de cola de paraderos
-    socket.on('stop_live_updated', (data: { stopId: string; queuedCount: number; statusNote?: string; photoUrl?: string }) => {
-      setStops(prev => prev.map(s => {
-        if (s.id === data.stopId) {
-          return {
-            ...s,
-            queued_vehicles_count: data.queuedCount,
-            status_note: data.statusNote ?? s.status_note,
-            photo_url: data.photoUrl ?? s.photo_url,
-            last_status_update: new Date().toISOString()
-          };
+    // Paradas solicitadas ("Me bajo aquí")
+    socket.on('dropoff_requested', (data: any) => {
+      setDropoffs(prev => [data, ...prev]);
+      setNotificationToast({
+        title: '🛑 Parada Solicitada',
+        message: `${data.landmark_reference} (Pasajero a bordo)`,
+        type: 'info'
+      });
+      setTimeout(() => setNotificationToast(null), 5000);
+    });
+
+    // Estado del chofer cambiado
+    socket.on('vehicle_status_changed', (data: any) => {
+      setVehicles(prev => prev.map(v => {
+        if (v.id === data.vehicleId) {
+          return { ...v, status: data.status };
         }
-        return s;
+        return v;
       }));
     });
 
-    // 4. Escuchar señal de "Pasajero esperando"
-    socket.on('passenger_waiting_signal', (data: { latitude: number; longitude: number; note?: string; passengerName?: string }) => {
-      setPassengerSignal({
-        lat: Number(data.latitude),
-        lng: Number(data.longitude),
-        note: data.note || 'Pasajero solicitando unidad'
-      });
-
-      const passengerTitle = data.passengerName || 'Pasajero';
+    // Rutas nuevas creadas
+    socket.on('route_created', (data: any) => {
+      setRoutes(prev => [...prev, data]);
       setNotificationToast({
-        title: 'Señal en Ruta',
-        message: `${passengerTitle} esperando cerca al corredor vial`,
-        type: 'info'
+        title: 'Nueva Ruta Trazada',
+        message: data.name,
+        type: 'success'
       });
-
-      // Si el usuario actual es chofer activo, activar síntesis de voz (Web Speech API)
-      const currentRole = profile?.active_role;
-      if (currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE') {
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-          try {
-            const utterance = new SpeechSynthesisUtterance('Nuevo pasajero esperando en la ruta.');
-            utterance.lang = 'es-PE';
-            utterance.rate = 1.0;
-            window.speechSynthesis.speak(utterance);
-          } catch (e) {
-            console.warn('[SpeechSynthesis Exception]:', e);
-          }
-        }
-      }
-
-      setTimeout(() => {
-        setNotificationToast(null);
-      }, 5000);
+      setTimeout(() => setNotificationToast(null), 4000);
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [profile?.active_role]);
+  }, []);
 
-  // Manejador de señal de abordaje ("Esperar aquí")
-  const handleWaitingClick = () => {
-    if (isGuest) {
-      setAuthModalOpen(true);
-      return;
+  // Función: Activar mi Ubicación GPS del Teléfono
+  const handleLocateUser = () => {
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserLocation(coords);
+          setNotificationToast({
+            title: '📍 GPS Activado',
+            message: 'Tu ubicación ha sido centrada en el mapa.',
+            type: 'success'
+          });
+          setTimeout(() => setNotificationToast(null), 3500);
+        },
+        () => {
+          // Fallback a coordenadas de Barranca
+          const barrancaCoords = { lat: -10.7515, lng: -77.7610 };
+          setUserLocation(barrancaCoords);
+          setNotificationToast({
+            title: 'Ubicación Aproximada',
+            message: 'Centrado en Plaza de Armas de Barranca.',
+            type: 'info'
+          });
+          setTimeout(() => setNotificationToast(null), 3000);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
     }
+  };
 
-    const currentLat = -10.7512;
-    const currentLng = -77.7615;
+  // Función: "Me bajo aquí" (Parada solicitada en 1 toque)
+  const handleRequestDropoff = async () => {
+    const lat = userLocation ? userLocation.lat : -10.7512;
+    const lng = userLocation ? userLocation.lng : -77.7615;
 
-    setPassengerSignal({
-      lat: currentLat,
-      lng: currentLng,
-      note: 'Tu señal de abordaje está activa por 15 minutos.'
-    });
-
-    // Emitir señal al servidor WebSocket para difusión a choferes
-    if (socketRef.current) {
-      socketRef.current.emit('passenger_waiting_signal', {
-        userId: user?.id,
-        passengerName: profile?.full_name || user?.email?.split('@')[0],
-        latitude: currentLat,
-        longitude: currentLng,
-        note: 'Esperando unidad para abordaje'
+    try {
+      const res = await fetch('/api/dropoffs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          passengerId: user?.id,
+          passengerName: profile?.full_name || 'Pasajero a Bordo',
+          vehiclePlate: 'B1A-789',
+          lat,
+          lng,
+          landmark: 'Esquina / Paradero Solicitado (Av. Gálvez)'
+        })
       });
+
+      if (res.ok) {
+        const data = await res.json();
+        setDropoffs(prev => [data.dropoff, ...prev]);
+        setNotificationToast({
+          title: '🛑 ¡Parada Solicitada!',
+          message: 'El chofer ha recibido la alerta de bajada en el mapa.',
+          type: 'success'
+        });
+        setTimeout(() => setNotificationToast(null), 4000);
+      }
+    } catch (e) {
+      console.error('Error al pedir bajada:', e);
     }
-
-    setNotificationToast({
-      title: '¡Señal Activada!',
-      message: 'Los choferes en circulación han sido notificados.',
-      type: 'success'
-    });
-    setTimeout(() => setNotificationToast(null), 4000);
   };
 
-  // Apertura de modales especializados
-  const handleOpenLiveCabin = (vehicle: VehicleUnit) => {
-    setSelectedVehicleForCabin(vehicle);
-    setCabinModalOpen(true);
-  };
-
-  const handleOpenAgreement = (driverData: any) => {
-    setSelectedDriverForAgreement(driverData);
-    setAgreementModalOpen(true);
+  // Manejador de navegación inferior
+  const handleSelectBottomTab = (tab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder') => {
+    setActiveMobileTab(tab);
+    if (tab === 'driver') setDriverCockpitOpen(true);
+    if (tab === 'chat') setGroupChatOpen(true);
+    if (tab === 'contacts') setContactsOpen(true);
+    if (tab === 'builder') setRouteBuilderOpen(true);
   };
 
   return (
     <main className="relative w-screen h-screen overflow-hidden flex flex-col bg-slate-50 dark:bg-[#0c0d0f]">
-      {/* Barra de Navegación Superior con Soporte de Métricas y SMS Fallback */}
+      {/* Barra de Navegación Superior */}
       <Header
         onOpenAuth={() => setAuthModalOpen(true)}
         onOpenProfile={() => setProfileModalOpen(true)}
@@ -493,17 +491,90 @@ export default function HomePage() {
         isOffline={isOffline}
       />
 
-      {/* Banner de Modo Fuera de Línea (Sprint 4) */}
+      {/* Banner de Modo Sin Conexión */}
       <OfflineBanner
         isOffline={isOffline}
         onOpenSms={() => setSmsModalOpen(true)}
         lastSyncTime={lastSyncTime}
       />
 
+      {/* Barra de Estado Contextual Superior para Pasajeros y Choferes */}
+      <div className="z-20 w-full bg-white/90 dark:bg-[#121417]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 py-1.5 flex items-center justify-between text-xs">
+        {isDriver ? (
+          /* Conductor: Acceso rápido a su cabina */
+          <div className="w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">
+                Chofer en Servicio · Toyota Yaris (B1A-789)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDriverCockpitOpen(true)}
+              className="px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-2xs flex items-center gap-1.5 transition active:scale-95"
+            >
+              <Car className="w-3.5 h-3.5" />
+              <span>Abrir Mi Cabina</span>
+            </button>
+          </div>
+        ) : (
+          /* Pasajero: Selector de estado contextual (1 toque) */
+          <div className="w-full flex items-center justify-between overflow-x-auto no-scrollbar gap-2">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">
+              Mi estado:
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setPassengerContextState('CAMINO')}
+                className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold transition ${
+                  passengerContextState === 'CAMINO'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                🚶 En camino
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPassengerContextState('ESPERANDO');
+                  setNotificationToast({
+                    title: 'Señal Activada',
+                    message: 'Esperando vehículo en paradero.',
+                    type: 'info'
+                  });
+                  setTimeout(() => setNotificationToast(null), 3000);
+                }}
+                className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold transition ${
+                  passengerContextState === 'ESPERANDO'
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                📍 Esperando aquí
+              </button>
+              <button
+                type="button"
+                onClick={() => setPassengerContextState('A_BORDO')}
+                className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold transition ${
+                  passengerContextState === 'A_BORDO'
+                    ? 'bg-indigo-600 text-white shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                🚗 A bordo
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Notificación Toast Flotante */}
       {notificationToast && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 bg-white dark:bg-[#16181d] text-slate-900 dark:text-white text-xs px-4 py-2.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-3 animate-in fade-in slide-in-from-top duration-200">
-          <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-white dark:bg-[#16181d] text-slate-900 dark:text-white text-xs px-4 py-2.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-3 animate-in fade-in slide-in-from-top duration-200">
+          <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 shrink-0">
             <BellRing className="w-3.5 h-3.5" />
           </div>
           <div>
@@ -513,8 +584,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Mapa Interactivo con Google Maps Oficial en Tiempo Real */}
-      <div className="relative flex-1 w-full h-full min-h-0">
+      {/* Mapa Interactivo Google Maps Oficial */}
+      <div className="relative flex-1 w-full h-full min-h-0 pb-16">
         <ErrorBoundary>
           <MapWrapper
             stops={stops}
@@ -524,23 +595,98 @@ export default function HomePage() {
             onSelectItem={setSelectedItem}
             darkMode={darkMode}
             passengerSignal={passengerSignal}
+            userLocation={userLocation}
+            dropoffs={dropoffs}
+            onVehicleTap={(v) => setInspectedVehicle(v)}
+            onRequestDropoff={handleRequestDropoff}
+            onLocateUser={handleLocateUser}
           />
         </ErrorBoundary>
       </div>
 
-      {/* Bottom Sheet Deslizable con Buscador Inteligente y Modos de Revelación */}
+      {/* Panel Deslizable Bottom Sheet (Paraderos, Vehículos, Rutas) */}
       <BottomSheet
         stops={stops}
         vehicles={vehicles}
         routes={routes}
         selectedItem={selectedItem}
         onSelectItem={setSelectedItem}
-        onWaitingClick={handleWaitingClick}
-        onOpenLiveCabin={handleOpenLiveCabin}
-        onOpenAgreement={handleOpenAgreement}
+        onWaitingClick={handleLocateUser}
+        onOpenLiveCabin={(v) => setInspectedVehicle(v)}
+        onOpenAgreement={(d) => {
+          setSelectedDriverForAgreement(d);
+          setAgreementModalOpen(true);
+        }}
       />
 
-      {/* Modales de Autenticación y Perfil */}
+      {/* Barra de Navegación Inferior Móvil Fija */}
+      <BottomNavBar
+        activeTab={activeMobileTab}
+        onSelectTab={handleSelectBottomTab}
+        userRole={currentRole}
+        unreadChatCount={2}
+      />
+
+      {/* 1. Modal Cabina Interactiva del Conductor */}
+      <DriverCockpitModal
+        isOpen={driverCockpitOpen}
+        onClose={() => setDriverCockpitOpen(false)}
+        driverName={profile?.full_name || 'Jorge Huamán Castillo'}
+        vehiclePlate="B1A-789"
+        vehicleModel="Toyota Yaris Sedán 2023"
+        onUpdateStatus={(st, note) => {
+          setNotificationToast({
+            title: 'Estado Actualizado',
+            message: note,
+            type: 'success'
+          });
+          setTimeout(() => setNotificationToast(null), 3000);
+        }}
+      />
+
+      {/* 2. Modal Chat Grupal Tipo WhatsApp */}
+      <GroupChatModal
+        isOpen={groupChatOpen}
+        onClose={() => setGroupChatOpen(false)}
+        currentUser={{
+          id: user?.id || 'a0000000-0000-0000-0000-000000000005',
+          name: profile?.full_name || 'Lucía Fernández (UNAB)',
+          role: currentRole
+        }}
+      />
+
+      {/* 3. Modal Directorio de Contactos y Llamadas */}
+      <ContactsModal
+        isOpen={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+      />
+
+      {/* 4. Modal Visualizador Táctil del Modelo Virtual del Vehículo */}
+      <VehicleInspectModal
+        isOpen={!!inspectedVehicle}
+        onClose={() => setInspectedVehicle(null)}
+        vehicle={inspectedVehicle}
+        onBoardRequest={() => {
+          handleLocateUser();
+          setNotificationToast({
+            title: 'Abordaje Solicitado',
+            message: 'El conductor ha recibido tu punto de abordaje.',
+            type: 'success'
+          });
+          setTimeout(() => setNotificationToast(null), 3500);
+        }}
+      />
+
+      {/* 5. Modal Creador Interactivo de Rutas */}
+      <RouteBuilderModal
+        isOpen={routeBuilderOpen}
+        onClose={() => setRouteBuilderOpen(false)}
+        onRouteSaved={(newR) => {
+          setRoutes(prev => [...prev, newR]);
+        }}
+      />
+
+      {/* Modales Existentes */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
@@ -551,7 +697,6 @@ export default function HomePage() {
         onClose={() => setProfileModalOpen(false)}
       />
 
-      {/* Modales Operativos Sprint 2 */}
       <VehicleDesignerModal
         isOpen={vehicleDesignerOpen}
         onClose={() => setVehicleDesignerOpen(false)}
@@ -569,7 +714,6 @@ export default function HomePage() {
         onClose={() => setGroupManagementOpen(false)}
       />
 
-      {/* Modales Especializados Sprint 3 */}
       <VehicleLiveCabinModal
         isOpen={cabinModalOpen}
         onClose={() => setCabinModalOpen(false)}
@@ -582,7 +726,6 @@ export default function HomePage() {
         driverData={selectedDriverForAgreement}
       />
 
-      {/* Modales Especializados Sprint 4 */}
       <SmsFallbackModal
         isOpen={smsModalOpen}
         onClose={() => setSmsModalOpen(false)}
