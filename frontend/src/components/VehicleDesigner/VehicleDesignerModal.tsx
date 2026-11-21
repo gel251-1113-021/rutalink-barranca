@@ -11,6 +11,7 @@ import {
   Sparkles,
   Layers
 } from 'lucide-react';
+import RealisticVehicleSVG from '../Branding/RealisticVehicleSVG';
 
 interface SeatConfig {
   id: string;
@@ -32,60 +33,66 @@ const PRESET_TEMPLATES: Record<string, { name: string; capacity: number; seats: 
     name: 'Sedán Estándar (Toyota Yaris / Chevrolet Sail)',
     capacity: 4,
     seats: [
-      { id: 's_drv', label: 'Chofer', x: 1, y: 1, type: 'driver', status: 'occupied' },
-      { id: 's_cop', label: 'Copiloto', x: 2, y: 1, type: 'passenger', status: 'free' },
-      { id: 's_r1', label: 'Atrás Izq', x: 1, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_r2', label: 'Atrás Med', x: 2, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_r3', label: 'Atrás Der', x: 3, y: 2, type: 'passenger', status: 'free' }
+      { id: 'c1', label: 'Chofer', x: 1, y: 1, type: 'driver', status: 'occupied' },
+      { id: 's1', label: 'Copiloto', x: 2, y: 1, type: 'passenger', status: 'free' },
+      { id: 's2', label: 'Atrás Izq', x: 1, y: 2, type: 'passenger', status: 'free' },
+      { id: 's3', label: 'Atrás Med', x: 2, y: 2, type: 'passenger', status: 'free' },
+      { id: 's4', label: 'Atrás Der', x: 3, y: 2, type: 'passenger', status: 'free' }
     ]
   },
-  SUV: {
-    name: 'SUV / Camioneta Rural (Toyota Rush / Avanza)',
-    capacity: 6,
+  MOTOTAXI: {
+    name: 'Mototaxi Torito (Bajaj / TVS King)',
+    capacity: 3,
     seats: [
-      { id: 's_drv', label: 'Chofer', x: 1, y: 1, type: 'driver', status: 'occupied' },
-      { id: 's_cop', label: 'Copiloto', x: 2, y: 1, type: 'passenger', status: 'free' },
-      { id: 's_m1', label: 'Fila 2 Izq', x: 1, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_m2', label: 'Fila 2 Med', x: 2, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_m3', label: 'Fila 2 Der', x: 3, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_b1', label: 'Fila 3 Izq', x: 1, y: 3, type: 'passenger', status: 'free' },
-      { id: 's_b2', label: 'Fila 3 Der', x: 2, y: 3, type: 'passenger', status: 'free' }
+      { id: 'c1', label: 'Chofer', x: 2, y: 1, type: 'driver', status: 'occupied' },
+      { id: 's1', label: 'P1 Izq', x: 1, y: 2, type: 'passenger', status: 'free' },
+      { id: 's2', label: 'P2 Centro', x: 2, y: 2, type: 'passenger', status: 'free' },
+      { id: 's3', label: 'P3 Der', x: 3, y: 2, type: 'passenger', status: 'free' }
     ]
   },
   MINIVAN: {
-    name: 'Miniván Colectivo (Hyundai H1 / Joylong)',
-    capacity: 10,
+    name: 'Miniván Colectivo (Toyota Avanza / Suzuki Ertiga)',
+    capacity: 6,
     seats: [
-      { id: 's_drv', label: 'Chofer', x: 1, y: 1, type: 'driver', status: 'occupied' },
-      { id: 's_cop', label: 'Copiloto', x: 2, y: 1, type: 'passenger', status: 'free' },
-      { id: 's_f2_1', label: 'F2-1', x: 1, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_f2_2', label: 'F2-2', x: 2, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_f2_3', label: 'F2-3', x: 3, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_f3_1', label: 'F3-1', x: 1, y: 3, type: 'passenger', status: 'free' },
-      { id: 's_f3_2', label: 'F3-2', x: 2, y: 3, type: 'passenger', status: 'free' },
-      { id: 's_f3_3', label: 'F3-3', x: 3, y: 3, type: 'passenger', status: 'free' },
-      { id: 's_f4_1', label: 'F4-1', x: 1, y: 4, type: 'passenger', status: 'free' },
-      { id: 's_f4_2', label: 'F4-2', x: 2, y: 4, type: 'passenger', status: 'free' },
-      { id: 's_f4_3', label: 'F4-3', x: 3, y: 4, type: 'passenger', status: 'free' }
+      { id: 'c1', label: 'Chofer', x: 1, y: 1, type: 'driver', status: 'occupied' },
+      { id: 's1', label: 'A1 Copiloto', x: 2, y: 1, type: 'passenger', status: 'free' },
+      { id: 's2', label: 'A2 Fila 2 Izq', x: 1, y: 2, type: 'passenger', status: 'free' },
+      { id: 's3', label: 'A3 Fila 2 Der', x: 2, y: 2, type: 'passenger', status: 'free' },
+      { id: 's4', label: 'A4 Fila 3 Izq', x: 1, y: 3, type: 'passenger', status: 'free' },
+      { id: 's5', label: 'A5 Fila 3 Centro', x: 2, y: 3, type: 'passenger', status: 'free' },
+      { id: 's6', label: 'A6 Fila 3 Der', x: 3, y: 3, type: 'passenger', status: 'free' }
     ]
   },
   COMBI: {
     name: 'Combi Interdistrital (Toyota HiAce)',
     capacity: 14,
     seats: [
-      { id: 's_drv', label: 'Chofer', x: 1, y: 1, type: 'driver', status: 'occupied' },
-      { id: 's_cop1', label: 'Copiloto 1', x: 2, y: 1, type: 'passenger', status: 'free' },
-      { id: 's_cop2', label: 'Copiloto 2', x: 3, y: 1, type: 'passenger', status: 'free' },
-      { id: 's_f2_1', label: 'F2-1', x: 1, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_f2_2', label: 'F2-2', x: 2, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_f2_3', label: 'F2-3', x: 3, y: 2, type: 'passenger', status: 'free' },
-      { id: 's_f3_1', label: 'F3-1', x: 1, y: 3, type: 'passenger', status: 'free' },
-      { id: 's_f3_2', label: 'F3-2', x: 2, y: 3, type: 'passenger', status: 'free' },
-      { id: 's_f3_3', label: 'F3-3', x: 3, y: 3, type: 'passenger', status: 'free' },
-      { id: 's_f4_1', label: 'F4-1', x: 1, y: 4, type: 'passenger', status: 'free' },
-      { id: 's_f4_2', label: 'F4-2', x: 2, y: 4, type: 'passenger', status: 'free' },
-      { id: 's_f4_3', label: 'F4-3', x: 3, y: 4, type: 'passenger', status: 'free' },
-      { id: 's_f4_4', label: 'F4-4', x: 4, y: 4, type: 'passenger', status: 'free' }
+      { id: 'c1', label: 'Chofer', x: 1, y: 1, type: 'driver', status: 'occupied' },
+      { id: 's1', label: 'Copiloto', x: 2, y: 1, type: 'passenger', status: 'free' },
+      { id: 's2', label: 'A2', x: 1, y: 2, type: 'passenger', status: 'free' },
+      { id: 's3', label: 'A3', x: 2, y: 2, type: 'passenger', status: 'free' },
+      { id: 's4', label: 'A4', x: 3, y: 2, type: 'passenger', status: 'free' },
+      { id: 's5', label: 'A5', x: 1, y: 3, type: 'passenger', status: 'free' },
+      { id: 's6', label: 'A6', x: 2, y: 3, type: 'passenger', status: 'free' },
+      { id: 's7', label: 'A7', x: 3, y: 3, type: 'passenger', status: 'free' },
+      { id: 's8', label: 'A8', x: 1, y: 4, type: 'passenger', status: 'free' },
+      { id: 's9', label: 'A9', x: 2, y: 4, type: 'passenger', status: 'free' },
+      { id: 's10', label: 'A10', x: 3, y: 4, type: 'passenger', status: 'free' },
+      { id: 's11', label: 'A11', x: 1, y: 5, type: 'passenger', status: 'free' },
+      { id: 's12', label: 'A12', x: 2, y: 5, type: 'passenger', status: 'free' },
+      { id: 's13', label: 'A13', x: 3, y: 5, type: 'passenger', status: 'free' },
+      { id: 's14', label: 'A14', x: 4, y: 5, type: 'passenger', status: 'free' }
+    ]
+  },
+  STATION_WAGON: {
+    name: 'Station Wagon / SUV (Toyota Probox / Rush)',
+    capacity: 4,
+    seats: [
+      { id: 'c1', label: 'Chofer', x: 1, y: 1, type: 'driver', status: 'occupied' },
+      { id: 's1', label: 'Copiloto', x: 2, y: 1, type: 'passenger', status: 'free' },
+      { id: 's2', label: 'Atrás Izq', x: 1, y: 2, type: 'passenger', status: 'free' },
+      { id: 's3', label: 'Atrás Med', x: 2, y: 2, type: 'passenger', status: 'free' },
+      { id: 's4', label: 'Atrás Der', x: 3, y: 2, type: 'passenger', status: 'free' }
     ]
   }
 };
@@ -93,7 +100,7 @@ const PRESET_TEMPLATES: Record<string, { name: string; capacity: number; seats: 
 export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: VehicleDesignerModalProps) {
   const { user } = useAuth();
 
-  const [selectedTemplate, setSelectedTemplate] = useState<'SEDAN' | 'SUV' | 'MINIVAN' | 'COMBI'>('SEDAN');
+  const [selectedTemplate, setSelectedTemplate] = useState<'SEDAN' | 'MOTOTAXI' | 'MINIVAN' | 'COMBI' | 'STATION_WAGON'>('SEDAN');
   const [plate, setPlate] = useState('B1A-789');
   const [brandModel, setBrandModel] = useState('Toyota Yaris 2022');
   const [seats, setSeats] = useState<SeatConfig[]>(PRESET_TEMPLATES.SEDAN.seats);
@@ -139,7 +146,7 @@ export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: Vehic
 
   if (!isOpen) return null;
 
-  const handleApplyTemplate = (type: 'SEDAN' | 'SUV' | 'MINIVAN' | 'COMBI') => {
+  const handleApplyTemplate = (type: 'SEDAN' | 'MOTOTAXI' | 'MINIVAN' | 'COMBI' | 'STATION_WAGON') => {
     setSelectedTemplate(type);
     const tmpl = PRESET_TEMPLATES[type];
     setSeats(tmpl.seats);
@@ -253,82 +260,53 @@ export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: Vehic
           {/* Selector de Plantilla Visual */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              1. Selecciona la Carrocería Base
+              1. Selecciona la Carrocería Base (Modelos de Barranca)
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(['SEDAN', 'SUV', 'MINIVAN', 'COMBI'] as const).map(type => (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {(['SEDAN', 'MOTOTAXI', 'MINIVAN', 'COMBI', 'STATION_WAGON'] as const).map(type => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => handleApplyTemplate(type)}
-                  className={`p-2.5 rounded-xl border text-left transition ${
+                  className={`p-2 rounded-xl border text-left transition ${
                     selectedTemplate === type
                       ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold'
                       : 'border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  <div className="text-xs uppercase font-bold">{type}</div>
-                  <div className="text-[10px] opacity-75">{PRESET_TEMPLATES[type].capacity} Pasajeros</div>
+                  <div className="text-xs uppercase font-bold truncate">
+                    {type === 'STATION_WAGON' ? 'STATION' : type}
+                  </div>
+                  <div className="text-[10px] opacity-75">{PRESET_TEMPLATES[type]?.capacity || 4} Pasajeros</div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Plano Gráfico Interactivo de Asientos */}
+          {/* Plano Gráfico Interactivo de Asientos con Maqueta SVG */}
           <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-[#121417] border border-slate-200/70 dark:border-slate-800">
             <div className="flex items-center justify-between mb-3 text-xs">
               <span className="font-bold text-slate-800 dark:text-slate-200">
-                2. Plano Táctil de Cabina ({freeSeatsCount} de {passengerSeatsCount} Libres)
+                2. Maqueta Virtual e Interiores Táctiles ({freeSeatsCount} de {passengerSeatsCount} Libres)
               </span>
-              <span className="text-[11px] text-slate-400">Toca un asiento para alternar estado</span>
+              <span className="text-[11px] text-slate-400">Toca un asiento en la maqueta para cambiar estado</span>
             </div>
 
-            {/* Chasis estilizado del vehículo en SVG */}
-            <div className="relative max-w-xs mx-auto p-4 rounded-3xl bg-white dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 shadow-sm">
-              <div className="text-center text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
-                Frente / Capó
-              </div>
-
-              {/* Matriz de asientos */}
-              <div className="space-y-2.5">
-                {[1, 2, 3, 4].map(row => {
-                  const rowSeats = seats.filter(s => s.y === row);
-                  if (rowSeats.length === 0) return null;
-
-                  return (
-                    <div key={row} className="flex items-center justify-center gap-2.5">
-                      {rowSeats.map(seat => {
-                        const isDriver = seat.type === 'driver';
-                        const isFree = seat.status === 'free';
-
-                        return (
-                          <button
-                            key={seat.id}
-                            type="button"
-                            onClick={() => handleToggleSeatStatus(seat.id)}
-                            className={`px-3 py-2 rounded-xl text-center text-xs font-semibold transition flex flex-col items-center justify-center min-w-[65px] ${
-                              isDriver
-                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 cursor-default'
-                                : isFree
-                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/70 hover:bg-emerald-100'
-                                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/70 dark:border-rose-800/70 hover:bg-rose-100'
-                            }`}
-                          >
-                            <span className="text-[10px] leading-tight block">{seat.label}</span>
-                            <span className="text-[9px] uppercase font-bold mt-0.5">
-                              {isDriver ? 'Chofer' : isFree ? 'Libre' : 'Ocupado'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="text-center text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-3">
-                Maletera / Bodega Trasera
-              </div>
+            {/* Maqueta Vectorial SVG Realista */}
+            <div className="p-3 rounded-3xl bg-white dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 shadow-inner flex justify-center">
+              <RealisticVehicleSVG
+                category={selectedTemplate}
+                seats={seats.map(s => ({
+                  id: s.id,
+                  label: s.label,
+                  type: s.type,
+                  status: s.status
+                }))}
+                interactive={true}
+                onToggleSeat={handleToggleSeatStatus}
+                plate={plate}
+                className="w-full max-w-[260px] h-auto"
+              />
             </div>
           </div>
 

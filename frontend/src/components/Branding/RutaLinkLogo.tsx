@@ -137,3 +137,4 @@ export function DistrictBadge({ district }: { district: 'barranca' | 'supe' | 'p
     </span>
   );
 }
+

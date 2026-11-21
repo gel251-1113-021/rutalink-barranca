@@ -19,14 +19,18 @@ interface GroupManagementModalProps {
 export default function GroupManagementModal({ isOpen, onClose }: GroupManagementModalProps) {
   const { user } = useAuth();
 
-  const [tab, setTab] = useState<'my_groups' | 'pending_drivers' | 'create_group'>('my_groups');
+  const [tab, setTab] = useState<'my_groups' | 'pending_drivers' | 'dispatchers' | 'create_group'>('my_groups');
   const [groups, setGroups] = useState<any[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
+  const [dispatcherTargetId, setDispatcherTargetId] = useState<string>('');
+  const [dispatcherCandidateName, setDispatcherCandidateName] = useState<string>('');
 
   // Form crear grupo
   const [name, setName] = useState('');
   const [type, setType] = useState<'EMPRESARIAL' | 'COMUNITARIO'>('EMPRESARIAL');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [accessCode, setAccessCode] = useState('COMITE_' + Math.floor(100 + Math.random() * 900));
   const [description, setDescription] = useState('');
   const [baseAddress, setBaseAddress] = useState('');
   const [fareRange, setFareRange] = useState('S/. 2.50 - S/. 4.00');
@@ -111,6 +115,48 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
     }
   };
 
+  const handleAssignDispatcher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGroupId || !dispatcherCandidateName.trim()) return;
+
+    try {
+      const selectedGroup = groups.find(g => g.id === selectedGroupId);
+      if (!selectedGroup?.base_address) {
+        setMsg({ 
+          text: 'Operación denegada: La empresa debe contar con una dirección de paradero físico verificada para designar despachador.', 
+          type: 'error' 
+        });
+        return;
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
+      const token = session.access_token;
+
+      const res = await fetch(`${apiUrl}/api/groups/${selectedGroupId}/assign-dispatcher`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          targetUserId: dispatcherTargetId || 'a0000000-0000-0000-0000-000000000002',
+          stopId: 'c0000000-0000-0000-0000-000000000001'
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMsg({ text: `¡${dispatcherCandidateName} acreditado exitosamente como Despachador de Paradero!`, type: 'success' });
+        setDispatcherCandidateName('');
+      } else {
+        setMsg({ text: data.error || 'Error designando despachador', type: 'error' });
+      }
+    } catch (e: any) {
+      setMsg({ text: e.message || 'Error en la solicitud', type: 'error' });
+    }
+  };
+
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -133,6 +179,8 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
           description,
           baseAddress,
           fareRange,
+          isPrivate,
+          accessCode: isPrivate ? accessCode : undefined,
           baseLatitude: -10.7512,
           baseLongitude: -77.7615
         })
@@ -181,10 +229,10 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
         </div>
 
         {/* Pestañas con estilo limpio */}
-        <div className="grid grid-cols-3 border-b border-slate-100 dark:border-slate-800 text-xs font-semibold">
+        <div className="grid grid-cols-4 border-b border-slate-100 dark:border-slate-800 text-[11px] font-semibold">
           <button
             onClick={() => setTab('my_groups')}
-            className={`py-2.5 transition border-b-2 text-center ${
+            className={`py-2.5 transition border-b-2 text-center truncate px-1 ${
               tab === 'my_groups'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
                 : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -194,7 +242,7 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
           </button>
           <button
             onClick={() => setTab('pending_drivers')}
-            className={`py-2.5 transition border-b-2 text-center ${
+            className={`py-2.5 transition border-b-2 text-center truncate px-1 ${
               tab === 'pending_drivers'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
                 : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -203,8 +251,18 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
             Postulantes ({pendingDrivers.length})
           </button>
           <button
+            onClick={() => setTab('dispatchers')}
+            className={`py-2.5 transition border-b-2 text-center truncate px-1 ${
+              tab === 'dispatchers'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            Despachadores
+          </button>
+          <button
             onClick={() => setTab('create_group')}
-            className={`py-2.5 transition border-b-2 text-center ${
+            className={`py-2.5 transition border-b-2 text-center truncate px-1 ${
               tab === 'create_group'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
                 : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -292,6 +350,62 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
             </div>
           )}
 
+          {/* TAB 3: Despachadores de Paradero Oficial */}
+          {tab === 'dispatchers' && (
+            <div className="space-y-3.5 text-xs">
+              <div className="p-3.5 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800 text-cyan-950 dark:text-cyan-100">
+                <span className="font-bold flex items-center gap-1.5 text-cyan-900 dark:text-cyan-200 mb-1">
+                  <UserCheck className="w-4 h-4 text-cyan-600" />
+                  <span>Acreditación de Despachador de Paradero</span>
+                </span>
+                <p className="text-[11px] text-cyan-800 dark:text-cyan-300">
+                  Estricta regla de seguridad: Solo los Administradores de Empresa con paradero físico verificado pueden habilitar a un usuario como Despachador de turno.
+                </p>
+              </div>
+
+              <form onSubmit={handleAssignDispatcher} className="space-y-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-800">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Seleccionar Empresa / Comité
+                  </label>
+                  <select
+                    value={selectedGroupId}
+                    onChange={e => setSelectedGroupId(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white dark:bg-[#14161a] border border-slate-300 dark:border-slate-700 font-semibold"
+                  >
+                    {groups.map(g => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} {g.base_address ? `(${g.base_address})` : '(Sin paradero físico)'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Nombre o Celular del Usuario a Acreditar
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={dispatcherCandidateName}
+                    onChange={e => setDispatcherCandidateName(e.target.value)}
+                    placeholder="Ej. Raúl Medina (Despachador Gálvez)"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white dark:bg-[#14161a] border border-slate-300 dark:border-slate-700"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 px-4 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>Acreditar Despachador Oficial</span>
+                </button>
+              </form>
+            </div>
+          )}
+
           {/* TAB 3: Crear Grupo */}
           {tab === 'create_group' && (
             <form onSubmit={handleCreateGroup} className="space-y-3 text-xs">
@@ -349,6 +463,51 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
                   placeholder="Av. José Gálvez 450, Barranca"
                   className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700"
                 />
+              </div>
+
+              {/* Privacidad del Grupo */}
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 space-y-2">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 text-xs">
+                  Privacidad y Acceso al Grupo
+                </label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setIsPrivate(false)}
+                    className={`p-2 rounded-xl border text-center transition ${
+                      !isPrivate
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    🌐 Público (Libre)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPrivate(true)}
+                    className={`p-2 rounded-xl border text-center transition ${
+                      isPrivate
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    🔒 Privado (Con Clave)
+                  </button>
+                </div>
+                {isPrivate && (
+                  <div className="pt-2">
+                    <label className="block font-semibold text-slate-600 dark:text-slate-400 text-[11px] mb-1">
+                      Código de Acceso para los Miembros:
+                    </label>
+                    <input
+                      type="text"
+                      value={accessCode}
+                      onChange={e => setAccessCode(e.target.value.toUpperCase())}
+                      placeholder="Ej. COMITE1"
+                      className="w-full px-3 py-1.5 text-xs rounded-xl bg-white dark:bg-[#14161a] border border-slate-300 dark:border-slate-700 font-mono font-bold"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>

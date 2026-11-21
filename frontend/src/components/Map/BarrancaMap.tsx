@@ -87,12 +87,21 @@ const createStopIcon = (type: string, queueCount: number, darkMode: boolean) => 
 };
 
 // Icono de Vehículo en Vivo (Táctil con placa)
-const createVehicleIcon = (status: string, plate: string, darkMode: boolean) => {
+const getVehicleCategoryEmoji = (type?: string) => {
+  const norm = (type || '').toUpperCase();
+  if (norm.includes('MOTO')) return '🛺';
+  if (norm.includes('MINIVAN')) return '🚐';
+  if (norm.includes('COMBI') || norm.includes('BUS') || norm.includes('HIACE')) return '🚍';
+  if (norm.includes('STATION') || norm.includes('WAGON') || norm.includes('PROBOX') || norm.includes('SUV')) return '🚙';
+  return '🚗';
+};
+
+const createVehicleIcon = (status: string, plate: string, darkMode: boolean, vehicleType?: string) => {
   const isAvailable = status === 'DISPONIBLE';
   const dotColor = isAvailable ? '#10b981' : '#3b82f6';
   const bgColor = darkMode ? '#1e293b' : '#ffffff';
   const textColor = darkMode ? '#f8fafc' : '#0f172a';
-  const borderColor = darkMode ? '#334155' : '#cbd5e1';
+  const emoji = getVehicleCategoryEmoji(vehicleType);
 
   return L.divIcon({
     className: 'custom-vehicle-marker',
@@ -120,11 +129,11 @@ const createVehicleIcon = (status: string, plate: string, darkMode: boolean) => 
           box-shadow: 0 0 6px ${dotColor};
         "></span>
         <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.3px; font-family: ui-monospace, monospace;">${plate}</span>
-        <span style="font-size: 10px;">🚗</span>
+        <span style="font-size: 11px;">${emoji}</span>
       </div>
     `,
-    iconSize: [84, 28],
-    iconAnchor: [42, 14],
+    iconSize: [88, 28],
+    iconAnchor: [44, 14],
     popupAnchor: [0, -16],
   });
 };
@@ -269,6 +278,7 @@ export default function BarrancaMap({
   const defaultCenter: [number, number] = [-10.7512, -77.7615];
 
   const [mapLayer, setMapLayer] = useState<'google-streets' | 'google-hybrid' | 'osm'>('google-streets');
+  const [routeDisplayMode, setRouteDisplayMode] = useState<'POINTS' | 'ROADS'>('POINTS');
 
   const TILE_SERVERS: Record<string, string> = {
     'google-streets': 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
@@ -284,6 +294,36 @@ export default function BarrancaMap({
 
   return (
     <div className="relative w-full h-full">
+      {/* Selector de Modo de Rutas (Puntos Marcados vs Trazado Vial) */}
+      <div className="absolute top-3 left-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-[11px] font-semibold">
+        <button
+          type="button"
+          onClick={() => setRouteDisplayMode('POINTS')}
+          className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 ${
+            routeDisplayMode === 'POINTS'
+              ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+          title="Modo Puntos Marcados: Paraderos oficiales limpios sin líneas que crucen manzanas"
+        >
+          <span>📍</span>
+          <span>Puntos Marcados</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setRouteDisplayMode('ROADS')}
+          className={`px-2.5 py-1 rounded-xl transition flex items-center gap-1 ${
+            routeDisplayMode === 'ROADS'
+              ? 'bg-blue-600 text-white font-bold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+          title="Modo Trazo Vial: Líneas continuas que siguen las avenidas y pistas reales de Barranca"
+        >
+          <span>🛣️</span>
+          <span>Trazo Vial</span>
+        </button>
+      </div>
+
       {/* Selector Flotante de Estilo de Mapa */}
       <div className="absolute top-3 right-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-[11px] font-semibold">
         <button
@@ -364,8 +404,8 @@ export default function BarrancaMap({
         />
         <MapController selectedItem={selectedItem} userLocation={userLocation} />
 
-        {/* Trazado Polyline de Rutas Viales Oficiales */}
-        {routes.map((r) => {
+        {/* Trazado Polyline de Rutas Viales Oficiales (Activo solo en modo Trazo Vial) */}
+        {routeDisplayMode === 'ROADS' && routes.map((r) => {
           if (!r.geojson?.coordinates || r.geojson.coordinates.length < 2) return null;
           const latLngs = r.geojson.coordinates.map(
             ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
@@ -432,7 +472,7 @@ export default function BarrancaMap({
             <Marker
               key={v.id}
               position={[lat, lng]}
-              icon={createVehicleIcon(v.status, v.plate, darkMode)}
+              icon={createVehicleIcon(v.status, v.plate, darkMode, v.vehicle_type)}
               eventHandlers={{
                 click: () => {
                   if (onVehicleTap) {

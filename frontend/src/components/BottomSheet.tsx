@@ -33,6 +33,15 @@ interface BottomSheetProps {
   onSelectDestination?: (dest: string) => void;
 }
 
+const getVehicleEmoji = (type?: string) => {
+  const norm = (type || '').toUpperCase();
+  if (norm.includes('MOTO')) return '🛺';
+  if (norm.includes('MINIVAN')) return '🚐';
+  if (norm.includes('COMBI') || norm.includes('BUS')) return '🚍';
+  if (norm.includes('STATION') || norm.includes('WAGON') || norm.includes('PROBOX') || norm.includes('SUV')) return '🚙';
+  return '🚗';
+};
+
 export default function BottomSheet({
   stops,
   vehicles,
@@ -392,8 +401,8 @@ export default function BottomSheet({
                       className="p-3 rounded-2xl bg-slate-50/70 dark:bg-[#16181d] border border-slate-200/60 dark:border-slate-800 hover:border-emerald-500/60 cursor-pointer transition flex items-center justify-between text-xs"
                     >
                       <div className="flex items-start gap-2.5">
-                        <div className={`p-2 rounded-xl text-white ${v.status === 'DISPONIBLE' ? 'bg-emerald-600' : 'bg-rose-600'}`}>
-                          <Car className="w-4 h-4" />
+                        <div className={`p-2 rounded-xl text-white flex items-center justify-center text-sm ${v.status === 'DISPONIBLE' ? 'bg-emerald-600' : 'bg-rose-600'}`}>
+                          <span>{getVehicleEmoji(v.vehicle_type)}</span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2">

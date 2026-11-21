@@ -30,13 +30,19 @@ interface VehicleInspectModalProps {
     route_name?: string;
   } | null;
   onBoardRequest?: (vehicleId: string) => void;
+  onOpenAgreement?: (driverData: any) => void;
+  onOpenReview?: (target: { id: string; name: string; type: 'CONDUCTOR' | 'EMPRESA' }) => void;
+  onOpenPhotoUpload?: (title: string, category: 'VEHICULO' | 'PARADERO' | 'LLEGADA') => void;
 }
 
 export default function VehicleInspectModal({
   isOpen,
   onClose,
   vehicle,
-  onBoardRequest
+  onBoardRequest,
+  onOpenAgreement,
+  onOpenReview,
+  onOpenPhotoUpload
 }: VehicleInspectModalProps) {
   if (!isOpen || !vehicle) return null;
 
@@ -165,6 +171,63 @@ export default function VehicleInspectModal({
               <span>WhatsApp</span>
             </a>
           </div>
+
+          {/* 4. Fotos y Calificaciones Reales */}
+          <div className="grid grid-cols-2 gap-2">
+            {/* Ver / Subir Foto Real */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenPhotoUpload) {
+                  onOpenPhotoUpload(`Foto Real del Vehículo ${vehicle.plate} (${vehicle.brand_model})`, 'VEHICULO');
+                }
+              }}
+              className="py-2 px-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 transition"
+            >
+              <span>📷</span>
+              <span>Foto Real</span>
+            </button>
+
+            {/* Dejar Reseña */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenReview) {
+                  onOpenReview({
+                    id: vehicle.id,
+                    name: `${vehicle.driver_name || 'Conductor'} (${vehicle.plate})`,
+                    type: 'CONDUCTOR'
+                  });
+                }
+              }}
+              className="py-2 px-3 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-amber-300 dark:border-amber-800 transition"
+            >
+              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+              <span>Calificar Chofer</span>
+            </button>
+          </div>
+
+          {/* Pactar Carrera Expreso */}
+          {onOpenAgreement && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenAgreement({
+                  id: vehicle.id,
+                  name: vehicle.driver_name || 'Jorge Huamán Castillo',
+                  plate: vehicle.plate,
+                  brandModel: vehicle.brand_model,
+                  rating: ratingNum,
+                  phone: vehicle.driver_phone
+                });
+                onClose();
+              }}
+              className="w-full py-2.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-2"
+            >
+              <span>🤝</span>
+              <span>Pactar Carrera Expreso con este Chofer</span>
+            </button>
+          )}
 
           {/* Botón de abordaje "Me subo aquí" */}
           <button

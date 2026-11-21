@@ -1,9 +1,12 @@
 const { Client } = require('pg');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
+const isLocal = !process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
 
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: isLocal ? false : { rejectUnauthorized: false }
 });
 
 const USERS = [
@@ -36,20 +39,29 @@ const USERS = [
     role: 'ENCARGADO_PARADERO',
     rating: 5.0
   },
-  // 3. Choferes Afiliados a Comités
+  // 3. Choferes Afiliados a Comités y Categorías de Vehículos
   {
     id: 'a0000000-0000-0000-0000-000000000003',
-    email: 'chofer.pativilca@rutalink.pe',
-    password: 'RutaLink2026Chofer!',
+    email: 'chofer.sedan@rutalink.pe',
+    password: 'RutaLink2026Sedan!',
     fullName: 'Jorge Huamán Castillo',
     phone: '+51 987654323',
     role: 'CONDUCTOR_AFILIADO',
     rating: 4.8
   },
   {
+    id: 'a0000000-0000-0000-0000-000000000006',
+    email: 'chofer.combi@rutalink.pe',
+    password: 'RutaLink2026Combi!',
+    fullName: 'Pedro Chumpitaz Solís',
+    phone: '+51 987654330',
+    role: 'CONDUCTOR_AFILIADO',
+    rating: 4.9
+  },
+  {
     id: 'a0000000-0000-0000-0000-000000000013',
-    email: 'chofer.unab@rutalink.pe',
-    password: 'RutaLink2026Chofer!',
+    email: 'chofer.minivan@rutalink.pe',
+    password: 'RutaLink2026Minivan!',
     fullName: 'Carlos Morales Echevarría',
     phone: '+51 987654313',
     role: 'CONDUCTOR_AFILIADO',
@@ -67,12 +79,21 @@ const USERS = [
   // 4. Choferes Independientes
   {
     id: 'a0000000-0000-0000-0000-000000000004',
-    email: 'chofer.indep@rutalink.pe',
-    password: 'RutaLink2026Indep!',
+    email: 'chofer.probox@rutalink.pe',
+    password: 'RutaLink2026Probox!',
     fullName: 'Walter Rosales Díaz',
     phone: '+51 987654324',
     role: 'CONDUCTOR_INDEPENDIENTE',
-    rating: 4.6
+    rating: 4.7
+  },
+  {
+    id: 'a0000000-0000-0000-0000-000000000007',
+    email: 'chofer.mototaxi@rutalink.pe',
+    password: 'RutaLink2026Moto!',
+    fullName: 'Luis Morales Pajuelo',
+    phone: '+51 987654329',
+    role: 'CONDUCTOR_INDEPENDIENTE',
+    rating: 4.85
   },
   {
     id: 'a0000000-0000-0000-0000-000000000015',
@@ -170,6 +191,7 @@ const GROUPS = [
 ];
 
 const VEHICLES = [
+  // 1. SEDÁN: Toyota Yaris (4 asientos)
   {
     id: 'd0000000-0000-0000-0000-000000000001',
     ownerId: 'a0000000-0000-0000-0000-000000000003',
@@ -180,26 +202,28 @@ const VEHICLES = [
     capacity: 4,
     roofRack: true,
     maxCargo: 45,
-    status: 'EN_RUTA',
+    status: 'DISPONIBLE',
     lng: -77.7580,
     lat: -10.7500,
     heading: 85.0
   },
+  // 2. COMBI: Toyota HiAce (14 asientos)
   {
-    id: 'd0000000-0000-0000-0000-000000000002',
-    ownerId: 'a0000000-0000-0000-0000-000000000004',
-    groupId: null,
-    plate: 'C3M-456',
-    brand: 'Chevrolet Sail Sedán',
-    type: 'SEDAN',
-    capacity: 4,
-    roofRack: false,
-    maxCargo: 30,
+    id: 'd0000000-0000-0000-0000-000000000006',
+    ownerId: 'a0000000-0000-0000-0000-000000000006',
+    groupId: 'b0000000-0000-0000-0000-000000000001',
+    plate: 'Z9P-140',
+    brand: 'Toyota HiAce Combi 2024',
+    type: 'COMBI',
+    capacity: 14,
+    roofRack: true,
+    maxCargo: 150,
     status: 'DISPONIBLE',
-    lng: -77.7520,
-    lat: -10.7490,
-    heading: 180.0
+    lng: -77.7630,
+    lat: -10.7535,
+    heading: 120.0
   },
+  // 3. MINIVÁN: Toyota Avanza (6 asientos)
   {
     id: 'd0000000-0000-0000-0000-000000000003',
     ownerId: 'a0000000-0000-0000-0000-000000000013',
@@ -207,43 +231,45 @@ const VEHICLES = [
     plate: 'A7U-102',
     brand: 'Toyota Avanza Miniván 2024',
     type: 'MINIVAN',
-    capacity: 7,
+    capacity: 6,
     roofRack: true,
     maxCargo: 80,
     status: 'DISPONIBLE',
-    lng: -77.7615,
-    lat: -10.7512,
+    lng: -77.7550,
+    lat: -10.7485,
     heading: 45.0
   },
+  // 4. STATION WAGON / PROBOX: Toyota Probox con Parrilla (4 asientos + 120kg carga)
   {
-    id: 'd0000000-0000-0000-0000-000000000004',
-    ownerId: 'a0000000-0000-0000-0000-000000000014',
-    groupId: 'b0000000-0000-0000-0000-000000000001',
-    plate: 'T5F-330',
-    brand: 'Hyundai Elantra Sedán',
-    type: 'SEDAN',
-    capacity: 4,
-    roofRack: false,
-    maxCargo: 35,
-    status: 'DISPONIBLE',
-    lng: -77.7125,
-    lat: -10.7980,
-    heading: 270.0
-  },
-  {
-    id: 'd0000000-0000-0000-0000-000000000005',
-    ownerId: 'a0000000-0000-0000-0000-000000000015',
-    groupId: 'b0000000-0000-0000-0000-000000000003',
-    plate: 'D2K-881',
-    brand: 'Nissan Versa Confort',
-    type: 'SEDAN',
+    id: 'd0000000-0000-0000-0000-000000000002',
+    ownerId: 'a0000000-0000-0000-0000-000000000004',
+    groupId: 'b0000000-0000-0000-0000-000000000004',
+    plate: 'P4R-550',
+    brand: 'Toyota Probox Station Wagon con Parrilla',
+    type: 'STATION_WAGON',
     capacity: 4,
     roofRack: true,
-    maxCargo: 40,
-    status: 'EN_RUTA',
-    lng: -77.7845,
-    lat: -10.6970,
-    heading: 350.0
+    maxCargo: 120,
+    status: 'DISPONIBLE',
+    lng: -77.7595,
+    lat: -10.7510,
+    heading: 180.0
+  },
+  // 5. MOTOTAXI: Bajaj Torito (3 pasajeros)
+  {
+    id: 'd0000000-0000-0000-0000-000000000007',
+    ownerId: 'a0000000-0000-0000-0000-000000000007',
+    groupId: 'b0000000-0000-0000-0000-000000000004',
+    plate: 'MT-4021',
+    brand: 'Bajaj Torito 4T Mototaxi Barranca',
+    type: 'MOTOTAXI',
+    capacity: 3,
+    roofRack: false,
+    maxCargo: 20,
+    status: 'DISPONIBLE',
+    lng: -77.7600,
+    lat: -10.7525,
+    heading: 270.0
   }
 ];
 
@@ -320,6 +346,7 @@ async function seed() {
     { groupId: 'b0000000-0000-0000-0000-000000000001', userId: 'a0000000-0000-0000-0000-000000000002', role: 'ENCARGADO_PARADERO' },
     { groupId: 'b0000000-0000-0000-0000-000000000001', userId: 'a0000000-0000-0000-0000-000000000012', role: 'ENCARGADO_PARADERO' },
     { groupId: 'b0000000-0000-0000-0000-000000000001', userId: 'a0000000-0000-0000-0000-000000000003', role: 'CONDUCTOR_AFILIADO' },
+    { groupId: 'b0000000-0000-0000-0000-000000000001', userId: 'a0000000-0000-0000-0000-000000000006', role: 'CONDUCTOR_AFILIADO' },
     { groupId: 'b0000000-0000-0000-0000-000000000001', userId: 'a0000000-0000-0000-0000-000000000013', role: 'CONDUCTOR_AFILIADO' },
     { groupId: 'b0000000-0000-0000-0000-000000000001', userId: 'a0000000-0000-0000-0000-000000000014', role: 'CONDUCTOR_AFILIADO' },
     // UNAB Carpooling
@@ -328,7 +355,10 @@ async function seed() {
     { groupId: 'b0000000-0000-0000-0000-000000000002', userId: 'a0000000-0000-0000-0000-000000000013', role: 'CONDUCTOR_AFILIADO' },
     // Expreso Pativilca
     { groupId: 'b0000000-0000-0000-0000-000000000003', userId: 'a0000000-0000-0000-0000-000000000015', role: 'CONDUCTOR_INDEPENDIENTE' },
-    { groupId: 'b0000000-0000-0000-0000-000000000003', userId: 'a0000000-0000-0000-0000-000000000016', role: 'PASAJERO' }
+    { groupId: 'b0000000-0000-0000-0000-000000000003', userId: 'a0000000-0000-0000-0000-000000000016', role: 'PASAJERO' },
+    // Asociación de Mototaxis y Colectivos Rápidos
+    { groupId: 'b0000000-0000-0000-0000-000000000004', userId: 'a0000000-0000-0000-0000-000000000004', role: 'CONDUCTOR_INDEPENDIENTE' },
+    { groupId: 'b0000000-0000-0000-0000-000000000004', userId: 'a0000000-0000-0000-0000-000000000007', role: 'CONDUCTOR_INDEPENDIENTE' }
   ];
 
   for (const m of MEMBERSHIPS) {
@@ -342,15 +372,61 @@ async function seed() {
   }
   console.log('✓ Membresías de grupos asociadas.');
 
+  // Asegurar valores enum para vehicle_type
+  try {
+    await client.query(`ALTER TYPE vehicle_type ADD VALUE IF NOT EXISTS 'MOTOTAXI';`);
+    await client.query(`ALTER TYPE vehicle_type ADD VALUE IF NOT EXISTS 'STATION_WAGON';`);
+  } catch (err) {
+    console.log('Aviso sobre enum vehicle_type:', err.message);
+  }
+
   // 4. Flota de Vehículos
   for (const v of VEHICLES) {
-    const layout = [
-      { id: 'c1', label: 'Conductor', type: 'driver', status: 'occupied', x: 1, y: 1 },
-      { id: 's1', label: 'Copiloto', type: 'passenger', status: 'free', x: 2, y: 1 },
-      { id: 's2', label: 'Atrás Izq', type: 'passenger', status: 'occupied', x: 1, y: 2 },
-      { id: 's3', label: 'Atrás Centro', type: 'passenger', status: 'free', x: 1.5, y: 2 },
-      { id: 's4', label: 'Atrás Der', type: 'passenger', status: 'free', x: 2, y: 2 }
-    ];
+    let layout;
+    if (v.type === 'MOTOTAXI') {
+      layout = [
+        { id: 'c1', label: 'Conductor', type: 'driver', status: 'occupied', x: 1.5, y: 1 },
+        { id: 's1', label: 'P1 Izq', type: 'passenger', status: 'free', x: 1, y: 2 },
+        { id: 's2', label: 'P2 Centro', type: 'passenger', status: 'occupied', x: 1.5, y: 2 },
+        { id: 's3', label: 'P3 Der', type: 'passenger', status: 'free', x: 2, y: 2 }
+      ];
+    } else if (v.type === 'MINIVAN') {
+      layout = [
+        { id: 'c1', label: 'Chofer', type: 'driver', status: 'occupied', x: 1, y: 1 },
+        { id: 's1', label: 'Copiloto A1', type: 'passenger', status: 'free', x: 2, y: 1 },
+        { id: 's2', label: 'A2 Intermedio', type: 'passenger', status: 'occupied', x: 1, y: 2 },
+        { id: 's3', label: 'A3 Intermedio', type: 'passenger', status: 'free', x: 2, y: 2 },
+        { id: 's4', label: 'A4 Atrás', type: 'passenger', status: 'free', x: 1, y: 3 },
+        { id: 's5', label: 'A5 Atrás Centro', type: 'passenger', status: 'free', x: 1.5, y: 3 },
+        { id: 's6', label: 'A6 Atrás Der', type: 'passenger', status: 'free', x: 2, y: 3 }
+      ];
+    } else if (v.type === 'COMBI') {
+      layout = [
+        { id: 'c1', label: 'Chofer', type: 'driver', status: 'occupied', x: 1, y: 1 },
+        { id: 's1', label: 'Copiloto A1', type: 'passenger', status: 'free', x: 3, y: 1 },
+        { id: 's2', label: 'A2', type: 'passenger', status: 'free', x: 1, y: 2 },
+        { id: 's3', label: 'A3', type: 'passenger', status: 'free', x: 2, y: 2 },
+        { id: 's4', label: 'A4', type: 'passenger', status: 'occupied', x: 3, y: 2 },
+        { id: 's5', label: 'A5', type: 'passenger', status: 'free', x: 1, y: 3 },
+        { id: 's6', label: 'A6', type: 'passenger', status: 'occupied', x: 2, y: 3 },
+        { id: 's7', label: 'A7', type: 'passenger', status: 'free', x: 3, y: 3 },
+        { id: 's8', label: 'A8', type: 'passenger', status: 'free', x: 1, y: 4 },
+        { id: 's9', label: 'A9', type: 'passenger', status: 'free', x: 2, y: 4 },
+        { id: 's10', label: 'A10', type: 'passenger', status: 'free', x: 3, y: 4 },
+        { id: 's11', label: 'A11', type: 'passenger', status: 'free', x: 1, y: 5 },
+        { id: 's12', label: 'A12', type: 'passenger', status: 'free', x: 1.6, y: 5 },
+        { id: 's13', label: 'A13', type: 'passenger', status: 'free', x: 2.3, y: 5 },
+        { id: 's14', label: 'A14', type: 'passenger', status: 'free', x: 3, y: 5 }
+      ];
+    } else {
+      layout = [
+        { id: 'c1', label: 'Conductor', type: 'driver', status: 'occupied', x: 1, y: 1 },
+        { id: 's1', label: 'Copiloto A1', type: 'passenger', status: 'free', x: 2, y: 1 },
+        { id: 's2', label: 'Atrás Izq A2', type: 'passenger', status: 'occupied', x: 1, y: 2 },
+        { id: 's3', label: 'Atrás Centro A3', type: 'passenger', status: 'free', x: 1.5, y: 2 },
+        { id: 's4', label: 'Atrás Der A4', type: 'passenger', status: 'free', x: 2, y: 2 }
+      ];
+    }
 
     await client.query(`
       INSERT INTO public.vehicles (

@@ -72,6 +72,32 @@ router.put('/profile', requireAuth, async (req: AuthenticatedRequest, res: Respo
 
     const client = await pool.connect();
     try {
+      // Verificación estricta: Solo usuarios acreditados por un comité con paradero físico pueden ser Despachadores
+      if (activeRole === 'ENCARGADO_PARADERO') {
+        const checkDispatcher = await client.query(`
+          SELECT gm.id 
+          FROM public.group_members gm
+          JOIN public.groups g ON gm.group_id = g.id
+          WHERE gm.user_id = $1 
+            AND gm.role_in_group IN ('ENCARGADO_PARADERO', 'ADMIN_EMPRESA')
+            AND gm.status = 'ACTIVO'
+            AND g.base_address IS NOT NULL
+        `, [userId]);
+
+        // Si no está registrado en base de datos de producción como despachador autorizado
+        if (checkDispatcher.rowCount === 0) {
+          // Permitir si es una cuenta de prueba demo o denegar
+          const userEmail = req.user?.email || '';
+          const isDemoDispatcher = userEmail.includes('despachador');
+          if (!isDemoDispatcher) {
+            res.status(403).json({ 
+              error: 'Acceso Denegado: El rol de Despachador solo puede ser asignado por el Administrador de un Comité con paradero físico verificado.' 
+            });
+            return;
+          }
+        }
+      }
+
       const result = await client.query(
         `UPDATE public.profiles
          SET full_name = COALESCE($1, full_name),

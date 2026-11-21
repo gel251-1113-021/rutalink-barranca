@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Check, AlertCircle, Send, CheckCircle2, Car, Users, Volume2 } from 'lucide-react';
+import RealisticVehicleSVG from '../Branding/RealisticVehicleSVG';
 
 interface Seat {
   id: string;
@@ -18,11 +19,62 @@ interface DriverCockpitModalProps {
   driverName?: string;
   vehiclePlate?: string;
   vehicleModel?: string;
+  vehicleType?: string;
   vehicleId?: string;
   onUpdateStatus?: (status: string, note: string) => void;
   onUpdateSeats?: (layout: Seat[]) => void;
   onSendMessage?: (msg: string) => void;
 }
+
+const getCategorySeats = (type?: string): Seat[] => {
+  const norm = (type || '').toUpperCase();
+  if (norm.includes('MOTO')) {
+    return [
+      { id: 'c1', label: 'Conductor', type: 'driver', status: 'occupied', x: 1.5, y: 1 },
+      { id: 's1', label: 'P1 Izq', type: 'passenger', status: 'free', x: 1, y: 2 },
+      { id: 's2', label: 'P2 Centro', type: 'passenger', status: 'occupied', x: 1.5, y: 2 },
+      { id: 's3', label: 'P3 Der', type: 'passenger', status: 'free', x: 2, y: 2 }
+    ];
+  }
+  if (norm.includes('MINIVAN')) {
+    return [
+      { id: 'c1', label: 'Chofer', type: 'driver', status: 'occupied', x: 1, y: 1 },
+      { id: 's1', label: 'Copiloto A1', type: 'passenger', status: 'free', x: 2, y: 1 },
+      { id: 's2', label: 'A2 Fila 2 Izq', type: 'passenger', status: 'occupied', x: 1, y: 2 },
+      { id: 's3', label: 'A3 Fila 2 Der', type: 'passenger', status: 'free', x: 2, y: 2 },
+      { id: 's4', label: 'A4 Fila 3 Izq', type: 'passenger', status: 'free', x: 1, y: 3 },
+      { id: 's5', label: 'A5 Fila 3 Centro', type: 'passenger', status: 'free', x: 1.5, y: 3 },
+      { id: 's6', label: 'A6 Fila 3 Der', type: 'passenger', status: 'free', x: 2, y: 3 }
+    ];
+  }
+  if (norm.includes('COMBI') || norm.includes('BUS')) {
+    return [
+      { id: 'c1', label: 'Chofer', type: 'driver', status: 'occupied', x: 1, y: 1 },
+      { id: 's1', label: 'Copiloto A1', type: 'passenger', status: 'free', x: 3, y: 1 },
+      { id: 's2', label: 'A2', type: 'passenger', status: 'free', x: 1, y: 2 },
+      { id: 's3', label: 'A3', type: 'passenger', status: 'free', x: 2, y: 2 },
+      { id: 's4', label: 'A4', type: 'passenger', status: 'occupied', x: 3, y: 2 },
+      { id: 's5', label: 'A5', type: 'passenger', status: 'free', x: 1, y: 3 },
+      { id: 's6', label: 'A6', type: 'passenger', status: 'occupied', x: 2, y: 3 },
+      { id: 's7', label: 'A7', type: 'passenger', status: 'free', x: 3, y: 3 },
+      { id: 's8', label: 'A8', type: 'passenger', status: 'free', x: 1, y: 4 },
+      { id: 's9', label: 'A9', type: 'passenger', status: 'free', x: 2, y: 4 },
+      { id: 's10', label: 'A10', type: 'passenger', status: 'free', x: 3, y: 4 },
+      { id: 's11', label: 'A11', type: 'passenger', status: 'free', x: 1, y: 5 },
+      { id: 's12', label: 'A12', type: 'passenger', status: 'free', x: 1.6, y: 5 },
+      { id: 's13', label: 'A13', type: 'passenger', status: 'free', x: 2.3, y: 5 },
+      { id: 's14', label: 'A14', type: 'passenger', status: 'free', x: 3, y: 5 }
+    ];
+  }
+  // Station Wagon / Probox o Sedán
+  return [
+    { id: 'c1', label: 'Conductor', type: 'driver', status: 'occupied', x: 1, y: 1 },
+    { id: 's1', label: 'Copiloto A1', type: 'passenger', status: 'free', x: 2, y: 1 },
+    { id: 's2', label: 'Atrás Izq A2', type: 'passenger', status: 'occupied', x: 1, y: 2 },
+    { id: 's3', label: 'Atrás Centro A3', type: 'passenger', status: 'free', x: 1.5, y: 2 },
+    { id: 's4', label: 'Atrás Der A4', type: 'passenger', status: 'free', x: 2, y: 2 }
+  ];
+};
 
 export default function DriverCockpitModal({
   isOpen,
@@ -30,6 +82,7 @@ export default function DriverCockpitModal({
   driverName = 'Jorge Huamán Castillo',
   vehiclePlate = 'B1A-789',
   vehicleModel = 'Toyota Yaris Sedán 2023',
+  vehicleType = 'SEDAN',
   vehicleId = 'd0000000-0000-0000-0000-000000000001',
   onUpdateStatus,
   onUpdateSeats,
@@ -39,14 +92,12 @@ export default function DriverCockpitModal({
   const [currentStatus, setCurrentStatus] = useState<'DISPONIBLE' | 'EN_RUTA' | 'LLENO' | 'FUERA_SERVICIO'>('EN_RUTA');
   const [statusNote, setStatusNote] = useState('Conduciendo ahora');
 
-  // Disposición 2D de asientos
-  const [seats, setSeats] = useState<Seat[]>([
-    { id: 'c1', label: 'Conductor', type: 'driver', status: 'occupied', x: 1, y: 1 },
-    { id: 's1', label: 'Copiloto', type: 'passenger', status: 'free', x: 2, y: 1 },
-    { id: 's2', label: 'Atrás Izq', type: 'passenger', status: 'occupied', x: 1, y: 2 },
-    { id: 's3', label: 'Atrás Centro', type: 'passenger', status: 'free', x: 1.5, y: 2 },
-    { id: 's4', label: 'Atrás Der', type: 'passenger', status: 'free', x: 2, y: 2 }
-  ]);
+  // Disposición 2D de asientos adaptada por tipo de vehículo
+  const [seats, setSeats] = useState<Seat[]>(() => getCategorySeats(vehicleType));
+
+  React.useEffect(() => {
+    setSeats(getCategorySeats(vehicleType));
+  }, [vehicleType]);
 
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -260,80 +311,16 @@ export default function DriverCockpitModal({
               </div>
             </div>
 
-            {/* Maqueta del Vehículo */}
-            <div className="relative max-w-[260px] mx-auto bg-white dark:bg-[#111317] rounded-3xl p-5 border-2 border-slate-300 dark:border-slate-700 shadow-inner">
-              {/* Parabrisas delantero */}
-              <div className="w-full h-3 bg-blue-100 dark:bg-blue-900/40 rounded-full mb-4 border border-blue-200 dark:border-blue-800 flex items-center justify-center">
-                <span className="text-[8px] font-bold text-blue-600 dark:text-blue-300">PARABRISAS DELANTERO</span>
-              </div>
-
-              {/* Fila Delantera: Conductor y Copiloto */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {/* Asiento Conductor (Fijo) */}
-                <div className="p-3 rounded-2xl bg-slate-200 dark:bg-slate-800 border-2 border-slate-400 dark:border-slate-600 flex flex-col items-center justify-center text-center opacity-80 cursor-not-allowed">
-                  <Car className="w-5 h-5 text-slate-700 dark:text-slate-300 mb-1" />
-                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Conductor</span>
-                  <span className="text-[8px] text-slate-500 font-semibold">(Tú)</span>
-                </div>
-
-                {/* Copiloto (Táctil) */}
-                <button
-                  type="button"
-                  onClick={() => toggleSeat('s1')}
-                  className={`p-3 rounded-2xl border-2 transition-all active:scale-95 flex flex-col items-center justify-center text-center shadow-xs ${
-                    seats.find(s => s.id === 's1')?.status === 'occupied'
-                      ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-500 text-rose-700 dark:text-rose-300'
-                      : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300'
-                  }`}
-                >
-                  <Users className="w-5 h-5 mb-1" />
-                  <span className="text-[10px] font-bold">Copiloto</span>
-                  <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full mt-1 ${
-                    seats.find(s => s.id === 's1')?.status === 'occupied'
-                      ? 'bg-rose-200 dark:bg-rose-800 text-rose-900 dark:text-rose-100'
-                      : 'bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100'
-                  }`}>
-                    {seats.find(s => s.id === 's1')?.status === 'occupied' ? 'Ocupado' : 'LIBRE'}
-                  </span>
-                </button>
-              </div>
-
-              {/* Fila Trasera (3 Asientos Táctiles) */}
-              <div className="grid grid-cols-3 gap-2">
-                {['s2', 's3', 's4'].map(id => {
-                  const s = seats.find(item => item.id === id);
-                  if (!s) return null;
-                  const isOcc = s.status === 'occupied';
-
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => toggleSeat(id)}
-                      className={`p-2.5 rounded-2xl border-2 transition-all active:scale-95 flex flex-col items-center justify-center text-center shadow-xs ${
-                        isOcc
-                          ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-500 text-rose-700 dark:text-rose-300'
-                          : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300'
-                      }`}
-                    >
-                      <Users className="w-4 h-4 mb-0.5" />
-                      <span className="text-[9px] font-bold truncate max-w-full">{s.label}</span>
-                      <span className={`text-[8px] font-bold px-1 py-0.2 rounded-full mt-1 ${
-                        isOcc
-                          ? 'bg-rose-200 dark:bg-rose-800 text-rose-900 dark:text-rose-100'
-                          : 'bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100'
-                      }`}>
-                        {isOcc ? 'Ocupado' : 'LIBRE'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Maletera */}
-              <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full mt-4 flex items-center justify-center">
-                <span className="text-[7.5px] text-slate-500 font-semibold">MALETERA</span>
-              </div>
+            {/* Maqueta Fiel del Vehículo SVG Top-Down */}
+            <div className="relative max-w-[280px] mx-auto bg-white dark:bg-[#111317] rounded-3xl p-3 border-2 border-slate-300 dark:border-slate-700 shadow-inner">
+              <RealisticVehicleSVG
+                category={vehicleType || 'SEDAN'}
+                seats={seats}
+                onToggleSeat={(id) => toggleSeat(id)}
+                interactive={true}
+                plate={vehiclePlate}
+                className="w-full"
+              />
             </div>
           </div>
 

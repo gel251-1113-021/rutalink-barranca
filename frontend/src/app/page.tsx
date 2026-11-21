@@ -10,6 +10,7 @@ import VehicleDesignerModal from '../components/VehicleDesigner/VehicleDesignerM
 import DispatcherPanel from '../components/Dispatcher/DispatcherPanel';
 import GroupManagementModal from '../components/Groups/GroupManagementModal';
 import AgreementRoomModal from '../components/Trips/AgreementRoomModal';
+import RideNegotiationModal from '../components/Trips/RideNegotiationModal';
 import VehicleLiveCabinModal from '../components/VehicleViewer/VehicleLiveCabinModal';
 import OfflineBanner from '../components/Offline/OfflineBanner';
 import SmsFallbackModal from '../components/Offline/SmsFallbackModal';
@@ -21,6 +22,10 @@ import ContactsModal from '../components/Contacts/ContactsModal';
 import VehicleInspectModal from '../components/VehicleViewer/VehicleInspectModal';
 import RouteBuilderModal from '../components/RouteBuilder/RouteBuilderModal';
 import TripHistoryModal from '../components/Trips/TripHistoryModal';
+import ShareAppModal from '../components/Mobile/ShareAppModal';
+import ReviewModal from '../components/Reviews/ReviewModal';
+import PhotoUploadModal from '../components/Media/PhotoUploadModal';
+import LoadingSplashScreen from '../components/Branding/LoadingSplashScreen';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -85,6 +90,7 @@ const INITIAL_STOPS: StopPoint[] = [
 ];
 
 const INITIAL_VEHICLES: VehicleUnit[] = [
+  // 1. SEDÁN ESTÁNDAR
   {
     id: 'd0000000-0000-0000-0000-000000000001',
     plate: 'B1A-789',
@@ -92,14 +98,14 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     vehicle_type: 'SEDAN',
     seat_layout: [
       { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Conductor', status: 'occupied' },
-      { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto', status: 'free' },
-      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'Atrás Izq', status: 'occupied' },
-      { x: 1.5, y: 2, id: 's3', type: 'passenger', label: 'Atrás Centro', status: 'free' },
-      { x: 2, y: 2, id: 's4', type: 'passenger', label: 'Atrás Der', status: 'free' }
+      { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto A1', status: 'free' },
+      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'Atrás Izq A2', status: 'occupied' },
+      { x: 1.5, y: 2, id: 's3', type: 'passenger', label: 'Atrás Centro A3', status: 'free' },
+      { x: 2, y: 2, id: 's4', type: 'passenger', label: 'Atrás Der A4', status: 'free' }
     ],
     capacity: 4,
     roof_rack: true,
-    max_cargo_kg: 40,
+    max_cargo_kg: 45,
     cargo_status: 'VACIO',
     status: 'DISPONIBLE',
     latitude: -10.7500,
@@ -111,29 +117,123 @@ const INITIAL_VEHICLES: VehicleUnit[] = [
     group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
     last_location_update: new Date().toISOString()
   },
+  // 2. COMBI INTERDISTRITAL (14 PASAJEROS)
   {
-    id: 'd0000000-0000-0000-0000-000000000002',
-    plate: 'C3M-456',
-    brand_model: 'Chevrolet Sail Sedán',
-    vehicle_type: 'SEDAN',
+    id: 'd0000000-0000-0000-0000-000000000006',
+    plate: 'Z9P-140',
+    brand_model: 'Toyota HiAce Combi 2024',
+    vehicle_type: 'COMBI',
     seat_layout: [
-      { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Conductor', status: 'occupied' },
-      { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto', status: 'free' },
-      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'Atrás Izq', status: 'occupied' },
-      { x: 1.5, y: 2, id: 's3', type: 'passenger', label: 'Atrás Centro', status: 'free' },
-      { x: 2, y: 2, id: 's4', type: 'passenger', label: 'Atrás Der', status: 'free' }
+      { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
+      { x: 3, y: 1, id: 's1', type: 'passenger', label: 'Copiloto A1', status: 'free' },
+      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'A2', status: 'free' },
+      { x: 2, y: 2, id: 's3', type: 'passenger', label: 'A3', status: 'free' },
+      { x: 3, y: 2, id: 's4', type: 'passenger', label: 'A4', status: 'occupied' },
+      { x: 1, y: 3, id: 's5', type: 'passenger', label: 'A5', status: 'free' },
+      { x: 2, y: 3, id: 's6', type: 'passenger', label: 'A6', status: 'occupied' },
+      { x: 3, y: 3, id: 's7', type: 'passenger', label: 'A7', status: 'free' },
+      { x: 1, y: 4, id: 's8', type: 'passenger', label: 'A8', status: 'free' },
+      { x: 2, y: 4, id: 's9', type: 'passenger', label: 'A9', status: 'free' },
+      { x: 3, y: 4, id: 's10', type: 'passenger', label: 'A10', status: 'free' },
+      { x: 1, y: 5, id: 's11', type: 'passenger', label: 'A11', status: 'free' },
+      { x: 1.6, y: 5, id: 's12', type: 'passenger', label: 'A12', status: 'free' },
+      { x: 2.3, y: 5, id: 's13', type: 'passenger', label: 'A13', status: 'free' },
+      { x: 3, y: 5, id: 's14', type: 'passenger', label: 'A14', status: 'free' }
     ],
-    capacity: 4,
-    roof_rack: false,
-    max_cargo_kg: 30,
+    capacity: 14,
+    roof_rack: true,
+    max_cargo_kg: 150,
     cargo_status: 'DISPONIBLE',
     status: 'DISPONIBLE',
-    latitude: -10.7490,
-    longitude: -77.7520,
+    latitude: -10.7535,
+    longitude: -77.7630,
+    current_heading: 120,
+    driver_name: 'Pedro Chumpitaz Solís',
+    driver_phone: '+51 987654330',
+    driver_rating: 4.9,
+    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
+    last_location_update: new Date().toISOString()
+  },
+  // 3. MINIVÁN COLECTIVO (6 PASAJEROS)
+  {
+    id: 'd0000000-0000-0000-0000-000000000003',
+    plate: 'A7U-102',
+    brand_model: 'Toyota Avanza Miniván 2024',
+    vehicle_type: 'MINIVAN',
+    seat_layout: [
+      { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
+      { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto A1', status: 'free' },
+      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'A2 Intermedio', status: 'occupied' },
+      { x: 2, y: 2, id: 's3', type: 'passenger', label: 'A3 Intermedio', status: 'free' },
+      { x: 1, y: 3, id: 's4', type: 'passenger', label: 'A4 Atrás', status: 'free' },
+      { x: 1.5, y: 3, id: 's5', type: 'passenger', label: 'A5 Atrás Centro', status: 'free' },
+      { x: 2, y: 3, id: 's6', type: 'passenger', label: 'A6 Atrás Der', status: 'free' }
+    ],
+    capacity: 6,
+    roof_rack: true,
+    max_cargo_kg: 80,
+    cargo_status: 'DISPONIBLE',
+    status: 'DISPONIBLE',
+    latitude: -10.7485,
+    longitude: -77.7550,
+    current_heading: 45,
+    driver_name: 'Carlos Morales Echevarría',
+    driver_phone: '+51 987654313',
+    driver_rating: 4.95,
+    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
+    last_location_update: new Date().toISOString()
+  },
+  // 4. STATION WAGON / PROBOX CON PARRILLA (4 PASAJEROS + 120 KG)
+  {
+    id: 'd0000000-0000-0000-0000-000000000002',
+    plate: 'P4R-550',
+    brand_model: 'Toyota Probox Station Wagon con Parrilla',
+    vehicle_type: 'STATION_WAGON',
+    seat_layout: [
+      { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
+      { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto A1', status: 'free' },
+      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'Atrás Izq A2', status: 'occupied' },
+      { x: 1.5, y: 2, id: 's3', type: 'passenger', label: 'Atrás Centro A3', status: 'free' },
+      { x: 2, y: 2, id: 's4', type: 'passenger', label: 'Atrás Der A4', status: 'free' }
+    ],
+    capacity: 4,
+    roof_rack: true,
+    max_cargo_kg: 120,
+    cargo_status: 'DISPONIBLE',
+    status: 'DISPONIBLE',
+    latitude: -10.7510,
+    longitude: -77.7595,
     current_heading: 180,
     driver_name: 'Walter Rosales Díaz',
     driver_phone: '+51 987654324',
-    driver_rating: 4.6,
+    driver_rating: 4.7,
+    group_name: 'Asociación de Mototaxis y Colectivos Rápidos Barranca',
+    last_location_update: new Date().toISOString()
+  },
+  // 5. MOTOTAXI TORITO (3 PASAJEROS)
+  {
+    id: 'd0000000-0000-0000-0000-000000000007',
+    plate: 'MT-4021',
+    brand_model: 'Bajaj Torito 4T Mototaxi Barranca',
+    vehicle_type: 'MOTOTAXI',
+    seat_layout: [
+      { x: 1.5, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
+      { x: 1, y: 2, id: 's1', type: 'passenger', label: 'P1 Izq', status: 'free' },
+      { x: 1.5, y: 2, id: 's2', type: 'passenger', label: 'P2 Centro', status: 'occupied' },
+      { x: 2, y: 2, id: 's3', type: 'passenger', label: 'P3 Der', status: 'free' }
+    ],
+    capacity: 3,
+    roof_rack: false,
+    max_cargo_kg: 20,
+    cargo_status: 'DISPONIBLE',
+    status: 'DISPONIBLE',
+    latitude: -10.7525,
+    longitude: -77.7600,
+    current_heading: 270,
+    driver_name: 'Luis Morales Pajuelo',
+    driver_phone: '+51 987654329',
+    driver_rating: 4.85,
+    group_name: 'Asociación de Mototaxis y Colectivos Rápidos Barranca',
     last_location_update: new Date().toISOString()
   }
 ];
@@ -149,10 +249,13 @@ const INITIAL_ROUTES: RouteCorridor[] = [
     geojson: {
       type: 'LineString',
       coordinates: [
-        [-77.7615, -10.7512],
-        [-77.7590, -10.7505],
-        [-77.7565, -10.7495],
-        [-77.7550, -10.7485]
+        [-77.76150, -10.75120], // Base Central Gálvez
+        [-77.76020, -10.75160], // Cruce Jr. Lima
+        [-77.75920, -10.75100], // Av. Pampa de Lara
+        [-77.75780, -10.75040], // Jr. Bolognesi / Primavera
+        [-77.75650, -10.74980], // Prolongación Primavera
+        [-77.75540, -10.74920], // Entrada Av. Luzuriaga
+        [-77.75500, -10.74850]  // Puerta Principal Campus UNAB
       ]
     }
   },
@@ -167,8 +270,10 @@ const INITIAL_ROUTES: RouteCorridor[] = [
       type: 'LineString',
       coordinates: [
         [-77.7615, -10.7512],
-        [-77.7530, -10.7650],
-        [-77.7380, -10.7820],
+        [-77.7580, -10.7580],
+        [-77.7520, -10.7680],
+        [-77.7420, -10.7800],
+        [-77.7310, -10.7900],
         [-77.7125, -10.7980]
       ]
     }
@@ -184,8 +289,10 @@ const INITIAL_ROUTES: RouteCorridor[] = [
       type: 'LineString',
       coordinates: [
         [-77.7615, -10.7512],
-        [-77.7700, -10.7200],
+        [-77.7660, -10.7380],
+        [-77.7720, -10.7200],
         [-77.7845, -10.6970],
+        [-77.8010, -10.6800],
         [-77.8150, -10.6720]
       ]
     }
@@ -217,12 +324,19 @@ export default function HomePage() {
   const [smsModalOpen, setSmsModalOpen] = useState<boolean>(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState<boolean>(false);
 
-  // Modales Sprint 5 (Cabina Conductor, Chat Grupal, Contactos, Visualizador Vehículo, Creador Rutas)
+  // Modales Sprint 5 y 6 (Cabina Conductor, Chat Grupal, Contactos, Visualizador Vehículo, Creador Rutas)
   const [driverCockpitOpen, setDriverCockpitOpen] = useState<boolean>(false);
   const [groupChatOpen, setGroupChatOpen] = useState<boolean>(false);
   const [contactsOpen, setContactsOpen] = useState<boolean>(false);
   const [routeBuilderOpen, setRouteBuilderOpen] = useState<boolean>(false);
   const [inspectedVehicle, setInspectedVehicle] = useState<any | null>(null);
+
+  // Modales Pre-Lanzamiento (Compartir App / QR, Calificaciones y Reseñas, Fotos Reales)
+  const [shareAppOpen, setShareAppOpen] = useState<boolean>(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState<boolean>(false);
+  const [reviewTarget, setReviewTarget] = useState<{ id?: string; name?: string; type?: 'CONDUCTOR' | 'EMPRESA' } | null>(null);
+  const [photoModalOpen, setPhotoModalOpen] = useState<boolean>(false);
+  const [photoModalTarget, setPhotoModalTarget] = useState<{ title?: string; category?: 'PERFIL' | 'VEHICULO' | 'PARADERO' | 'LLEGADA' } | null>(null);
 
   // Estados de Usuario y Ubicación
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -238,9 +352,26 @@ export default function HomePage() {
   const [notificationToast, setNotificationToast] = useState<{ title: string; message: string; type?: 'info' | 'success' } | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   const currentRole = profile?.active_role || 'PASAJERO';
   const isDriver = currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE';
+
+  // Splash de carga inicial con identidad visual oficial de Barranca
+  const [isInitialAppLoading, setIsInitialAppLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialAppLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Vehículo dinámico del conductor activo
+  const myVehicle = vehicles.find(v => 
+    v.driver_name?.toLowerCase().includes((profile?.full_name || '').toLowerCase()) || 
+    v.driver_phone === profile?.phone
+  ) || vehicles[0];
 
   // Sincronización de tema
   useEffect(() => {
@@ -401,36 +532,71 @@ export default function HomePage() {
 
     return () => {
       socket.disconnect();
+      if (watchIdRef.current !== null && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
     };
   }, []);
 
-  // Función: Activar mi Ubicación GPS del Teléfono
+  // Función: Activar mi Ubicación GPS del Teléfono (Alta Precisión de Hardware en Tiempo Real)
   const handleLocateUser = () => {
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      setNotificationToast({
+        title: '🛰️ Conectando con Satélites GPS...',
+        message: 'Detectando posición exacta de tu dispositivo móvil...',
+        type: 'info'
+      });
+
+      // 1. Obtención inmediata por hardware con máximo rigor de precisión
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setUserLocation(coords);
           setNotificationToast({
-            title: '📍 GPS Activado',
-            message: 'Tu ubicación ha sido centrada en el mapa.',
+            title: '📍 GPS Exacto Conectado',
+            message: `Precisión: ${Math.round(pos.coords.accuracy || 4)} metros. Posición real fijada.`,
             type: 'success'
           });
           setTimeout(() => setNotificationToast(null), 3500);
         },
-        () => {
-          // Fallback a coordenadas de Barranca
-          const barrancaCoords = { lat: -10.7515, lng: -77.7610 };
-          setUserLocation(barrancaCoords);
+        (err) => {
+          console.warn('GPS error:', err);
+          let errorMsg = 'No se pudo obtener la señal GPS exacta.';
+          if (err.code === 1) {
+            errorMsg = 'Permiso de ubicación denegado. Activa el GPS de tu navegador.';
+          } else if (err.code === 2) {
+            errorMsg = 'Ubicación no disponible. Verifica que el GPS de tu celular esté encendido.';
+          } else if (err.code === 3) {
+            errorMsg = 'Tiempo de espera agotado buscando satélites GPS.';
+          }
           setNotificationToast({
-            title: 'Ubicación Aproximada',
-            message: 'Centrado en Plaza de Armas de Barranca.',
+            title: '⚠️ Aviso de Ubicación',
+            message: errorMsg,
             type: 'info'
           });
-          setTimeout(() => setNotificationToast(null), 3000);
+          setTimeout(() => setNotificationToast(null), 4000);
         },
-        { enableHighAccuracy: true, timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
+
+      // 2. Rastreo continuo en vivo (watchPosition) para actualizar cuando el usuario camina o viaja
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        (err) => console.warn('watchPosition aviso:', err.message),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 }
+      );
+    } else {
+      setNotificationToast({
+        title: 'GPS no disponible',
+        message: 'Tu navegador no soporta geolocalización satelital.',
+        type: 'info'
+      });
+      setTimeout(() => setNotificationToast(null), 3000);
     }
   };
 
@@ -478,6 +644,16 @@ export default function HomePage() {
     if (tab === 'builder') setRouteBuilderOpen(true);
   };
 
+  if (isInitialAppLoading) {
+    return (
+      <LoadingSplashScreen
+        message="Sincronizando satélite y terminales de Barranca..."
+        subMessage="Red Provincial: UNAB · Supe · Pativilca · Paramonga"
+        fullScreen={true}
+      />
+    );
+  }
+
   return (
     <main className="relative w-screen h-screen overflow-hidden flex flex-col bg-slate-50 dark:bg-[#0c0d0f]">
       {/* Barra de Navegación Superior */}
@@ -490,6 +666,7 @@ export default function HomePage() {
         onOpenGroupManagement={() => setGroupManagementOpen(true)}
         onOpenSmsFallback={() => setSmsModalOpen(true)}
         onOpenAnalytics={() => setAnalyticsModalOpen(true)}
+        onOpenShareApp={() => setShareAppOpen(true)}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         isOffline={isOffline}
@@ -510,7 +687,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="font-bold text-slate-800 dark:text-slate-200">
-                Chofer en Servicio · Toyota Yaris (B1A-789)
+                Chofer en Servicio · {myVehicle.brand_model} ({myVehicle.plate})
               </span>
             </div>
             <button
@@ -571,6 +748,18 @@ export default function HomePage() {
                 🚗 A bordo
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDriverForAgreement(null);
+                setAgreementModalOpen(true);
+              }}
+              className="px-3 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-[11px] shadow-xs flex items-center gap-1.5 transition active:scale-95 shrink-0 ml-auto"
+            >
+              <span>🚖</span>
+              <span>Pactar Carrera Expreso</span>
+            </button>
           </div>
         )}
       </div>
@@ -635,9 +824,11 @@ export default function HomePage() {
       <DriverCockpitModal
         isOpen={driverCockpitOpen}
         onClose={() => setDriverCockpitOpen(false)}
-        driverName={profile?.full_name || 'Jorge Huamán Castillo'}
-        vehiclePlate="B1A-789"
-        vehicleModel="Toyota Yaris Sedán 2023"
+        driverName={profile?.full_name || myVehicle?.driver_name || 'Jorge Huamán Castillo'}
+        vehiclePlate={myVehicle?.plate || 'B1A-789'}
+        vehicleModel={myVehicle?.brand_model || 'Toyota Yaris Sedán 2023'}
+        vehicleType={myVehicle?.vehicle_type || 'SEDAN'}
+        vehicleId={myVehicle?.id}
         onUpdateStatus={(st, note) => {
           setNotificationToast({
             title: 'Estado Actualizado',
@@ -670,6 +861,18 @@ export default function HomePage() {
         isOpen={!!inspectedVehicle}
         onClose={() => setInspectedVehicle(null)}
         vehicle={inspectedVehicle}
+        onOpenAgreement={(driverData) => {
+          setSelectedDriverForAgreement(driverData);
+          setAgreementModalOpen(true);
+        }}
+        onOpenReview={(target) => {
+          setReviewTarget(target);
+          setReviewModalOpen(true);
+        }}
+        onOpenPhotoUpload={(title, category) => {
+          setPhotoModalTarget({ title, category });
+          setPhotoModalOpen(true);
+        }}
         onBoardRequest={() => {
           handleLocateUser();
           setNotificationToast({
@@ -707,6 +910,10 @@ export default function HomePage() {
       <ProfileModal
         isOpen={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
+        onOpenPhotoUpload={(title, category) => {
+          setPhotoModalTarget({ title, category });
+          setPhotoModalOpen(true);
+        }}
       />
 
       <VehicleDesignerModal
@@ -732,10 +939,11 @@ export default function HomePage() {
         vehicle={selectedVehicleForCabin}
       />
 
-      <AgreementRoomModal
+      <RideNegotiationModal
         isOpen={agreementModalOpen}
         onClose={() => setAgreementModalOpen(false)}
-        driverData={selectedDriverForAgreement}
+        initialDriver={selectedDriverForAgreement}
+        userCoords={userLocation}
       />
 
       <SmsFallbackModal
@@ -746,6 +954,37 @@ export default function HomePage() {
       <AnalyticsModal
         isOpen={analyticsModalOpen}
         onClose={() => setAnalyticsModalOpen(false)}
+      />
+
+      {/* 7. Modal Compartir App Web y Código QR */}
+      <ShareAppModal
+        isOpen={shareAppOpen}
+        onClose={() => setShareAppOpen(false)}
+      />
+
+      {/* 8. Modal Calificar y Reseñas Comunitarias */}
+      <ReviewModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        targetId={reviewTarget?.id}
+        targetName={reviewTarget?.name}
+        targetType={reviewTarget?.type}
+      />
+
+      {/* 9. Modal Subir Foto Real (Cámara y Galería con Compresión Liviana) */}
+      <PhotoUploadModal
+        isOpen={photoModalOpen}
+        onClose={() => setPhotoModalOpen(false)}
+        title={photoModalTarget?.title}
+        category={photoModalTarget?.category}
+        onPhotoUploaded={(dataUrl) => {
+          setNotificationToast({
+            title: 'Foto Real Guardada',
+            message: 'La imagen ha sido optimizada y vinculada sin costo adicional.',
+            type: 'success'
+          });
+          setTimeout(() => setNotificationToast(null), 3000);
+        }}
       />
     </main>
   );

@@ -19,7 +19,8 @@ import {
   BarChart3,
   Wifi,
   WifiOff,
-  Clock
+  Clock,
+  Share2
 } from 'lucide-react';
 import RutaLinkLogo from './Branding/RutaLinkLogo';
 
@@ -32,6 +33,7 @@ interface HeaderProps {
   onOpenGroupManagement?: () => void;
   onOpenSmsFallback?: () => void;
   onOpenAnalytics?: () => void;
+  onOpenShareApp?: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
   isOffline?: boolean;
@@ -58,6 +60,11 @@ const ROLE_LABELS: Record<UserRole, { label: string; badgeClass: string; icon: a
     badgeClass: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200/60',
     icon: ShieldCheck
   },
+  ADMIN_GRUPO_PASAJEROS: {
+    label: 'Admin Pasajeros',
+    badgeClass: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200/60',
+    icon: Users
+  },
   ENCARGADO_PARADERO: {
     label: 'Despachador',
     badgeClass: 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-200/60',
@@ -79,6 +86,7 @@ export default function Header({
   onOpenGroupManagement,
   onOpenSmsFallback,
   onOpenAnalytics,
+  onOpenShareApp,
   darkMode, 
   onToggleDarkMode,
   isOffline = false
@@ -94,8 +102,9 @@ export default function Header({
     'PASAJERO',
     'CONDUCTOR_AFILIADO',
     'CONDUCTOR_INDEPENDIENTE',
-    'ENCARGADO_PARADERO',
-    'ADMIN_EMPRESA'
+    'ADMIN_GRUPO_PASAJEROS',
+    'ADMIN_EMPRESA',
+    'ENCARGADO_PARADERO'
   ];
 
   return (
@@ -142,6 +151,18 @@ export default function Header({
             >
               <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
               <span className="hidden md:inline">Reporte Viajes</span>
+            </button>
+          )}
+
+          {/* Botón Compartir App Web */}
+          {onOpenShareApp && (
+            <button
+              onClick={onOpenShareApp}
+              title="Compartir link y código QR de la aplicación"
+              className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden lg:inline">Compartir App</span>
             </button>
           )}
 
@@ -192,13 +213,13 @@ export default function Header({
                 </button>
               )}
 
-              {currentRole === 'ADMIN_EMPRESA' && onOpenGroupManagement && (
+              {(currentRole === 'ADMIN_EMPRESA' || currentRole === 'ADMIN_GRUPO_PASAJEROS') && onOpenGroupManagement && (
                 <button
                   onClick={onOpenGroupManagement}
                   className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/70 hover:bg-purple-100 transition"
                 >
                   <Users className="w-3.5 h-3.5" />
-                  <span>Gestión Flota</span>
+                  <span>{currentRole === 'ADMIN_EMPRESA' ? 'Gestión Flota' : 'Gestión Grupos'}</span>
                 </button>
               )}
 

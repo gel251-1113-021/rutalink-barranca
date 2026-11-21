@@ -21,7 +21,9 @@ const CreateGroupSchema = z.object({
   baseLatitude: z.number().min(-90).max(90).optional(),
   baseLongitude: z.number().min(-180).max(180).optional(),
   contactPhone: z.string().max(20).optional(),
-  fareRange: z.string().max(50).optional()
+  fareRange: z.string().max(50).optional(),
+  isPrivate: z.boolean().optional(),
+  accessCode: z.string().optional()
 });
 
 // GET /api/groups/my-groups
@@ -60,7 +62,7 @@ router.get('/my-groups', requireAuth, async (req: AuthenticatedRequest, res: Res
   }
 });
 
-// POST /api/groups (Crea grupo Empresarial o Comunitario)
+// POST /api/groups (Crea grupo Empresarial o Comunitario - Creador queda como Admin)
 router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
@@ -94,15 +96,30 @@ router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): 
 
       const newGroup = groupRes.rows[0];
 
-      // Afiliar al creador como ADMIN_EMPRESA
+      // Afiliar al creador como Administrador según el tipo de grupo:
+      // Si es COMUNITARIO (Pasajeros) -> ADMIN_GRUPO_PASAJEROS
+      // Si es EMPRESARIAL (Transporte) -> ADMIN_EMPRESA
+      const adminRole = type === 'COMUNITARIO' ? 'ADMIN_GRUPO_PASAJEROS' : 'ADMIN_EMPRESA';
+
       await client.query(`
         INSERT INTO public.group_members (group_id, user_id, role_in_group, status)
-        VALUES ($1, $2, 'ADMIN_EMPRESA', 'ACTIVO');
-      `, [newGroup.id, userId]);
+        VALUES ($1, $2, $3, 'ACTIVO');
+      `, [newGroup.id, userId, adminRole]);
+
+      // Si el creador no tenía rol admin en su perfil, actualizarlo
+      await client.query(`
+        UPDATE public.profiles
+        SET active_role = $1
+        WHERE id = $2 AND active_role = 'PASAJERO';
+      `, [adminRole, userId]);
 
       await client.query('COMMIT');
 
-      res.status(201).json({ message: 'Grupo creado exitosamente', group: newGroup });
+      res.status(201).json({ 
+        message: 'Grupo creado exitosamente. Has sido asignado como Administrador.', 
+        group: newGroup,
+        adminRole
+      });
     } catch (e) {
       await client.query('ROLLBACK');
       throw e;
@@ -112,6 +129,255 @@ router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): 
   } catch (err) {
     console.error('[Create Group Error]:', err);
     res.status(500).json({ error: 'Error al registrar grupo' });
+  }
+});
+
+// GET /api/groups/:id/members (Lista de miembros del grupo con sus roles)
+router.get('/:id/members', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = req.params.id;
+    const client = await pool.connect();
+    try {
+      const query = `
+        SELECT 
+          gm.id AS membership_id,
+          gm.user_id,
+          gm.role_in_group,
+          gm.status,
+          gm.created_at AS joined_at,
+          p.full_name,
+          p.email,
+          p.phone,
+          p.rating,
+          p.avatar_url
+        FROM public.group_members gm
+        JOIN public.profiles p ON gm.user_id = p.id
+        WHERE gm.group_id = $1
+        ORDER BY 
+          CASE 
+            WHEN gm.role_in_group IN ('ADMIN_EMPRESA', 'ADMIN_GRUPO_PASAJEROS') THEN 1
+            WHEN gm.role_in_group = 'ENCARGADO_PARADERO' THEN 2
+            WHEN gm.role_in_group = 'CONDUCTOR_AFILIADO' THEN 3
+            ELSE 4
+          END ASC,
+          gm.created_at ASC;
+      `;
+      const result = await client.query(query, [groupId]);
+      res.json({ members: result.rows });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Group Members Error]:', err);
+    res.status(500).json({ error: 'Error al consultar miembros del grupo' });
+  }
+});
+
+// POST /api/groups/:id/members (Unirse o agregar miembro al grupo)
+router.post('/:id/members', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = req.params.id;
+    const { userIdToAdd, roleInGroup = 'PASAJERO' } = req.body;
+    const targetUserId = userIdToAdd || req.user?.id;
+
+    const client = await pool.connect();
+    try {
+      // Verificar si ya es miembro
+      const existing = await client.query(
+        'SELECT id FROM public.group_members WHERE group_id = $1 AND user_id = $2',
+        [groupId, targetUserId]
+      );
+
+      if (existing.rowCount && existing.rowCount > 0) {
+        res.json({ message: 'El usuario ya es miembro de este grupo' });
+        return;
+      }
+
+      await client.query(`
+        INSERT INTO public.group_members (group_id, user_id, role_in_group, status)
+        VALUES ($1, $2, $3, 'ACTIVO')
+      `, [groupId, targetUserId, roleInGroup]);
+
+      res.status(201).json({ message: 'Miembro agregado exitosamente al grupo' });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Add Member Error]:', err);
+    res.status(500).json({ error: 'Error al agregar miembro al grupo' });
+  }
+});
+
+// PUT /api/groups/:id/members/:memberId/promote (Designar Co-Administrador estilo WhatsApp)
+router.put('/:id/members/:memberId/promote', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = req.params.id;
+    const memberId = req.params.memberId;
+    const requesterId = req.user?.id;
+
+    const client = await pool.connect();
+    try {
+      // 1. Verificar que el solicitante es Administrador del grupo
+      const adminCheck = await client.query(`
+        SELECT role_in_group 
+        FROM public.group_members 
+        WHERE group_id = $1 AND user_id = $2 AND role_in_group IN ('ADMIN_EMPRESA', 'ADMIN_GRUPO_PASAJEROS');
+      `, [groupId, requesterId]);
+
+      if (adminCheck.rowCount === 0) {
+        res.status(403).json({ error: 'Solo los administradores del grupo pueden designar co-administradores' });
+        return;
+      }
+
+      // 2. Determinar el rol admin adecuado según el tipo de grupo
+      const groupRes = await client.query('SELECT type FROM public.groups WHERE id = $1', [groupId]);
+      const groupType = groupRes.rows[0]?.type;
+      const targetAdminRole = groupType === 'COMUNITARIO' ? 'ADMIN_GRUPO_PASAJEROS' : 'ADMIN_EMPRESA';
+
+      // 3. Ascender al miembro
+      await client.query(`
+        UPDATE public.group_members 
+        SET role_in_group = $1
+        WHERE group_id = $2 AND (id = $3 OR user_id = $3);
+      `, [targetAdminRole, groupId, memberId]);
+
+      res.json({ message: 'Usuario promovido a Co-Administrador del grupo con éxito' });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Promote Co-Admin Error]:', err);
+    res.status(500).json({ error: 'Error al promover administrador' });
+  }
+});
+
+// PUT /api/groups/:id/members/:memberId/demote (Revocar Co-Administrador)
+router.put('/:id/members/:memberId/demote', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = req.params.id;
+    const memberId = req.params.memberId;
+    const requesterId = req.user?.id;
+
+    const client = await pool.connect();
+    try {
+      const adminCheck = await client.query(`
+        SELECT role_in_group 
+        FROM public.group_members 
+        WHERE group_id = $1 AND user_id = $2 AND role_in_group IN ('ADMIN_EMPRESA', 'ADMIN_GRUPO_PASAJEROS');
+      `, [groupId, requesterId]);
+
+      if (adminCheck.rowCount === 0) {
+        res.status(403).json({ error: 'Solo los administradores pueden revocar roles' });
+        return;
+      }
+
+      await client.query(`
+        UPDATE public.group_members 
+        SET role_in_group = 'PASAJERO'
+        WHERE group_id = $1 AND (id = $2 OR user_id = $2);
+      `, [groupId, memberId]);
+
+      res.json({ message: 'Rol de administrador revocado' });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Demote Co-Admin Error]:', err);
+    res.status(500).json({ error: 'Error al revocar administrador' });
+  }
+});
+
+// POST /api/groups/:id/assign-dispatcher
+// ESTRICTA REGLA: Solo un ADMIN_EMPRESA con paradero físico verificado y miembros activos puede designar un Despachador
+router.post('/:id/assign-dispatcher', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = req.params.id;
+    const requesterId = req.user?.id;
+    const { targetUserId, stopId } = req.body;
+
+    if (!targetUserId) {
+      res.status(400).json({ error: 'targetUserId es requerido' });
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Verificar que el solicitante es ADMIN_EMPRESA en este grupo
+      const adminCheck = await client.query(`
+        SELECT role_in_group 
+        FROM public.group_members 
+        WHERE group_id = $1 AND user_id = $2 AND role_in_group = 'ADMIN_EMPRESA';
+      `, [groupId, requesterId]);
+
+      if (adminCheck.rowCount === 0) {
+        res.status(403).json({ 
+          error: 'Acceso Denegado: Solo el Administrador de una Empresa de Transporte puede designar despachadores.' 
+        });
+        await client.query('ROLLBACK');
+        return;
+      }
+
+      // 2. Verificar que el grupo tenga un punto físico estable (base_address o base_location)
+      const groupCheck = await client.query(`
+        SELECT id, name, base_address, base_location
+        FROM public.groups
+        WHERE id = $1 AND (base_address IS NOT NULL OR base_location IS NOT NULL);
+      `, [groupId]);
+
+      if (groupCheck.rowCount === 0) {
+        res.status(400).json({ 
+          error: 'Operación denegada: La empresa debe contar con un paradero físico verificado para asignar un despachador.' 
+        });
+        await client.query('ROLLBACK');
+        return;
+      }
+
+      // 3. Verificar que tenga miembros activos en la flota
+      const membersCount = await client.query(`
+        SELECT COUNT(*) AS total 
+        FROM public.group_members 
+        WHERE group_id = $1 AND status = 'ACTIVO';
+      `, [groupId]);
+
+      if (parseInt(membersCount.rows[0].total) < 2) {
+        res.status(400).json({ 
+          error: 'La empresa debe tener al menos miembros y flota activa registrada para habilitar un puesto de despacho.' 
+        });
+        await client.query('ROLLBACK');
+        return;
+      }
+
+      // 4. Actualizar o insertar la membresía como ENCARGADO_PARADERO
+      await client.query(`
+        INSERT INTO public.group_members (group_id, user_id, role_in_group, status)
+        VALUES ($1, $2, 'ENCARGADO_PARADERO', 'ACTIVO')
+        ON CONFLICT (group_id, user_id) 
+        DO UPDATE SET role_in_group = 'ENCARGADO_PARADERO', status = 'ACTIVO';
+      `, [groupId, targetUserId]);
+
+      // 5. Actualizar el perfil activo del usuario
+      await client.query(`
+        UPDATE public.profiles
+        SET active_role = 'ENCARGADO_PARADERO'
+        WHERE id = $1;
+      `, [targetUserId]);
+
+      await client.query('COMMIT');
+
+      res.json({ 
+        message: 'Despachador designado con éxito. Ahora tiene permisos para gestionar la cola del paradero oficial.' 
+      });
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Assign Dispatcher Error]:', err);
+    res.status(500).json({ error: 'Error asignando despachador' });
   }
 });
 

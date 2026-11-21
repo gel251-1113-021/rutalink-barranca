@@ -287,19 +287,19 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Rol Inicial
+                  Tipo de Cuenta a Registrar
                 </label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as UserRole)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold text-slate-900 dark:text-white"
                 >
-                  <option value="PASAJERO">Pasajero (UNAB / General)</option>
-                  <option value="CONDUCTOR_AFILIADO">Conductor Afiliado (Línea)</option>
-                  <option value="CONDUCTOR_INDEPENDIENTE">Conductor Independiente</option>
-                  <option value="ENCARGADO_PARADERO">Encargado de Paradero (Despacho)</option>
-                  <option value="ADMIN_EMPRESA">Administrador de Empresa</option>
+                  <option value="PASAJERO">Pasajero (Estudiante UNAB / Vecino de Barranca)</option>
+                  <option value="CONDUCTOR_INDEPENDIENTE">Conductor con Vehículo Propio (Postulante)</option>
                 </select>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-normal">
+                  * Los roles de <strong>Despachador de Paradero</strong> y <strong>Directiva de Empresa</strong> se asignan de forma oficial y verificada por cada comité de transporte registrado.
+                </p>
               </div>
 
               <div>

@@ -94,10 +94,10 @@ export default function SmsFallbackModal({ isOpen, onClose }: SmsFallbackModalPr
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                Gateway SMS Fallback (Modo Sin Datos)
+                Mensajes de Texto Directos (Sin Internet)
               </h2>
               <p className="text-[11px] text-slate-500">
-                Red 2G / GSM para zonas rurales y sin cobertura
+                Funciona en zonas rurales y carreteras con señal básica
               </p>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function SmsFallbackModal({ isOpen, onClose }: SmsFallbackModalPr
               className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-1.5 text-center"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Abrir SMS Nativo</span>
+              <span>Enviar SMS por Celular</span>
             </a>
 
             <button
@@ -177,7 +177,7 @@ export default function SmsFallbackModal({ isOpen, onClose }: SmsFallbackModalPr
               className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
               <Radio className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{isSimulating ? 'Consultando...' : 'Probar Gateway'}</span>
+              <span>{isSimulating ? 'Consultando...' : 'Consultar de Prueba'}</span>
             </button>
           </div>
 

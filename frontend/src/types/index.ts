@@ -3,6 +3,7 @@ export type UserRole =
   | 'CONDUCTOR_AFILIADO'
   | 'CONDUCTOR_INDEPENDIENTE'
   | 'ADMIN_EMPRESA'
+  | 'ADMIN_GRUPO_PASAJEROS'
   | 'ENCARGADO_PARADERO'
   | 'SUPERADMIN';
 
@@ -40,11 +41,13 @@ export interface StopPoint {
   last_status_update?: string;
 }
 
+export type VehicleType = 'SEDAN' | 'SUV' | 'STATION_WAGON' | 'MINIVAN' | 'COMBI' | 'MOTOTAXI';
+
 export interface VehicleUnit {
   id: string;
   plate: string;
   brand_model: string;
-  vehicle_type: 'SEDAN' | 'SUV' | 'MINIVAN' | 'COMBI';
+  vehicle_type: VehicleType | string;
   seat_layout: any[];
   capacity: number;
   roof_rack: boolean;

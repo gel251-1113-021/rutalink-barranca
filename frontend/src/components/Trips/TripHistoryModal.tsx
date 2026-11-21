@@ -195,3 +195,4 @@ export default function TripHistoryModal({
     </div>
   );
 }
+
