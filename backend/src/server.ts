@@ -9,18 +9,14 @@ import publicRoutes from './routes/public.routes.js';
 import dispatcherRoutes from './routes/dispatcher.routes.js';
 import groupRoutes from './routes/group.routes.js';
 import vehicleRoutes from './routes/vehicle.routes.js';
+import routesRoutes from './routes/routes.routes.js';
+import tripsRoutes from './routes/trips.routes.js';
 import { initializeSockets } from './sockets/index.js';
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-
-const allowedOrigins = [
-  process.env.CORS_ORIGIN || 'http://localhost:3000',
-  'http://localhost:3000',
-  'https://rutalink.vercel.app'
-];
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
@@ -45,13 +41,13 @@ export const io = new SocketIOServer(server, {
 
 initializeSockets(io);
 
-// Health check para Render y monitorización
+// Health check
 app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'healthy',
     system: 'RutaLink Backend API',
     scope: 'Provincia de Barranca / UNAB',
-    sprint: 'Sprint 2 (TBAC, Geovalla & Constructor 2D)',
+    sprint: 'Sprint 3 (Realtime WebSockets, OSRM Routes, Cabin & Agreements)',
     timestamp: new Date().toISOString()
   });
 });
@@ -62,6 +58,8 @@ app.use('/api', publicRoutes);
 app.use('/api/dispatcher', dispatcherRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/routes', routesRoutes);
+app.use('/api/trips', tripsRoutes);
 
 const PORT = process.env.PORT || 5000;
 
@@ -69,7 +67,7 @@ if (process.env.NODE_ENV !== 'test') {
   server.listen(PORT, () => {
     console.log(`===================================================`);
     console.log(` [RutaLink API] Servidor activo en puerto ${PORT}`);
-    console.log(` [RutaLink S2] TBAC, Geovalla & Grupos Activos`);
+    console.log(` [RutaLink S3] WebSockets, Rutas OSRM y Acuerdos 1a1`);
     console.log(`===================================================`);
   });
 }

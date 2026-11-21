@@ -1,0 +1,34 @@
+flowchart TD
+    subgraph Cliente["Cliente PWA (Next.js 14 / Leaflet)"]
+        A["Mapa Cartográfico Editorial (CartoDB Voyager)"]
+        B["Buscador Inteligente '¿A dónde vas?' & Chips"]
+        C["Trazado Polyline Azul (#2563eb / 4px)"]
+        D["Bounding Box del Viewport (minLng, minLat, maxLng, maxLat)"]
+    end
+
+    subgraph BackendNode["Backend Node.js / Express (TypeScript)"]
+        E["GET /api/routes"]
+        F["GET /api/routes/bbox"]
+        G["Parser GeoJSON LineString"]
+    end
+
+    subgraph BaseDatos["PostgreSQL 15 + PostGIS (Supabase)"]
+        H["Tabla public.routes (LineString Waypoints)"]
+        I["Índice Espacial GIST (idx_routes_waypoints)"]
+        J["Stored Procedure public.get_vehicles_in_bbox()"]
+        K["Operador Espacial && (ST_MakeEnvelope)"]
+    end
+
+    B -->|"Selecciona destino (ej. UNAB)"| E
+    E -->|"Consulta SQL ST_AsGeoJSON(waypoints)"| H
+    H --> I
+    E --> G
+    G -->|"Array [lat, lng] GeoJSON"| C
+    C --> A
+
+    A -->|"Evento moveend (Zoom / Pan)"| D
+    D -->|"Query params BBox"| F
+    F -->|"Ejecuta RPC"| J
+    J --> K
+    K -->|"Retorna sólo unidades dentro del encuadre"| F
+    F -->|"JSON vehículos visibles"| A

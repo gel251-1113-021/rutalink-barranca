@@ -78,7 +78,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  // Cuentas de demostración rápida
+  // Cuentas de demostración rápida verificadas
   const quickDemoAccounts = [
     { label: 'Admin Empresa', email: 'admin.barranca@rutalink.pe', pass: 'RutaLink2026Admin!' },
     { label: 'Despachador Supe', email: 'despachador.supe@rutalink.pe', pass: 'RutaLink2026Desp!' },
@@ -88,19 +88,19 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#16181d] w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[#16181d] w-full max-w-md rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden">
         {/* Cabecera del Modal */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-bold">
-              <Compass className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/50 flex items-center justify-center font-bold">
+              <Compass className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 {tab === 'login' ? 'Iniciar Sesión' : tab === 'register' ? 'Crear Cuenta' : 'Recuperar Contraseña'}
               </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">RutaLink Barranca</p>
+              <p className="text-[11px] text-slate-500">RutaLink Barranca</p>
             </div>
           </div>
           <button
@@ -116,20 +116,20 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <div className="grid grid-cols-2 border-b border-slate-100 dark:border-slate-800 text-xs font-semibold">
             <button
               onClick={() => { setTab('login'); setErrorMsg(''); setSuccessMsg(''); }}
-              className={`py-2.5 transition border-b-2 ${
+              className={`py-2.5 transition border-b-2 text-center ${
                 tab === 'login'
-                  ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white'
-                  : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
               Ingresar
             </button>
             <button
               onClick={() => { setTab('register'); setErrorMsg(''); setSuccessMsg(''); }}
-              className={`py-2.5 transition border-b-2 ${
+              className={`py-2.5 transition border-b-2 text-center ${
                 tab === 'register'
-                  ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white'
-                  : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
               Registrarse
@@ -137,16 +137,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </div>
         )}
 
-        <div className="p-5 max-h-[80vh] overflow-y-auto">
+        <div className="p-4 sm:p-5 max-h-[80vh] overflow-y-auto">
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 flex items-center gap-2">
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/70 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+            <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>{successMsg}</span>
             </div>
@@ -156,7 +156,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {tab === 'login' && (
             <form onSubmit={handleLoginSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Correo Electrónico
                 </label>
                 <div className="relative">
@@ -167,20 +167,20 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ejemplo@rutalink.pe"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Contraseña
                   </label>
                   <button
                     type="button"
-                    onClick={() => { setTab('forgot'); setErrorMsg(''); }}
-                    className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
+                    onClick={() => { setTab('forgot'); setErrorMsg(''); setSuccessMsg(''); }}
+                    className="text-[11px] text-blue-600 hover:text-blue-500 font-medium"
                   >
                     ¿Olvidaste tu clave?
                   </button>
@@ -193,7 +193,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
@@ -201,14 +201,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold text-xs hover:bg-slate-800 dark:hover:bg-slate-100 transition shadow-sm disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition disabled:opacity-50"
               >
                 {loading ? 'Validando...' : 'Entrar a RutaLink'}
               </button>
 
               {/* Botón rápido de demo */}
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] font-semibold text-slate-400 mb-2 uppercase tracking-wider text-center">
+                <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider text-center">
                   Cuentas de Prueba Verificadas (1 Toque)
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -220,9 +220,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         setEmail(acc.email);
                         setPassword(acc.pass);
                       }}
-                      className="text-left px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] text-slate-700 dark:text-slate-300 transition"
+                      className="text-left px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50/60 dark:bg-slate-800/60 dark:hover:bg-blue-950/40 border border-slate-200/70 hover:border-blue-200 text-[11px] text-slate-700 dark:text-slate-300 transition"
                     >
-                      <div className="font-medium truncate">{acc.label}</div>
+                      <div className="font-semibold truncate">{acc.label}</div>
                       <div className="text-[9px] text-slate-400 truncate">{acc.email.split('@')[0]}</div>
                     </button>
                   ))}
@@ -235,7 +235,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {tab === 'register' && (
             <form onSubmit={handleRegisterSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre Completo
                 </label>
                 <div className="relative">
@@ -246,13 +246,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Ej. Juan Pérez"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Correo Electrónico
                 </label>
                 <div className="relative">
@@ -262,48 +262,48 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="usuario@ejemplo.com"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                    placeholder="correo@ejemplo.com"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Celular
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="987654321"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Rol Inicial
-                  </label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
-                  >
-                    <option value="PASAJERO">Pasajero</option>
-                    <option value="CONDUCTOR_INDEPENDIENTE">Chofer Indep.</option>
-                    <option value="CONDUCTOR_AFILIADO">Chofer Afiliado</option>
-                  </select>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Teléfono / WhatsApp
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="987654321"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Contraseña (mínimo 6 caracteres)
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Rol Inicial
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as UserRole)}
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
+                >
+                  <option value="PASAJERO">Pasajero (UNAB / General)</option>
+                  <option value="CONDUCTOR_AFILIADO">Conductor Afiliado (Línea)</option>
+                  <option value="CONDUCTOR_INDEPENDIENTE">Conductor Independiente</option>
+                  <option value="ENCARGADO_PARADERO">Encargado de Paradero (Despacho)</option>
+                  <option value="ADMIN_EMPRESA">Administrador de Empresa</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Contraseña
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -313,8 +313,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                    placeholder="Mínimo 6 caracteres"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
@@ -322,21 +322,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold text-xs hover:bg-slate-800 dark:hover:bg-slate-100 transition shadow-sm disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition disabled:opacity-50"
               >
-                {loading ? 'Registrando...' : 'Completar Registro'}
+                {loading ? 'Creando cuenta...' : 'Registrar Cuenta'}
               </button>
             </form>
           )}
 
-          {/* Formulario Forgot Password */}
+          {/* Formulario Forgot */}
           {tab === 'forgot' && (
             <form onSubmit={handleForgotSubmit} className="space-y-3.5">
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                Ingresa tu correo registrado y te enviaremos un enlace seguro para restablecer tu clave.
+              <p className="text-xs text-slate-500">
+                Ingresa el correo asociado a tu cuenta para enviarte un enlace de recuperación.
               </p>
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Correo Electrónico
                 </label>
                 <div className="relative">
@@ -346,39 +346,37 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu-correo@ejemplo.com"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                    placeholder="correo@ejemplo.com"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setTab('login'); setErrorMsg(''); setSuccessMsg(''); }}
-                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                >
-                  Volver
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-2 px-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold text-xs hover:bg-slate-800 dark:hover:bg-slate-100 transition disabled:opacity-50"
-                >
-                  {loading ? 'Enviando...' : 'Enviar Enlace'}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition disabled:opacity-50"
+              >
+                {loading ? 'Enviando...' : 'Enviar Enlace de Recuperación'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setTab('login'); setErrorMsg(''); setSuccessMsg(''); }}
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 py-1"
+              >
+                Volver al inicio de sesión
+              </button>
             </form>
           )}
 
-          {/* Botón Modo Invitado Cero Fricción */}
+          {/* Modo Invitado */}
           <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
             <button
               onClick={onClose}
-              type="button"
-              className="text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 transition"
+              className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white transition font-medium"
             >
-              Continuar explorando en <span className="underline">Modo Invitado (Sin Registro)</span>
+              Continuar explorando en Modo Invitado (Sin Registro)
             </button>
           </div>
         </div>

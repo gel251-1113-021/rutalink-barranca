@@ -4,14 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { 
   X, 
-  Users, 
-  ShieldCheck, 
+  Building2, 
+  UserCheck, 
   CheckCircle2, 
   AlertCircle, 
-  Plus, 
-  UserCheck, 
-  Building2, 
-  Share2 
+  Plus 
 } from 'lucide-react';
 
 interface GroupManagementModalProps {
@@ -64,7 +61,6 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
     if (isOpen) loadGroups();
   }, [isOpen, user]);
 
-  // Cargar choferes en espera cuando se selecciona un grupo
   useEffect(() => {
     async function loadPendingDrivers() {
       if (!selectedGroupId) return;
@@ -159,20 +155,20 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#16181d] w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[#16181d] w-full max-w-lg rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Cabecera */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-purple-600 text-white font-bold">
-              <Building2 className="w-5 h-5" />
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/50 flex items-center justify-center font-bold">
+              <Building2 className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 Gestión de Grupos y Flota
               </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Líneas Empresariales y Comunidades UNAB
+              <p className="text-[11px] text-slate-500">
+                Líneas Empresariales y Colectivos de Barranca
               </p>
             </div>
           </div>
@@ -184,13 +180,13 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
           </button>
         </div>
 
-        {/* Pestañas */}
+        {/* Pestañas con estilo limpio */}
         <div className="grid grid-cols-3 border-b border-slate-100 dark:border-slate-800 text-xs font-semibold">
           <button
             onClick={() => setTab('my_groups')}
-            className={`py-2.5 transition border-b-2 ${
+            className={`py-2.5 transition border-b-2 text-center ${
               tab === 'my_groups'
-                ? 'border-purple-600 text-purple-600 dark:text-purple-400 font-bold'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
                 : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
@@ -198,9 +194,9 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
           </button>
           <button
             onClick={() => setTab('pending_drivers')}
-            className={`py-2.5 transition border-b-2 ${
+            className={`py-2.5 transition border-b-2 text-center ${
               tab === 'pending_drivers'
-                ? 'border-purple-600 text-purple-600 dark:text-purple-400 font-bold'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
                 : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
@@ -208,9 +204,9 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
           </button>
           <button
             onClick={() => setTab('create_group')}
-            className={`py-2.5 transition border-b-2 ${
+            className={`py-2.5 transition border-b-2 text-center ${
               tab === 'create_group'
-                ? 'border-purple-600 text-purple-600 dark:text-purple-400 font-bold'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
                 : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
@@ -223,8 +219,8 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
             <div
               className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
                 msg.type === 'success'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200/70 text-rose-700 dark:text-rose-300'
               }`}
             >
               {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
@@ -238,22 +234,22 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
               {groups.map(g => (
                 <div
                   key={g.id}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#1a1d22] border border-slate-200 dark:border-slate-800 space-y-2 text-xs"
+                  className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-[#1a1d22] border border-slate-200/70 dark:border-slate-800 space-y-2 text-xs"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-900 dark:text-slate-100">{g.name}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       g.type === 'EMPRESARIAL'
-                        ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
-                        : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                        ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60'
                     }`}>
                       {g.type}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500">{g.description || 'Sin descripción'}</p>
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-400">
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-400">
                     <span>Tarifas: {g.fare_range || 'S/. 2.50 - S/. 4.00'}</span>
-                    <span>Rol: <strong className="text-purple-500">{g.role_in_group}</strong></span>
+                    <span>Rol: <strong className="text-blue-600 dark:text-blue-400">{g.role_in_group}</strong></span>
                   </div>
                 </div>
               ))}
@@ -271,11 +267,11 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
                 pendingDrivers.map(d => (
                   <div
                     key={d.user_id}
-                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#1a1d22] border border-slate-200 dark:border-slate-800 space-y-2"
+                    className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-[#1a1d22] border border-slate-200/70 dark:border-slate-800 space-y-2"
                   >
                     <div className="flex items-center justify-between">
                       <strong className="text-slate-900 dark:text-slate-100">{d.full_name}</strong>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60">
                         En Espera
                       </span>
                     </div>
@@ -285,7 +281,7 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
                     <button
                       type="button"
                       onClick={() => handleApproveDriver(d.user_id)}
-                      className="w-full py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5"
+                      className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-1.5"
                     >
                       <UserCheck className="w-4 h-4" />
                       <span>Aprobar Conductor e Integrar a la Flota</span>
@@ -300,7 +296,7 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
           {tab === 'create_group' && (
             <form onSubmit={handleCreateGroup} className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Nombre del Grupo / Comité
                 </label>
                 <input
@@ -309,19 +305,19 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="Ej. Comité 2 Barranca - Pativilca"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Tipo de Grupo
                   </label>
                   <select
                     value={type}
                     onChange={e => setType(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700"
                   >
                     <option value="EMPRESARIAL">Línea Formal (Empresarial)</option>
                     <option value="COMUNITARIO">Comunidad de Pasajeros</option>
@@ -329,7 +325,7 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
                 </div>
 
                 <div>
-                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Tarifa Referencial
                   </label>
                   <input
@@ -337,13 +333,13 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
                     value={fareRange}
                     onChange={e => setFareRange(e.target.value)}
                     placeholder="S/. 2.50 - S/. 4.00"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Dirección del Paradero Base
                 </label>
                 <input
@@ -351,12 +347,12 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
                   value={baseAddress}
                   onChange={e => setBaseAddress(e.target.value)}
                   placeholder="Av. José Gálvez 450, Barranca"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Descripción o Ruta
                 </label>
                 <textarea
@@ -364,14 +360,14 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Ruta interdistrital Barranca - Supe - UNAB..."
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow transition flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 <span>{isLoading ? 'Creando grupo...' : 'Registrar Grupo'}</span>

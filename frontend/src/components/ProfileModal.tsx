@@ -11,7 +11,7 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
-  const { user, profile, updateProfile, deleteAccount, switchRole } = useAuth();
+  const { user, profile, updateProfile, deleteAccount } = useAuth();
 
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
@@ -57,17 +57,17 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#16181d] w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[#16181d] w-full max-w-md rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden">
         {/* Cabecera */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-800 dark:text-slate-200">
-              <User className="w-4 h-4" />
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/50 flex items-center justify-center font-bold">
+              <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Mi Perfil y Seguridad</h2>
-              <p className="text-[11px] text-slate-400">{user.email}</p>
+              <p className="text-[11px] text-slate-500">{user.email}</p>
             </div>
           </div>
           <button
@@ -78,13 +78,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </button>
         </div>
 
-        <div className="p-5 max-h-[80vh] overflow-y-auto space-y-4">
+        <div className="p-4 sm:p-5 max-h-[80vh] overflow-y-auto space-y-4">
           {msg && (
             <div
               className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
                 msg.type === 'success'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200/70 text-rose-700 dark:text-rose-300'
               }`}
             >
               {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
@@ -93,9 +93,9 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           )}
 
           {/* Tarjeta de Resumen / Calificación */}
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#1a1d22] border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+          <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-[#1a1d22] border border-slate-200/70 dark:border-slate-800 flex items-center justify-between text-xs">
             <div>
-              <span className="text-[10px] uppercase font-semibold text-slate-400">Reputación en Barranca</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400">Reputación en Barranca</span>
               <div className="flex items-center gap-1 font-bold text-slate-800 dark:text-slate-100 mt-0.5">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                 <span>{(parseFloat(String(profile?.rating || '5.0')) || 5.0).toFixed(1)} / 5.0</span>
@@ -103,8 +103,8 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </div>
             </div>
             <div className="text-right">
-              <span className="text-[10px] uppercase font-semibold text-slate-400">Estado</span>
-              <div className="text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Estado</span>
+              <div className="text-emerald-700 dark:text-emerald-300 font-semibold mt-0.5">
                 {profile?.account_status || 'ACTIVO'}
               </div>
             </div>
@@ -112,7 +112,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
           <form onSubmit={handleSave} className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Nombre y Apellidos
               </label>
               <input
@@ -120,31 +120,31 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Celular Verificado
                 </label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Rol Activo
                 </label>
                 <select
                   value={activeRole}
                   onChange={(e) => setActiveRole(e.target.value as UserRole)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold transition"
                 >
                   <option value="PASAJERO">Pasajero</option>
                   <option value="CONDUCTOR_AFILIADO">Chofer Afiliado</option>
@@ -167,14 +167,14 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   placeholder="Nombre contacto"
                   value={emergencyName}
                   onChange={(e) => setEmergencyName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                 />
                 <input
                   type="tel"
                   placeholder="Celular SOS"
                   value={emergencyPhone}
                   onChange={(e) => setEmergencyPhone(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#1f2329] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#181a20] border border-slate-200/80 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>
             </div>
@@ -182,32 +182,32 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <button
               type="submit"
               disabled={isUpdating}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold text-xs hover:bg-slate-800 dark:hover:bg-slate-100 transition shadow-sm disabled:opacity-50"
+              className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition disabled:opacity-50"
             >
               {isUpdating ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </form>
 
-          {/* Zona de Peligro / Eliminación de Cuenta */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="p-3 rounded-xl bg-red-50/50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/40">
-              <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 block mb-1">
+          {/* Zona de Seguridad / Eliminación de Cuenta */}
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="p-3 rounded-xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40">
+              <span className="text-[11px] font-semibold text-rose-700 dark:text-rose-400 block mb-1">
                 Zona de Seguridad y Privacidad
               </span>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
-                Elimina permanentemente tu cuenta, historial de viajes y datos de geolocalización según normativas de privacidad.
+                Elimina permanentemente tu cuenta, historial de viajes y datos de geolocalización.
               </p>
               {!confirmDelete ? (
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(true)}
-                  className="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
+                  className="flex items-center gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Deseo eliminar mi cuenta
                 </button>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[11px] font-bold text-red-700 dark:text-red-300">
+                  <p className="text-[11px] font-bold text-rose-700 dark:text-rose-300">
                     ¿Estás completamente seguro? Esta acción es irreversible.
                   </p>
                   <div className="flex gap-2">
@@ -221,7 +221,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     <button
                       type="button"
                       onClick={handleDeleteAccount}
-                      className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
+                      className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition"
                     >
                       Confirmar y Borrar Cuenta
                     </button>

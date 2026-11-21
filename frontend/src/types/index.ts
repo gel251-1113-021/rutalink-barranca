@@ -71,3 +71,19 @@ export interface TransportGroup {
   contact_phone: string;
   fare_range: string;
 }
+
+export interface RouteCorridor {
+  id: string;
+  name: string;
+  origin_name: string;
+  destination_name: string;
+  distance_km: number;
+  estimated_duration_min: number;
+  geojson?: {
+    type: string;
+    coordinates: [number, number][]; // [lng, lat]
+  };
+  group_name?: string;
+  is_active?: boolean;
+}
+

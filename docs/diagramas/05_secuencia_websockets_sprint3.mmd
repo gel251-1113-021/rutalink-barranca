@@ -1,0 +1,32 @@
+sequenceDiagram
+    autonumber
+    actor Pasajero as Pasajero (PWA Next.js)
+    actor Chofer as Chofer (PWA Next.js)
+    participant Socket as Socket.io Server (Node.js/Express)
+    participant DB as PostGIS / Supabase (PostgreSQL)
+
+    %% 1. Trazabilidad GPS Throttled
+    Note over Chofer,Socket: Sincronización GPS con Filtro Temporal y Espacial
+    Chofer->>Socket: emit('driver_gps_update', { vehicleId, lat, lng, speed, heading })
+    Note over Socket: Evalúa Throttling: Δt >= 5 seg O Δd >= 15 metros
+    alt Pasa filtro de Throttling
+        Socket->>DB: UPDATE vehicles SET current_location = ST_SetSRID(ST_MakePoint(lng, lat), 4326), last_location_update = NOW()
+        Socket-->>Pasajero: broadcast('vehicle_moved', { vehicleId, latitude, longitude, heading })
+        Note over Pasajero: Leaflet suaviza posición del marcador en mapa
+    else Filtrado por Throttling
+        Note over Socket: Descartado para optimizar ancho de banda móvil
+    end
+
+    %% 2. Señal de Pasajero Esperando y Síntesis de Voz
+    Note over Pasajero,Chofer: Señal Táctil de Abordaje ("Esperar Aquí")
+    Pasajero->>Socket: emit('passenger_waiting_signal', { userId, lat, lng, note })
+    Socket-->>Chofer: broadcast('passenger_waiting_signal', { lat, lng, note, passengerName })
+    Note over Chofer: Web Speech API ejecuta alerta audible: "Nuevo pasajero esperando en la ruta"
+    Note over Chofer: Marcador pulsante azul proyectado en mapa por 15 min
+
+    %% 3. Asientos y Cabina Digital
+    Note over Chofer,Pasajero: Actualización Instantánea de Asiento Digital
+    Chofer->>Socket: emit('cabin_seat_updated', { vehicleId, seatLayout })
+    Socket->>DB: UPDATE vehicles SET seat_layout = $1 WHERE id = $2
+    Socket-->>Pasajero: broadcast('cabin_seat_updated', { vehicleId, seatLayout })
+    Note over Pasajero: Modal Cabina Digital actualiza libre/ocupado en vivo
