@@ -26,6 +26,7 @@ import ShareAppModal from '../components/Mobile/ShareAppModal';
 import ReviewModal from '../components/Reviews/ReviewModal';
 import PhotoUploadModal from '../components/Media/PhotoUploadModal';
 import LoadingSplashScreen from '../components/Branding/LoadingSplashScreen';
+import InteractiveGuideModal from '../components/Guide/InteractiveGuideModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -331,12 +332,13 @@ export default function HomePage() {
   const [routeBuilderOpen, setRouteBuilderOpen] = useState<boolean>(false);
   const [inspectedVehicle, setInspectedVehicle] = useState<any | null>(null);
 
-  // Modales Pre-Lanzamiento (Compartir App / QR, Calificaciones y Reseñas, Fotos Reales)
+  // Modales Pre-Lanzamiento (Compartir App / QR, Calificaciones y Reseñas, Fotos Reales, Guía)
   const [shareAppOpen, setShareAppOpen] = useState<boolean>(false);
   const [reviewModalOpen, setReviewModalOpen] = useState<boolean>(false);
   const [reviewTarget, setReviewTarget] = useState<{ id?: string; name?: string; type?: 'CONDUCTOR' | 'EMPRESA' } | null>(null);
   const [photoModalOpen, setPhotoModalOpen] = useState<boolean>(false);
   const [photoModalTarget, setPhotoModalTarget] = useState<{ title?: string; category?: 'PERFIL' | 'VEHICULO' | 'PARADERO' | 'LLEGADA' } | null>(null);
+  const [guideModalOpen, setGuideModalOpen] = useState<boolean>(false);
 
   // Estados de Usuario y Ubicación
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -619,7 +621,10 @@ export default function HomePage() {
       }
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
-          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          // Filtrar lecturas de baja precisión (>40m) para evitar jitter
+          if (!pos.coords.accuracy || pos.coords.accuracy <= 40) {
+            setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          }
         },
         (err) => console.warn('watchPosition aviso:', err.message),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 }
@@ -701,6 +706,8 @@ export default function HomePage() {
         onOpenSmsFallback={() => setSmsModalOpen(true)}
         onOpenAnalytics={() => setAnalyticsModalOpen(true)}
         onOpenShareApp={() => setShareAppOpen(true)}
+        onOpenGuide={() => setGuideModalOpen(true)}
+        onOpenReviews={() => setReviewModalOpen(true)}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         isOffline={isOffline}
@@ -830,6 +837,7 @@ export default function HomePage() {
             darkMode={darkMode}
             passengerSignal={passengerSignal}
             userLocation={userLocation}
+            passengerState={passengerContextState}
             dropoffs={dropoffs}
             onVehicleTap={(v) => setInspectedVehicle(v)}
             onRequestDropoff={handleRequestDropoff}
@@ -1028,6 +1036,13 @@ export default function HomePage() {
           });
           setTimeout(() => setNotificationToast(null), 3000);
         }}
+      />
+
+      {/* 10. Modal Guía Interactiva Paso a Paso */}
+      <InteractiveGuideModal
+        isOpen={guideModalOpen}
+        onClose={() => setGuideModalOpen(false)}
+        section="MAPA"
       />
     </main>
   );

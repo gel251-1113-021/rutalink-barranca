@@ -38,6 +38,7 @@ interface BarrancaMapProps {
   darkMode: boolean;
   passengerSignal?: { lat: number; lng: number; note?: string } | null;
   userLocation?: { lat: number; lng: number } | null;
+  passengerState?: 'CAMINO' | 'ESPERANDO' | 'A_BORDO';
   dropoffs?: DropoffPoint[];
   onVehicleTap?: (vehicle: VehicleUnit) => void;
   onRequestDropoff?: () => void;
@@ -405,6 +406,7 @@ export default function BarrancaMap({
   darkMode,
   passengerSignal,
   userLocation,
+  passengerState = 'CAMINO',
   dropoffs = [],
   onVehicleTap,
   onRequestDropoff,
@@ -413,10 +415,11 @@ export default function BarrancaMap({
 }: BarrancaMapProps) {
   const defaultCenter: [number, number] = [-10.7512, -77.7615];
 
-  // Modos de Capa Cartográfica
-  const [mapLayer, setMapLayer] = useState<'google-streets' | 'google-hybrid' | 'google-satellite' | 'google-traffic' | 'carto-dark'>('google-streets');
+  // Modos de Capa Cartográfica Oficial (Google Maps Platform WGS84 Sin Marcas de Agua)
+  const [mapLayer, setMapLayer] = useState<'google-streets' | 'google-hybrid' | 'google-satellite' | 'google-traffic' | 'night-mode'>('google-streets');
   const [layerDropdownOpen, setLayerDropdownOpen] = useState(false);
   const [routeDisplayMode, setRouteDisplayMode] = useState<'POINTS' | 'ROADS'>('POINTS');
+  const [trackingGps, setTrackingGps] = useState<boolean>(true);
 
   // Marcador de Posición Pin Personalizado en el Mapa (Estilo Google Maps)
   const [pinnedPoint, setPinnedPoint] = useState<{
@@ -427,6 +430,7 @@ export default function BarrancaMap({
 
   // Estado para confirmación táctil de "Me bajo aquí" (Timbre de parada)
   const [dropoffPromptOpen, setDropoffPromptOpen] = useState(false);
+  const [showAboardAlert, setShowAboardAlert] = useState(false);
 
   // Servidores de Teselas de Cartografía Oficial (Google Maps Platform WGS84 Sin Marcas de Agua)
   const TILE_SERVERS: Record<string, string> = {
@@ -434,10 +438,10 @@ export default function BarrancaMap({
     'google-hybrid': 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
     'google-satellite': 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     'google-traffic': 'https://mt1.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}',
-    'carto-dark': 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
+    'night-mode': 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
   };
 
-  const isDarkMap = mapLayer === 'carto-dark' || (mapLayer === 'google-streets' && darkMode);
+  const isDarkMap = mapLayer === 'night-mode' || (mapLayer === 'google-streets' && darkMode);
   const currentTileUrl = TILE_SERVERS[mapLayer] || TILE_SERVERS['google-streets'];
 
   // Manejar clic en el mapa para fijar punto real
@@ -563,13 +567,13 @@ export default function BarrancaMap({
 
             <button
               type="button"
-              onClick={() => { setMapLayer('carto-dark'); setLayerDropdownOpen(false); }}
+              onClick={() => { setMapLayer('night-mode'); setLayerDropdownOpen(false); }}
               className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${
-                mapLayer === 'carto-dark' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                mapLayer === 'night-mode' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <span>🌙 Modo Nocturno Vial</span>
-              {mapLayer === 'carto-dark' && <Check className="w-4 h-4 text-blue-600" />}
+              <span>🌙 Modo Nocturno (Conducción)</span>
+              {mapLayer === 'night-mode' && <Check className="w-4 h-4 text-blue-600" />}
             </button>
           </div>
         )}
@@ -630,7 +634,20 @@ export default function BarrancaMap({
 
       {/* 4. Botones Flotantes Táctiles (GPS Exacto + Me Bajo Aquí) */}
       <div className="absolute right-3 bottom-24 sm:bottom-28 z-20 flex flex-col items-end gap-2.5 pointer-events-auto">
-        {/* Botón: Activar mi ubicación (48px táctil) */}
+        {/* Aviso Educativo si el pasajero toca "Me bajo aquí" sin estar a bordo */}
+        {showAboardAlert && (
+          <div className="p-3 rounded-2xl bg-slate-900/95 text-white shadow-2xl border border-slate-700 max-w-xs text-xs animate-in fade-in duration-200 mb-1">
+            <div className="flex items-center gap-2 font-bold text-amber-400 mb-1">
+              <span>🔔</span>
+              <span>Timbre Digital de Bajada</span>
+            </div>
+            <p className="text-[11px] text-slate-300">
+              Solo se activa cuando cambias tu estado a <strong>&quot;A bordo&quot;</strong> arriba o estás en viaje dentro de un vehículo.
+            </p>
+          </div>
+        )}
+
+        {/* Botón: Centrar / Seguir ubicación GPS */}
         {onLocateUser && (
           <button
             type="button"
@@ -648,10 +665,10 @@ export default function BarrancaMap({
           <div className="p-3.5 rounded-2xl bg-white dark:bg-[#15181e] shadow-2xl border border-slate-200 dark:border-slate-700 text-left max-w-xs animate-in zoom-in-95 duration-150">
             <div className="flex items-center gap-2 mb-1.5 text-rose-600 font-bold text-xs">
               <span className="text-base">🛑</span>
-              <span>¿Solicitar parada al chofer?</span>
+              <span>¿Pedir parada al chofer?</span>
             </div>
             <p className="text-[11px] text-slate-500 mb-3">
-              Se emitirá una señal acústica en el panel del vehículo para que se detenga en la próxima esquina segura.
+              Se emitirá una señal en la cabina del vehículo indicando parada en la próxima esquina.
             </p>
             <div className="flex items-center gap-2 justify-end">
               <button
@@ -667,7 +684,7 @@ export default function BarrancaMap({
                   setDropoffPromptOpen(false);
                   if (onRequestDropoff) onRequestDropoff();
                 }}
-                className="px-3 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs"
+                className="px-3 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs active:scale-95 transition"
               >
                 Confirmar Bajada
               </button>
@@ -675,16 +692,32 @@ export default function BarrancaMap({
           </div>
         )}
 
-        {/* Botón: Me bajo aquí / Timbre de Parada */}
+        {/* Botón: Me bajo aquí / Timbre de Parada (Condicionado por estado) */}
         {onRequestDropoff && !dropoffPromptOpen && (
           <button
             type="button"
-            onClick={() => setDropoffPromptOpen(true)}
-            className="px-3.5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 border border-rose-500/80"
-            title="Avisar al chofer que deseas bajar en la próxima esquina"
+            onClick={() => {
+              if (passengerState !== 'A_BORDO') {
+                setShowAboardAlert(true);
+                setTimeout(() => setShowAboardAlert(false), 3800);
+                return;
+              }
+              setDropoffPromptOpen(true);
+            }}
+            className={`px-3.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 border ${
+              passengerState === 'A_BORDO'
+                ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-500 shadow-rose-500/30'
+                : 'bg-rose-500/25 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 border-rose-300/40 dark:border-rose-800/40'
+            }`}
+            title={passengerState === 'A_BORDO' ? "Avisar al chofer para bajar" : "Toca para saber cuándo se activa"}
           >
             <span className="text-sm">🛑</span>
             <span>Me bajo aquí</span>
+            {passengerState !== 'A_BORDO' && (
+              <span className="text-[10px] bg-rose-200/50 dark:bg-rose-900/50 px-1.5 py-0.5 rounded-md font-semibold">
+                Info
+              </span>
+            )}
           </button>
         )}
       </div>

@@ -21,6 +21,7 @@ interface MapWrapperProps {
   darkMode: boolean;
   passengerSignal?: { lat: number; lng: number; note?: string } | null;
   userLocation?: { lat: number; lng: number } | null;
+  passengerState?: 'CAMINO' | 'ESPERANDO' | 'A_BORDO';
   dropoffs?: DropoffPoint[];
   onVehicleTap?: (vehicle: VehicleUnit) => void;
   onRequestDropoff?: () => void;

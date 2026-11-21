@@ -23,7 +23,9 @@ import {
   Clock,
   Share2,
   Menu,
-  X
+  X,
+  HelpCircle,
+  Star
 } from 'lucide-react';
 import RutaLinkLogo from './Branding/RutaLinkLogo';
 
@@ -37,6 +39,8 @@ interface HeaderProps {
   onOpenSmsFallback?: () => void;
   onOpenAnalytics?: () => void;
   onOpenShareApp?: () => void;
+  onOpenGuide?: () => void;
+  onOpenReviews?: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
   isOffline?: boolean;
@@ -90,6 +94,8 @@ export default function Header({
   onOpenSmsFallback,
   onOpenAnalytics,
   onOpenShareApp,
+  onOpenGuide,
+  onOpenReviews,
   darkMode, 
   onToggleDarkMode,
   isOffline = false
@@ -139,6 +145,18 @@ export default function Header({
 
         {/* Acciones de la barra */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Botón Guía Interactiva en Escritorio */}
+          {onOpenGuide && (
+            <button
+              onClick={onOpenGuide}
+              title="Guía rápida interactiva y ayuda"
+              className="hidden lg:flex px-2.5 py-1.5 rounded-xl bg-blue-50/80 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 text-xs font-semibold transition items-center gap-1.5"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>Guía</span>
+            </button>
+          )}
+
           {/* Botones de Barra Superior (Visibles en Tablets y Escritorio) */}
           {onOpenSmsFallback && (
             <button
@@ -186,13 +204,13 @@ export default function Header({
 
           {isGuest ? (
             /* Modo Invitado */
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="hidden lg:inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-medium">
                 <Users className="w-3.5 h-3.5" /> Modo Invitado
               </span>
               <button
                 onClick={onOpenAuth}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition"
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition active:scale-95"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Ingresar</span>
@@ -244,7 +262,7 @@ export default function Header({
                 </button>
 
                 {roleMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#16181d] rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 py-1.5 z-50 text-xs">
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#16181d] rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 py-1.5 z-50 text-xs animate-in fade-in duration-150">
                     <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
                       Alternar Rol Activo
                     </div>
@@ -277,7 +295,7 @@ export default function Header({
                 )}
               </div>
 
-              {/* Botón de Historial de Viajes (Visible en sm y superior; en móvil está en barra inferior y drawer) */}
+              {/* Botón de Historial de Viajes (Visible en sm y superior) */}
               {onOpenHistory && (
                 <button
                   onClick={onOpenHistory}
@@ -289,7 +307,7 @@ export default function Header({
                 </button>
               )}
 
-              {/* Botón de Perfil (Visible en sm y superior; en móvil está en drawer) */}
+              {/* Botón de Perfil (Visible en sm y superior) */}
               <button
                 onClick={onOpenProfile}
                 className="hidden sm:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition"
@@ -300,7 +318,7 @@ export default function Header({
                 </span>
               </button>
 
-              {/* Salir (En escritorio directo, en móvil en el drawer) */}
+              {/* Salir (En escritorio directo) */}
               <button
                 onClick={logout}
                 title="Cerrar sesión"
@@ -311,11 +329,11 @@ export default function Header({
             </div>
           )}
 
-          {/* Botón Menú Móvil (Solo teléfonos - Acceso a todas las opciones y herramientas) */}
+          {/* Botón Menú Móvil Prominente (Solo teléfonos - Acceso total a todas las herramientas) */}
           <button
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Abrir menú de opciones"
-            className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition shrink-0 border border-slate-200/80 dark:border-slate-700 active:scale-95 text-xs font-bold shadow-2xs mr-0.5"
+            className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition shrink-0 border border-slate-200/80 dark:border-slate-700 active:scale-95 text-xs font-bold shadow-2xs"
           >
             <Menu className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Menú</span>
@@ -331,9 +349,10 @@ export default function Header({
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="w-[85%] max-w-xs h-[100dvh] bg-white dark:bg-[#13161a] border-l border-slate-200 dark:border-slate-800 flex flex-col p-5 overflow-y-auto animate-in slide-in-from-right duration-200 shadow-2xl"
+            className="w-[88%] max-w-xs h-[100dvh] bg-white dark:bg-[#13161a] border-l border-slate-200 dark:border-slate-800 flex flex-col p-4 sm:p-5 overflow-y-auto animate-in slide-in-from-right duration-200 shadow-2xl"
           >
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            {/* Cabecera del Menú Lateral */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <RutaLinkLogo size="sm" showSubtitle={false} />
               <button
                 onClick={() => setMobileMenuOpen(false)}
@@ -345,7 +364,7 @@ export default function Header({
             </div>
 
             {/* Usuario Actual o Ingreso */}
-            <div className="py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
               {isGuest ? (
                 <button
                   onClick={() => { setMobileMenuOpen(false); onOpenAuth(); }}
@@ -362,109 +381,169 @@ export default function Header({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{profile?.full_name}</p>
-                      <p className="text-xs text-slate-500 truncate">{profile?.email}</p>
+                      <p className="text-xs text-slate-500 truncate">{profile?.email || profile?.phone || 'Usuario RutaLink'}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => { setMobileMenuOpen(false); onOpenProfile(); }}
                     className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold text-center hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                   >
-                    Ver y Editar Perfil
+                    Ver y Editar Mi Perfil
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Herramientas Principales Táctiles (48px alto) */}
-            <div className="py-4 space-y-1.5 flex-1 overflow-y-auto">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Herramientas</p>
+            {/* Alternador de Rol en Móvil */}
+            {!isGuest && (
+              <div className="py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Mi Rol Activo</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {availableRoles.map(r => {
+                    const item = ROLE_LABELS[r];
+                    const Icon = item.icon;
+                    const isCurrent = currentRole === r;
+                    return (
+                      <button
+                        key={r}
+                        onClick={() => {
+                          switchRole(r);
+                        }}
+                        className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition text-left ${
+                          isCurrent
+                            ? 'bg-blue-600 text-white shadow-2xs'
+                            : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Herramientas Principales Táctiles (48px alto por botón) */}
+            <div className="py-3 space-y-1 flex-1 overflow-y-auto">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5">Todas las Opciones</p>
               
+              {/* 1. Guía Interactiva */}
+              {onOpenGuide && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenGuide(); }}
+                  className="w-full p-2.5 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 text-left text-sm font-bold flex items-center justify-between text-blue-700 dark:text-blue-300 active:scale-98 transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span>Guía de RutaLink</span>
+                  </div>
+                  <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">Ayuda</span>
+                </button>
+              )}
+
+              {/* 2. Compartir App Web y QR */}
               {onOpenShareApp && (
                 <button
                   onClick={() => { setMobileMenuOpen(false); onOpenShareApp(); }}
-                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-emerald-600 dark:text-emerald-400 active:scale-98 transition"
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-emerald-600 dark:text-emerald-400 active:scale-98 transition"
                 >
                   <Share2 className="w-5 h-5 shrink-0" />
-                  <span>Compartir App y QR</span>
+                  <span>Compartir App y Código QR</span>
                 </button>
               )}
 
+              {/* 3. Reporte de Viajes */}
               {onOpenAnalytics && (
                 <button
                   onClick={() => { setMobileMenuOpen(false); onOpenAnalytics(); }}
-                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
                 >
                   <BarChart3 className="w-5 h-5 text-blue-600 shrink-0" />
-                  <span>Reporte de Viajes (PDF)</span>
+                  <span>Reporte de Movilidad (PDF)</span>
                 </button>
               )}
 
-              {onOpenSmsFallback && (
+              {/* 4. Calificaciones y Reseñas */}
+              {onOpenReviews && (
                 <button
-                  onClick={() => { setMobileMenuOpen(false); onOpenSmsFallback(); }}
-                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
+                  onClick={() => { setMobileMenuOpen(false); onOpenReviews(); }}
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-amber-600 dark:text-amber-400 active:scale-98 transition"
                 >
-                  <MessageSquare className="w-5 h-5 text-blue-600 shrink-0" />
-                  <span>Modo Sin Saldo (SMS)</span>
+                  <Star className="w-5 h-5 shrink-0 fill-amber-500 text-amber-500" />
+                  <span>Calificaciones y Reseñas</span>
                 </button>
               )}
 
+              {/* 5. Historial de Viajes */}
               {onOpenHistory && (
                 <button
                   onClick={() => { setMobileMenuOpen(false); onOpenHistory(); }}
-                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
                 >
                   <Clock className="w-5 h-5 text-blue-600 shrink-0" />
-                  <span>Historial de Viajes</span>
+                  <span>Historial de Mis Viajes</span>
                 </button>
               )}
 
-              {/* Botones especializados según rol */}
+              {/* 6. Modo Sin Internet (SMS) */}
+              {onOpenSmsFallback && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenSmsFallback(); }}
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
+                >
+                  <MessageSquare className="w-5 h-5 text-blue-600 shrink-0" />
+                  <span>Modo Sin Megas (SMS)</span>
+                </button>
+              )}
+
+              {/* 7. Grupos de Transporte y Pasajeros */}
+              {onOpenGroupManagement && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenGroupManagement(); }}
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-purple-600 dark:text-purple-400 active:scale-98 transition"
+                >
+                  <Users className="w-5 h-5 shrink-0" />
+                  <span>Grupos de Pasajeros y Empresas</span>
+                </button>
+              )}
+
+              {/* Herramientas especializadas según rol */}
               {(currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE') && onOpenVehicleDesigner && (
                 <button
                   onClick={() => { setMobileMenuOpen(false); onOpenVehicleDesigner(); }}
-                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-emerald-600 dark:text-emerald-400 active:scale-98 transition"
                 >
-                  <Car className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <span>Diseñador 2D de Unidad</span>
+                  <Car className="w-5 h-5 shrink-0" />
+                  <span>Diseñador 2D de Mi Unidad</span>
                 </button>
               )}
 
               {currentRole === 'ENCARGADO_PARADERO' && onOpenDispatcherPanel && (
                 <button
                   onClick={() => { setMobileMenuOpen(false); onOpenDispatcherPanel(); }}
-                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-cyan-600 dark:text-cyan-400 active:scale-98 transition"
                 >
-                  <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0" />
+                  <ShieldCheck className="w-5 h-5 shrink-0" />
                   <span>Control de Paradero Base</span>
-                </button>
-              )}
-
-              {(currentRole === 'ADMIN_EMPRESA' || currentRole === 'ADMIN_GRUPO_PASAJEROS') && onOpenGroupManagement && (
-                <button
-                  onClick={() => { setMobileMenuOpen(false); onOpenGroupManagement(); }}
-                  className="w-full p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
-                >
-                  <Users className="w-5 h-5 text-purple-600 shrink-0" />
-                  <span>{currentRole === 'ADMIN_EMPRESA' ? 'Gestión de Flota' : 'Gestión de Grupos'}</span>
                 </button>
               )}
             </div>
 
             {/* Alternar Tema y Cerrar Sesión */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0">
               <button
                 onClick={onToggleDarkMode}
                 className="w-full p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold flex items-center justify-between active:scale-98 transition"
               >
-                <span>Tema: {darkMode ? 'Oscuro' : 'Claro'}</span>
+                <span>Modo de Pantalla: {darkMode ? 'Oscuro' : 'Claro'}</span>
                 {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
               </button>
 
               {!isGuest && (
                 <button
                   onClick={() => { setMobileMenuOpen(false); logout(); }}
-                  className="w-full p-3 rounded-2xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-sm font-bold flex items-center justify-center gap-2 active:scale-98 transition"
+                  className="w-full p-2.5 rounded-2xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-sm font-bold flex items-center justify-center gap-2 active:scale-98 transition"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Cerrar Sesión</span>

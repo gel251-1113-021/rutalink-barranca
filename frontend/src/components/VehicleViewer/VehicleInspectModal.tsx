@@ -64,7 +64,10 @@ export default function VehicleInspectModal({
   const occupiedCount = passengerSeats.filter(s => s.status === 'occupied').length;
   const freeCount = passengerSeats.length - occupiedCount;
 
-  const cleanPlate = (vehicle.plate || '').replace(/\s+/g, '');
+  const rawPlate = (vehicle.plate || '').trim();
+  const cleanPlate = rawPlate.includes('-')
+    ? rawPlate.replace(/\s*-\s*/g, '-').replace(/\s+/g, '')
+    : rawPlate.replace(/\s+/g, '-').toUpperCase();
   const phone = vehicle.driver_phone || '+51 987654323';
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const waLink = `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola, veo tu vehículo ${vehicle.brand_model} (${cleanPlate}) en RutaLink.`)}`;
@@ -73,29 +76,41 @@ export default function VehicleInspectModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
       <div className="w-full max-w-md bg-white dark:bg-[#13161a] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-200">
         
-        {/* Cabecera con Placa Destacada y Anti-Desborde */}
+        {/* Cabecera con Placa Destacada y Anti-Desborde Inviolable */}
         <div className="px-3.5 sm:px-5 py-3 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-base sm:text-lg shrink-0">
               <VehicleCategoryIcon category={vehicle.vehicle_type || 'SEDAN'} />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-blue-200 block truncate leading-none mb-0.5">
-                Vehículo en Vivo
-              </span>
-              <h2 className="text-xs sm:text-sm font-bold truncate leading-tight">{vehicle.brand_model}</h2>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-200 block truncate leading-none">
+                  Vehículo en Vivo
+                </span>
+              </div>
+              <h2 className="text-xs sm:text-sm font-bold truncate leading-tight mt-0.5 text-white">
+                {vehicle.brand_model}
+              </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Placa oficial peruana blindada sin corte */}
-            <span className="font-mono text-xs font-black bg-white text-slate-900 px-2.5 py-1 rounded-xl shadow-xs whitespace-nowrap tracking-wider shrink-0 select-none border border-slate-200">
-              {cleanPlate}
-            </span>
+          {/* Placa oficial peruana blindada sin corte vertical jamás */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div 
+              title="Placa oficial registrada"
+              className="bg-white text-slate-900 border-2 border-slate-300 rounded-lg px-2.5 py-1 shadow-sm flex items-center gap-1 select-none shrink-0"
+              style={{ minWidth: '82px', justifyContent: 'center' }}
+            >
+              <span className="text-[10px] text-red-600 font-black leading-none">🇵🇪</span>
+              <span className="font-mono text-xs sm:text-sm font-black whitespace-nowrap tracking-wider text-slate-950 leading-none">
+                {cleanPlate}
+              </span>
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-white/20 transition text-white shrink-0 active:scale-95"
+              className="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/25 transition text-white shrink-0 active:scale-95 flex items-center justify-center"
               aria-label="Cerrar modal"
             >
               <X className="w-5 h-5" />
