@@ -459,6 +459,40 @@ export default function HomePage() {
     }
   }, []);
 
+  // Manejador de selección de destino inteligente ("¿A dónde vas?")
+  const handleSelectDestination = (destName: string, coords?: { lat: number; lng: number }) => {
+    if (coords) {
+      setSelectedItem({
+        type: 'stop',
+        data: {
+          id: `dest-${Date.now()}`,
+          name: destName,
+          latitude: coords.lat,
+          longitude: coords.lng,
+          type: 'DESTINO',
+          address_reference: `Hito provincial: ${destName}`,
+          queued_vehicles_count: 0
+        }
+      });
+    }
+    setNotificationToast({
+      title: 'Destino Seleccionado',
+      message: `Cámara fijada en ${destName}. Rutas y unidades activas disponibles.`,
+      type: 'info'
+    });
+    setTimeout(() => setNotificationToast(null), 3500);
+  };
+
+  // Manejador de punto marcado por el usuario en el mapa (Geocodificación)
+  const handlePinLocation = (pin: { lat: number; lng: number; address: string }) => {
+    setNotificationToast({
+      title: '📍 Punto Fijado en el Mapa',
+      message: pin.address,
+      type: 'info'
+    });
+    setTimeout(() => setNotificationToast(null), 3500);
+  };
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -700,8 +734,8 @@ export default function HomePage() {
             </button>
           </div>
         ) : (
-          /* Pasajero: Selector de estado contextual (1 toque) */
-          <div className="w-full flex items-center justify-between overflow-x-auto no-scrollbar gap-2">
+          /* Pasajero: Selector de estado contextual fluido sin desbordes */
+          <div className="w-full flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 px-1">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0">
               Mi estado:
             </span>
@@ -709,7 +743,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => setPassengerContextState('CAMINO')}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 ${
+                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 shrink-0 whitespace-nowrap ${
                   passengerContextState === 'CAMINO'
                     ? 'bg-blue-600 text-white shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -728,7 +762,7 @@ export default function HomePage() {
                   });
                   setTimeout(() => setNotificationToast(null), 3000);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 ${
+                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 shrink-0 whitespace-nowrap ${
                   passengerContextState === 'ESPERANDO'
                     ? 'bg-emerald-600 text-white shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -739,7 +773,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => setPassengerContextState('A_BORDO')}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 ${
+                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition active:scale-95 shrink-0 whitespace-nowrap ${
                   passengerContextState === 'A_BORDO'
                     ? 'bg-indigo-600 text-white shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -755,7 +789,7 @@ export default function HomePage() {
                 setSelectedDriverForAgreement(null);
                 setAgreementModalOpen(true);
               }}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-xs flex items-center gap-1.5 transition active:scale-95 shrink-0 ml-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-xs flex items-center gap-1.5 transition active:scale-95 shrink-0 whitespace-nowrap"
             >
               <span>🚖</span>
               <span className="hidden sm:inline">Pactar Carrera Expreso</span>
@@ -794,11 +828,12 @@ export default function HomePage() {
             onVehicleTap={(v) => setInspectedVehicle(v)}
             onRequestDropoff={handleRequestDropoff}
             onLocateUser={handleLocateUser}
+            onPinLocation={handlePinLocation}
           />
         </ErrorBoundary>
       </div>
 
-      {/* Panel Deslizable Bottom Sheet (Paraderos, Vehículos, Rutas) */}
+      {/* Panel Deslizable Bottom Sheet (Paraderos, Vehículos, Rutas y Lugares) */}
       <BottomSheet
         stops={stops}
         vehicles={vehicles}
@@ -811,6 +846,7 @@ export default function HomePage() {
           setSelectedDriverForAgreement(d);
           setAgreementModalOpen(true);
         }}
+        onSelectDestination={handleSelectDestination}
       />
 
       {/* Barra de Navegación Inferior Móvil Fija */}

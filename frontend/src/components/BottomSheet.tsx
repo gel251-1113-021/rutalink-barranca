@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StopPoint, VehicleUnit } from '../types';
 import { 
   ChevronUp, 
@@ -20,8 +20,28 @@ import {
   Route,
   Sparkles,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Building2,
+  GraduationCap,
+  Store,
+  Umbrella
 } from 'lucide-react';
+
+// Hitos Geográficos y Destinos Reales en la Provincia de Barranca (WGS84)
+export const BARRANCA_LANDMARKS = [
+  { id: 'l1', name: 'Campus UNAB (Universidad Nacional de Barranca)', lat: -10.7428, lng: -77.7485, district: 'Barranca', category: 'UNIVERSIDAD', address: 'Panamericana Norte km 192' },
+  { id: 'l2', name: 'Hospital de Barranca (Emergencias y Consultorios)', lat: -10.7490, lng: -77.7580, district: 'Barranca', category: 'SALUD', address: 'Av. Grau cdra. 5' },
+  { id: 'l3', name: 'Terminal Terrestre Interprovincial de Barranca', lat: -10.7550, lng: -77.7600, district: 'Barranca', category: 'TERMINAL', address: 'Av. Gálvez con Jr. Zavala' },
+  { id: 'l4', name: 'Plaza de Armas de Barranca (Centro Cívico)', lat: -10.7523, lng: -77.7622, district: 'Barranca', category: 'CENTRO', address: 'Jr. José Gálvez cdra. 4' },
+  { id: 'l5', name: 'Mercado Modelo de Barranca (Abastos y Frutas)', lat: -10.7505, lng: -77.7635, district: 'Barranca', category: 'COMERCIO', address: 'Jr. Bolognesi' },
+  { id: 'l6', name: 'Playa Chorrillos y Malecón Costanero', lat: -10.7580, lng: -77.7695, district: 'Barranca', category: 'TURISMO', address: 'Av. Chorrillos' },
+  { id: 'l7', name: 'Plaza de Armas de Supe Pueblo', lat: -10.7981, lng: -77.7135, district: 'Supe', category: 'CENTRO', address: 'Jr. Bolívar con Jr. Sucre' },
+  { id: 'l8', name: 'Puerto Supe (Terminal y Caleta Pesquera)', lat: -10.8035, lng: -77.7420, district: 'Supe Puerto', category: 'PUERTO', address: 'Av. La Marina' },
+  { id: 'l9', name: 'Óvalo de Pativilca (Cruce Panamericana Norte)', lat: -10.6974, lng: -77.7831, district: 'Pativilca', category: 'CRUCE', address: 'Panamericana Norte km 202' },
+  { id: 'l10', name: 'Plaza de Armas de Pativilca', lat: -10.6930, lng: -77.7850, district: 'Pativilca', category: 'CENTRO', address: 'Jr. San Martín' },
+  { id: 'l11', name: 'Fortaleza de Paramonga (Monumento Histórico)', lat: -10.6550, lng: -77.8300, district: 'Paramonga', category: 'TURISMO', address: 'Carretera Valle Fortaleza' },
+  { id: 'l12', name: 'Plaza de Armas de Paramonga', lat: -10.6720, lng: -77.8180, district: 'Paramonga', category: 'CENTRO', address: 'Av. Central' }
+];
 
 interface BottomSheetProps {
   stops: StopPoint[];
@@ -32,7 +52,7 @@ interface BottomSheetProps {
   onWaitingClick: () => void;
   onOpenLiveCabin?: (vehicle: VehicleUnit) => void;
   onOpenAgreement?: (driverData: any) => void;
-  onSelectDestination?: (dest: string) => void;
+  onSelectDestination?: (dest: string, coords?: { lat: number; lng: number }) => void;
 }
 
 const getVehicleEmoji = (type?: string) => {
@@ -56,11 +76,17 @@ export default function BottomSheet({
   onSelectDestination
 }: BottomSheetProps) {
   // 'minimized': Barra compacta de 48px para disfrutar el mapa completo interactivo
-  // 'half': Vista media (50vh) para explorar sin perder de vista el mapa
+  // 'half': Vista media (52vh) para explorar sin perder de vista el mapa
   // 'full': Pantalla casi completa para listados extensos
   const [sheetState, setSheetState] = useState<'minimized' | 'half' | 'full'>('minimized');
-  const [activeTab, setActiveTab] = useState<'stops' | 'vehicles' | 'routes'>('stops');
+  const [activeTab, setActiveTab] = useState<'stops' | 'vehicles' | 'routes' | 'places'>('stops');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Referencias para control de gestos táctiles con el dedo (drag / swipe)
+  const touchStartY = useRef<number | null>(null);
+  const touchCurrentY = useRef<number | null>(null);
+  const isDragging = useRef<boolean>(false);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Si el usuario toca un vehículo o paradero en el mapa, abrimos el panel para ver el detalle
   useEffect(() => {
@@ -69,11 +95,60 @@ export default function BottomSheet({
     }
   }, [selectedItem]);
 
+  // Manejo de gestos táctiles (Dedo) para expandir y retraer suavemente
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchCurrentY.current = e.touches[0].clientY;
+    isDragging.current = true;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    touchCurrentY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging.current || touchStartY.current === null || touchCurrentY.current === null) {
+      isDragging.current = false;
+      return;
+    }
+
+    const deltaY = touchCurrentY.current - touchStartY.current;
+
+    // Arrastre hacia ARRIBA significativo (deltaY < -45px): Expande
+    if (deltaY < -45) {
+      if (sheetState === 'minimized') setSheetState('half');
+      else if (sheetState === 'half') setSheetState('full');
+    }
+    // Arrastre hacia ABAJO significativo (deltaY > 45px): Retrae
+    else if (deltaY > 45) {
+      if (sheetState === 'full') setSheetState('half');
+      else if (sheetState === 'half') setSheetState('minimized');
+    }
+
+    isDragging.current = false;
+    touchStartY.current = null;
+    touchCurrentY.current = null;
+  };
+
+  // Si el usuario está al inicio de la lista y desliza el dedo hacia abajo, retrae el panel
+  const handleListTouchMove = (e: React.TouchEvent) => {
+    if (!scrollContainerRef.current) return;
+    if (scrollContainerRef.current.scrollTop === 0 && touchStartY.current !== null) {
+      const currentY = e.touches[0].clientY;
+      if (currentY - touchStartY.current > 70) {
+        if (sheetState === 'full') setSheetState('half');
+        else if (sheetState === 'half') setSheetState('minimized');
+        touchStartY.current = null;
+      }
+    }
+  };
+
   const selectedStop: StopPoint | null = selectedItem?.type === 'stop' ? selectedItem.data : null;
   const selectedVehicle: VehicleUnit | null = selectedItem?.type === 'vehicle' ? selectedItem.data : null;
   const selectedRoute: any | null = selectedItem?.type === 'route' ? selectedItem.data : null;
 
-  // Filtrado de paraderos y vehículos por el buscador
+  // Filtrado de paraderos, vehículos e hitos geográficos por el buscador
   const filteredStops = stops.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.address_reference.toLowerCase().includes(searchQuery.toLowerCase())
@@ -85,16 +160,33 @@ export default function BottomSheet({
     v.driver_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const QUICK_DESTINATIONS = ['UNAB Campus', 'Supe Pueblo', 'Pativilca', 'Paramonga', 'Barranca Centro'];
+  const filteredLandmarks = BARRANCA_LANDMARKS.filter(l =>
+    l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.address.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const QUICK_DESTINATIONS = [
+    { name: 'UNAB Campus', lat: -10.7428, lng: -77.7485 },
+    { name: 'Supe Pueblo', lat: -10.7981, lng: -77.7135 },
+    { name: 'Pativilca', lat: -10.6974, lng: -77.7831 },
+    { name: 'Paramonga', lat: -10.6720, lng: -77.8180 },
+    { name: 'Barranca Centro', lat: -10.7523, lng: -77.7622 }
+  ];
 
   // 1. ESTADO MINIMIZADO: Barra flotante táctil que deja el 90%+ del mapa 100% interactivo
   if (sheetState === 'minimized' && !selectedItem) {
     return (
-      <div className="fixed bottom-[66px] left-3 right-3 z-30 flex items-center justify-between pointer-events-auto">
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="fixed bottom-[66px] left-3 right-3 z-30 flex items-center justify-between pointer-events-auto touch-pan-y"
+      >
         <button
           type="button"
           onClick={() => setSheetState('half')}
-          className="flex-1 max-w-lg mx-auto py-3 px-4 rounded-2xl bg-white/95 dark:bg-[#121417]/95 backdrop-blur-md shadow-xl border border-slate-200/90 dark:border-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-100 font-bold text-sm active:scale-98 transition group"
+          className="flex-1 max-w-lg mx-auto py-3 px-4 rounded-2xl bg-white/95 dark:bg-[#121417]/95 backdrop-blur-md shadow-xl border border-slate-200/90 dark:border-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-100 font-bold text-sm active:scale-98 transition group select-none"
         >
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
@@ -105,7 +197,7 @@ export default function BottomSheet({
                 {vehicles.length} vehículos · {stops.length} paraderos
               </span>
               <span className="block text-[11px] font-medium text-slate-500">
-                Toca aquí para ver listado completo
+                Desliza con el dedo hacia arriba ▲ o toca aquí
               </span>
             </div>
           </div>
@@ -128,8 +220,13 @@ export default function BottomSheet({
           : 'h-[calc(100dvh-130px)]'
       }`}
     >
-      {/* Tirador táctil y barra superior de control */}
-      <div className="w-full pt-2 pb-1.5 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80">
+      {/* Tirador táctil sensible al dedo para arrastrar arriba/abajo */}
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="w-full pt-2.5 pb-2 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 cursor-grab active:cursor-grabbing select-none"
+      >
         <button
           type="button"
           onClick={() => {
@@ -138,8 +235,8 @@ export default function BottomSheet({
           }}
           className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold text-xs py-1"
         >
-          <div className="w-8 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
-          <span>{sheetState === 'full' ? 'Reducir' : 'Expandir'}</span>
+          <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
+          <span>{sheetState === 'full' ? 'Deslizar para reducir ▼' : 'Deslizar para expandir ▲'}</span>
         </button>
 
         {/* Botón Prominente: Ocultar para Ver Mapa Completo */}
@@ -159,18 +256,23 @@ export default function BottomSheet({
       {/* Contenido Condicional: Detalle vs Explorador General */}
       {selectedItem ? (
         /* VISTA DETALLADA ADAPTADA A CELULAR */
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-24 pt-2 touch-scroll">
+        <div 
+          ref={scrollContainerRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleListTouchMove}
+          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-24 pt-2 touch-scroll"
+        >
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                {selectedItem.type === 'stop' ? <MapPin className="w-5 h-5" /> : <Car className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
+                {selectedItem.type === 'stop' ? <MapPin className="w-5 h-5" /> : selectedItem.type === 'route' ? <Route className="w-5 h-5" /> : <Car className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
               </div>
               <div>
                 <span className="text-xs uppercase font-bold tracking-wider text-slate-400">
-                  {selectedItem.type === 'stop' ? 'Paradero Oficial' : 'Unidad en Circulación'}
+                  {selectedItem.type === 'stop' ? 'Paradero Oficial' : selectedItem.type === 'route' ? 'Ruta Troncal' : 'Unidad en Circulación'}
                 </span>
                 <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                  {selectedStop?.name || `${selectedVehicle?.brand_model}`}
+                  {selectedStop?.name || selectedRoute?.name || `${selectedVehicle?.brand_model}`}
                 </h3>
               </div>
             </div>
@@ -218,7 +320,6 @@ export default function BottomSheet({
                 </div>
               </div>
 
-              {/* Botón de acción táctil */}
               <button
                 type="button"
                 onClick={onWaitingClick}
@@ -227,6 +328,33 @@ export default function BottomSheet({
                 <MapPin className="w-4 h-4" />
                 <span>Esperar en este paradero</span>
               </button>
+            </div>
+          )}
+
+          {/* Detalle Ruta con ETA y Trazado Real */}
+          {selectedRoute && (
+            <div className="space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{selectedRoute.name}</span>
+                  <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold text-xs">
+                    Troncal Vial
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  {selectedRoute.origin_name} → {selectedRoute.destination_name}
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
+                  <div>
+                    <span className="text-slate-400 block">Distancia vial:</span>
+                    <strong className="text-sm font-black text-slate-800 dark:text-slate-200">{selectedRoute.distance_km} km</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">Tiempo estimado (ETA):</span>
+                    <strong className="text-sm font-black text-blue-600 dark:text-blue-400">~{selectedRoute.estimated_duration_min} min</strong>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -287,7 +415,7 @@ export default function BottomSheet({
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 space-y-1">
                 <span className="text-xs uppercase font-bold text-slate-400">Capacidad y Equipaje</span>
                 <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">
-                  {selectedVehicle.capacity} pasajeros · Parrilla disponible: {selectedVehicle.roof_rack ? 'Sí' : 'No'}
+                  {selectedVehicle.capacity} pasajeros · Parrilla: {selectedVehicle.roof_rack ? 'Sí' : 'No'}
                 </p>
               </div>
             </div>
@@ -296,7 +424,7 @@ export default function BottomSheet({
       ) : (
         /* VISTA GENERAL EXPLORADORA */
         <div className="flex-1 flex flex-col px-4 pb-24 overflow-hidden">
-          {/* Fila superior con buscador */}
+          {/* Fila superior con buscador inteligente de destinos de Barranca */}
           <div className="pt-2 mb-2">
             <div className="relative">
               <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3" />
@@ -304,7 +432,7 @@ export default function BottomSheet({
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="¿A dónde vas? (ej. UNAB, Supe, Pativilca...)"
+                placeholder="¿A dónde vas? (ej. UNAB, Hospital, Supe, Pativilca...)"
                 className="w-full pl-11 pr-4 py-2.5 text-sm sm:text-base rounded-2xl bg-slate-100 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               />
               {searchQuery && (
@@ -322,25 +450,25 @@ export default function BottomSheet({
             <div className="flex items-center gap-2 mt-2.5 overflow-x-auto no-scrollbar pb-1">
               {QUICK_DESTINATIONS.map(dest => (
                 <button
-                  key={dest}
+                  key={dest.name}
                   type="button"
                   onClick={() => {
-                    setSearchQuery(dest);
-                    if (onSelectDestination) onSelectDestination(dest);
+                    setSearchQuery(dest.name);
+                    if (onSelectDestination) onSelectDestination(dest.name, { lat: dest.lat, lng: dest.lng });
                   }}
                   className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 whitespace-nowrap transition text-xs font-semibold border border-slate-200 dark:border-slate-700 shrink-0 active:scale-95"
                 >
-                  {dest}
+                  {dest.name}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Pestañas de selección con tipografía grande */}
-          <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-2 mb-2 text-sm font-bold">
+          <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-2 mb-2 text-sm font-bold overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('stops')}
-              className={`pb-1.5 border-b-2 transition ${
+              className={`pb-1.5 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'stops'
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -350,7 +478,7 @@ export default function BottomSheet({
             </button>
             <button
               onClick={() => setActiveTab('vehicles')}
-              className={`pb-1.5 border-b-2 transition ${
+              className={`pb-1.5 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'vehicles'
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -359,8 +487,18 @@ export default function BottomSheet({
               Vehículos ({filteredVehicles.length})
             </button>
             <button
+              onClick={() => setActiveTab('places')}
+              className={`pb-1.5 border-b-2 transition whitespace-nowrap ${
+                activeTab === 'places'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              Lugares Clave ({filteredLandmarks.length})
+            </button>
+            <button
               onClick={() => setActiveTab('routes')}
-              className={`pb-1.5 border-b-2 transition ${
+              className={`pb-1.5 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'routes'
                   ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -371,7 +509,13 @@ export default function BottomSheet({
           </div>
 
           {/* Listado con scroll fluido táctil */}
-          <div className="flex-1 overflow-y-auto overscroll-contain space-y-2.5 touch-scroll pr-1">
+          <div 
+            ref={scrollContainerRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleListTouchMove}
+            className="flex-1 overflow-y-auto overscroll-contain space-y-2.5 touch-scroll pr-1"
+          >
+            {/* 1. Paraderos */}
             {activeTab === 'stops' && (
               filteredStops.map(s => (
                 <div
@@ -402,6 +546,7 @@ export default function BottomSheet({
               ))
             )}
 
+            {/* 2. Vehículos en Vivo */}
             {activeTab === 'vehicles' && (
               filteredVehicles.map(v => (
                 <div
@@ -437,6 +582,36 @@ export default function BottomSheet({
               ))
             )}
 
+            {/* 3. Lugares Clave e Instituciones de Barranca */}
+            {activeTab === 'places' && (
+              filteredLandmarks.map(l => (
+                <div
+                  key={l.id}
+                  onClick={() => {
+                    if (onSelectDestination) {
+                      onSelectDestination(l.name, { lat: l.lat, lng: l.lng });
+                    }
+                  }}
+                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500 cursor-pointer transition flex items-center justify-between active:scale-98"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 border border-indigo-200/80">
+                      {l.category === 'UNIVERSIDAD' ? <GraduationCap className="w-5 h-5" /> : l.category === 'TURISMO' ? <Umbrella className="w-5 h-5" /> : l.category === 'COMERCIO' ? <Store className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100">{l.name}</h4>
+                      <p className="text-xs text-slate-500">{l.address} · {l.district}</p>
+                      <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                        Hito Geográfico WGS84
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </div>
+              ))
+            )}
+
+            {/* 4. Rutas Troncales */}
             {activeTab === 'routes' && (
               routes.map((r: any) => (
                 <div
@@ -452,7 +627,7 @@ export default function BottomSheet({
                       <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100">{r.name}</h4>
                       <p className="text-xs text-slate-500">{r.origin_name} → {r.destination_name}</p>
                       <span className="text-xs text-slate-400 font-medium">
-                        {r.distance_km} km · ~{r.estimated_duration_min} min
+                        {r.distance_km} km · ~{r.estimated_duration_min} min (ETA)
                       </span>
                     </div>
                   </div>

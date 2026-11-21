@@ -72,43 +72,46 @@ export default function VehicleInspectModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
       <div className="w-full max-w-md bg-white dark:bg-[#13161a] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-200">
         
-        {/* Cabecera con Placa Destacada */}
-        <div className="px-5 py-4 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-lg">
+        {/* Cabecera con Placa Destacada y Anti-Desborde */}
+        <div className="px-4 sm:px-5 py-3.5 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-lg shrink-0">
               <VehicleCategoryIcon category={vehicle.vehicle_type || 'SEDAN'} />
             </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-200 block">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-200 block truncate">
                 Vehículo en Vivo
               </span>
-              <h2 className="text-sm font-bold truncate">{vehicle.brand_model}</h2>
+              <h2 className="text-sm sm:text-base font-bold truncate leading-tight">{vehicle.brand_model}</h2>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-black bg-white text-slate-900 px-2 py-0.8 rounded-lg shadow-xs">
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Placa protegida sin corte de línea */}
+            <span className="font-mono text-xs sm:text-sm font-black bg-white text-slate-900 px-2.5 py-1 rounded-xl shadow-xs whitespace-nowrap tracking-wider">
               {vehicle.plate}
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-white/20 transition text-white"
+              className="p-1.5 rounded-full hover:bg-white/20 transition text-white shrink-0 active:scale-95"
+              aria-label="Cerrar modal"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Contenido Visual */}
-        <div className="p-5 overflow-y-auto space-y-4">
+        {/* Contenido Visual con Scroll Táctil */}
+        <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain touch-scroll space-y-4">
           
           {/* 1. Maqueta Visual 3D / Isométrica del Vehículo */}
           <div className="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-[#1b1f26] dark:to-[#14171d] p-4 rounded-3xl border border-slate-300 dark:border-slate-700 text-center relative overflow-hidden shadow-inner">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-1">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider text-left">
                 Modelo Virtual e Interiores
               </span>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/70 px-2.5 py-1 rounded-full border border-emerald-300 dark:border-emerald-800 whitespace-nowrap">
                 {freeCount} de {passengerSeats.length} asientos libres
               </span>
             </div>
