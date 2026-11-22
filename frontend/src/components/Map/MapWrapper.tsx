@@ -25,6 +25,8 @@ interface MapWrapperProps {
   dropoffs?: DropoffPoint[];
   onVehicleTap?: (vehicle: VehicleUnit) => void;
   onRequestDropoff?: () => void;
+  onCancelDropoff?: () => void;
+  hasActiveDropoff?: boolean;
   onLocateUser?: () => void;
   onPinLocation?: (coords: { lat: number; lng: number; address: string }) => void;
 }

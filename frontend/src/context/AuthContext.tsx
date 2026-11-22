@@ -34,8 +34,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
-          setUser(null);
-          setProfile(null);
+          // Respaldo de hidratación anti-recarga (F5) para producción
+          if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem('rutalink_user_session');
+            if (cached) {
+              try {
+                const parsed = JSON.parse(cached);
+                if (parsed?.id) {
+                  setUser({ id: parsed.id, email: parsed.email, user_metadata: parsed });
+                  const cachedProfile: UserProfile = {
+                    id: parsed.id,
+                    email: parsed.email,
+                    full_name: parsed.full_name,
+                    phone: parsed.phone,
+                    active_role: parsed.active_role || 'PASAJERO',
+                    rating: 5.0,
+                    created_at: new Date().toISOString()
+                  } as UserProfile;
+                  setProfile(cachedProfile);
+                  // Intentar refrescar en segundo plano con Supabase
+                  fetchProfile(parsed.id);
+                }
+              } catch (e) {
+                console.warn('[Cache parse error]:', e);
+              }
+            } else {
+              setUser(null);
+              setProfile(null);
+            }
+          }
         }
       } catch (err) {
         console.error('[Auth Error] Error cargando sesión:', err);
@@ -46,13 +73,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
         await fetchProfile(session.user.id);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('rutalink_user_session');
+        }
       }
       setIsLoading(false);
     });
@@ -72,10 +102,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!error && data) {
         setProfile(data as UserProfile);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('rutalink_user_session', JSON.stringify({
+            id: data.id,
+            email: data.email || user?.email,
+            full_name: data.full_name,
+            phone: data.phone,
+            active_role: data.active_role
+          }));
+        }
+        return data as UserProfile;
       }
     } catch (err) {
       console.error('[Auth Error] Error consultando perfil:', err);
     }
+    return null;
+  }
+
+  async function upsertAndFetchProfile(userId: string, fullName: string, phone: string, role: UserRole, email?: string) {
+    try {
+      const existing = await fetchProfile(userId);
+      if (existing) return existing;
+
+      const newProf = {
+        id: userId,
+        full_name: fullName,
+        phone: phone,
+        active_role: role,
+        email: email,
+        rating: 5.0,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: inserted } = await supabase
+        .from('profiles')
+        .upsert(newProf)
+        .select()
+        .single();
+
+      if (inserted) {
+        setProfile(inserted as UserProfile);
+        return inserted as UserProfile;
+      }
+    } catch (err) {
+      console.error('[Profile Upsert Error]:', err);
+    }
+    return null;
   }
 
   const login = async (email: string, password: string) => {
@@ -84,7 +156,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error: error.message };
       if (data.user) {
         setUser(data.user);
-        await fetchProfile(data.user.id);
+        const p = await fetchProfile(data.user.id);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('rutalink_user_session', JSON.stringify({
+            id: data.user.id,
+            email: data.user.email || email,
+            full_name: p?.full_name || data.user.user_metadata?.full_name || 'Usuario RutaLink',
+            phone: p?.phone || data.user.user_metadata?.phone || '',
+            active_role: p?.active_role || data.user.user_metadata?.active_role || 'PASAJERO'
+          }));
+        }
       }
       return {};
     } catch (err: any) {
@@ -112,9 +193,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
       if (error) return { error: error.message };
-      if (data.user) {
-        setUser(data.user);
-        await fetchProfile(data.user.id);
+
+      // Consolidar sesión inmediata con signInWithPassword para evitar sesiones nulas en Supabase
+      const loginRes = await supabase.auth.signInWithPassword({ email, password }).catch(() => null);
+      const activeUser = loginRes?.data?.user || data.user;
+
+      if (activeUser) {
+        setUser(activeUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('rutalink_user_session', JSON.stringify({
+            id: activeUser.id,
+            email: activeUser.email || email,
+            full_name: fullName,
+            phone,
+            active_role: role
+          }));
+        }
+        await upsertAndFetchProfile(activeUser.id, fullName, phone, role, email);
       }
       return {};
     } catch (err: any) {
@@ -124,10 +219,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut().catch(() => null);
       setUser(null);
       setProfile(null);
-      localStorage.removeItem('rutalink_session');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('rutalink_user_session');
+        localStorage.removeItem('rutalink_session');
+      }
     } catch (err) {
       console.error('[Logout Error]:', err);
     }

@@ -29,18 +29,24 @@ import {
 
 // Hitos Geográficos y Destinos Reales en la Provincia de Barranca (WGS84)
 export const BARRANCA_LANDMARKS = [
-  { id: 'l1', name: 'Campus UNAB (Universidad Nacional de Barranca)', lat: -10.7428, lng: -77.7485, district: 'Barranca', category: 'UNIVERSIDAD', address: 'Panamericana Norte km 192' },
+  { id: 'l1', name: 'Campus UNAB (Universidad Nacional de Barranca)', lat: -10.7428, lng: -77.7485, district: 'Barranca', category: 'UNIVERSIDAD', address: 'Av. Toribio de Luzuriaga / Panamericana Norte km 192' },
   { id: 'l2', name: 'Hospital de Barranca (Emergencias y Consultorios)', lat: -10.7490, lng: -77.7580, district: 'Barranca', category: 'SALUD', address: 'Av. Grau cdra. 5' },
-  { id: 'l3', name: 'Terminal Terrestre Interprovincial de Barranca', lat: -10.7550, lng: -77.7600, district: 'Barranca', category: 'TERMINAL', address: 'Av. Gálvez con Jr. Zavala' },
-  { id: 'l4', name: 'Plaza de Armas de Barranca (Centro Cívico)', lat: -10.7523, lng: -77.7622, district: 'Barranca', category: 'CENTRO', address: 'Jr. José Gálvez cdra. 4' },
-  { id: 'l5', name: 'Mercado Modelo de Barranca (Abastos y Frutas)', lat: -10.7505, lng: -77.7635, district: 'Barranca', category: 'COMERCIO', address: 'Jr. Bolognesi' },
-  { id: 'l6', name: 'Playa Chorrillos y Malecón Costanero', lat: -10.7580, lng: -77.7695, district: 'Barranca', category: 'TURISMO', address: 'Av. Chorrillos' },
-  { id: 'l7', name: 'Plaza de Armas de Supe Pueblo', lat: -10.7981, lng: -77.7135, district: 'Supe', category: 'CENTRO', address: 'Jr. Bolívar con Jr. Sucre' },
-  { id: 'l8', name: 'Puerto Supe (Terminal y Caleta Pesquera)', lat: -10.8035, lng: -77.7420, district: 'Supe Puerto', category: 'PUERTO', address: 'Av. La Marina' },
-  { id: 'l9', name: 'Óvalo de Pativilca (Cruce Panamericana Norte)', lat: -10.6974, lng: -77.7831, district: 'Pativilca', category: 'CRUCE', address: 'Panamericana Norte km 202' },
-  { id: 'l10', name: 'Plaza de Armas de Pativilca', lat: -10.6930, lng: -77.7850, district: 'Pativilca', category: 'CENTRO', address: 'Jr. San Martín' },
-  { id: 'l11', name: 'Fortaleza de Paramonga (Monumento Histórico)', lat: -10.6550, lng: -77.8300, district: 'Paramonga', category: 'TURISMO', address: 'Carretera Valle Fortaleza' },
-  { id: 'l12', name: 'Plaza de Armas de Paramonga', lat: -10.6720, lng: -77.8180, district: 'Paramonga', category: 'CENTRO', address: 'Av. Central' }
+  { id: 'l3', name: 'Supermercado Metro Barranca (Centro Comercial)', lat: -10.7492, lng: -77.7585, district: 'Barranca', category: 'COMERCIO', address: 'Av. Grau con Jr. Ayacucho' },
+  { id: 'l4', name: 'Terminal Terrestre Interprovincial de Barranca', lat: -10.7550, lng: -77.7600, district: 'Barranca', category: 'TERMINAL', address: 'Av. Gálvez con Jr. Zavala' },
+  { id: 'l5', name: 'Plaza de Armas de Barranca (Centro Cívico)', lat: -10.7523, lng: -77.7622, district: 'Barranca', category: 'CENTRO', address: 'Jr. José Gálvez cdra. 4' },
+  { id: 'l6', name: 'Mercado Modelo de Barranca (Abastos y Frutas)', lat: -10.7505, lng: -77.7635, district: 'Barranca', category: 'COMERCIO', address: 'Jr. Bolognesi' },
+  { id: 'l7', name: 'Playa Chorrillos y Malecón Costanero', lat: -10.7580, lng: -77.7695, district: 'Barranca', category: 'TURISMO', address: 'Av. Chorrillos' },
+  { id: 'l8', name: 'Mirador Cristo Redentor de Barranca', lat: -10.7600, lng: -77.7680, district: 'Barranca', category: 'TURISMO', address: 'Cerro Colorado' },
+  { id: 'l9', name: 'Plaza de Armas de Supe Pueblo', lat: -10.7981, lng: -77.7135, district: 'Supe', category: 'CENTRO', address: 'Jr. Bolívar con Jr. Sucre' },
+  { id: 'l10', name: 'Ciudad Sagrada de Caral (Patrimonio Mundial)', lat: -10.8920, lng: -77.5250, district: 'Supe', category: 'TURISMO', address: 'Valle de Supe Medio' },
+  { id: 'l11', name: 'Puerto Supe (Terminal y Caleta Pesquera)', lat: -10.8035, lng: -77.7420, district: 'Supe Puerto', category: 'PUERTO', address: 'Av. La Marina' },
+  { id: 'l12', name: 'Playa Hermosa (Puerto Supe)', lat: -10.8120, lng: -77.7480, district: 'Supe Puerto', category: 'TURISMO', address: 'Litoral Puerto Supe' },
+  { id: 'l13', name: 'Óvalo de Pativilca (Cruce Panamericana Norte)', lat: -10.6974, lng: -77.7831, district: 'Pativilca', category: 'CRUCE', address: 'Panamericana Norte km 202 con desvío Huaraz' },
+  { id: 'l14', name: 'Plaza de Armas de Pativilca', lat: -10.6930, lng: -77.7850, district: 'Pativilca', category: 'CENTRO', address: 'Jr. San Martín' },
+  { id: 'l15', name: 'Sector Huayto y Upaca (Valle Pativilca)', lat: -10.6850, lng: -77.7450, district: 'Pativilca', category: 'RURAL', address: 'Carretera Valle Pativilca' },
+  { id: 'l16', name: 'Fortaleza de Paramonga (Monumento Histórico)', lat: -10.6550, lng: -77.8300, district: 'Paramonga', category: 'TURISMO', address: 'Carretera Valle Fortaleza' },
+  { id: 'l17', name: 'Plaza de Armas de Paramonga', lat: -10.6720, lng: -77.8180, district: 'Paramonga', category: 'CENTRO', address: 'Av. Central' },
+  { id: 'l18', name: 'Sector Huaricana / Porvenir (Valle Fortaleza)', lat: -10.6250, lng: -77.8150, district: 'Paramonga', category: 'RURAL', address: 'Valle Fortaleza Norte' }
 ];
 
 interface BottomSheetProps {

@@ -3,7 +3,7 @@
 import React from 'react';
 import RealisticVehicleSVG from './RealisticVehicleSVG';
 
-export type VehicleCategory = 'MOTOTAXI' | 'SEDAN' | 'STATION_WAGON' | 'SUV' | 'MINIVAN' | 'COMBI';
+export type VehicleCategory = 'MOTOTAXI' | 'SEDAN' | 'STATION_WAGON' | 'SUV' | 'MINIVAN' | 'COMBI' | 'BUS';
 
 interface Seat {
   id: string;
@@ -23,14 +23,17 @@ interface VehicleVisualizerProps {
 
 export function VehicleCategoryIcon({ category, className = 'w-5 h-5' }: { category: string; className?: string }) {
   const norm = (category || '').toUpperCase();
+  if (norm.includes('BUS')) {
+    return <span className="text-base" title="Bus Universitario UNAB">🚌</span>;
+  }
   if (norm.includes('MOTO') || norm === 'MOTOTAXI') {
     return <span className="text-base" title="Mototaxi Torito">🛺</span>;
   }
   if (norm.includes('MINIVAN')) {
     return <span className="text-base" title="Miniván">🚐</span>;
   }
-  if (norm.includes('COMBI') || norm.includes('BUS')) {
-    return <span className="text-base" title="Combi / Microbús">🚍</span>;
+  if (norm.includes('COMBI') || norm.includes('HIACE')) {
+    return <span className="text-base" title="Combi Interdistrital">🚍</span>;
   }
   if (norm.includes('STATION') || norm.includes('WAGON') || norm.includes('PROBOX') || norm.includes('SUV')) {
     return <span className="text-base" title="Station Wagon / Probox">🚙</span>;

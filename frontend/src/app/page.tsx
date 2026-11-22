@@ -301,7 +301,7 @@ const INITIAL_ROUTES: RouteCorridor[] = [
 ];
 
 export default function HomePage() {
-  const { user, profile, isGuest } = useAuth();
+  const { user, profile, isGuest, isLoading: isAuthLoading } = useAuth();
 
   // Estados de Tema y Navegación Móvil
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -683,6 +683,30 @@ export default function HomePage() {
     }
   };
 
+  // Función: Cancelar bajada solicitada ("Me bajo aquí")
+  const handleCancelDropoff = async (dropoffId?: string) => {
+    const myDropoff = dropoffs.find(d => d.passenger_id === user?.id && d.status === 'PENDIENTE');
+    const targetId = dropoffId || myDropoff?.id;
+    if (!targetId) return;
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      await fetch(`${apiUrl}/api/dropoffs/${targetId}`, {
+        method: 'DELETE'
+      }).catch(() => null);
+
+      setDropoffs(prev => prev.filter(d => d.id !== targetId));
+      setNotificationToast({
+        title: '🛑 Parada Cancelada',
+        message: 'Se retiró tu solicitud de bajada en el mapa.',
+        type: 'info'
+      });
+      setTimeout(() => setNotificationToast(null), 3000);
+    } catch (err) {
+      console.error('Error cancelando parada:', err);
+    }
+  };
+
   // Manejador de navegación inferior adaptado por rol con protección de invitados
   const handleSelectBottomTab = (tab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder' | 'history') => {
     if ((tab === 'chat' || tab === 'driver' || tab === 'history' || tab === 'builder') && isGuest) {
@@ -703,7 +727,7 @@ export default function HomePage() {
     if (tab === 'builder') setRouteBuilderOpen(true);
   };
 
-  if (isInitialAppLoading) {
+  if (isInitialAppLoading || isAuthLoading) {
     return (
       <LoadingSplashScreen
         message="Sincronizando satélite y terminales de Barranca..."
@@ -868,8 +892,9 @@ export default function HomePage() {
             userLocation={userLocation}
             passengerState={passengerContextState}
             dropoffs={dropoffs}
-            onVehicleTap={(v) => setInspectedVehicle(v)}
+            hasActiveDropoff={!!dropoffs.find(d => d.passenger_id === user?.id && d.status === 'PENDIENTE')}
             onRequestDropoff={handleRequestDropoff}
+            onCancelDropoff={handleCancelDropoff}
             onLocateUser={handleLocateUser}
             onPinLocation={handlePinLocation}
           />

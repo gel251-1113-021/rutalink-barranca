@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export type VehicleTypeCategory = 'SEDAN' | 'STATION_WAGON' | 'SUV' | 'MINIVAN' | 'COMBI' | 'MOTOTAXI';
+export type VehicleTypeCategory = 'SEDAN' | 'STATION_WAGON' | 'SUV' | 'MINIVAN' | 'COMBI' | 'MOTOTAXI' | 'BUS';
 
 export interface VehicleSeat {
   id: string;
@@ -37,7 +37,8 @@ export default function RealisticVehicleSVG({
   const normCategory = (category || 'SEDAN').toUpperCase();
   const isMototaxi = normCategory.includes('MOTO');
   const isMinivan = normCategory.includes('MINIVAN');
-  const isCombi = normCategory.includes('COMBI') || normCategory.includes('BUS') || normCategory.includes('HIACE');
+  const isBus = normCategory.includes('BUS');
+  const isCombi = !isBus && (normCategory.includes('COMBI') || normCategory.includes('HIACE'));
   const isStationWagon = normCategory.includes('STATION') || normCategory.includes('WAGON') || normCategory.includes('SUV') || normCategory.includes('PROBOX');
 
   const isTrunkFree = trunkStatus !== 'OCUPADO';
@@ -345,7 +346,141 @@ export default function RealisticVehicleSVG({
   }
 
   /* =========================================================================
-     4. SUV / STATION WAGON CON PORTAEQUIPAJE (PROBOX / RUSH)
+     4. BUS UNIVERSITARIO UNAB / INTERPROVINCIAL (32 ASIENTOS CON PASILLO)
+     ========================================================================= */
+  if (isBus) {
+    // 8 Filas de 4 Asientos (2 Izquierda + Pasillo + 2 Derecha) = 32 Asientos
+    const busRows = [
+      { y: 220, seats: [{ id: 's1', l: '01' }, { id: 's2', l: '02' }, { id: 's3', l: '03' }, { id: 's4', l: '04' }] },
+      { y: 285, seats: [{ id: 's5', l: '05' }, { id: 's6', l: '06' }, { id: 's7', l: '07' }, { id: 's8', l: '08' }] },
+      { y: 350, seats: [{ id: 's9', l: '09' }, { id: 's10', l: '10' }, { id: 's11', l: '11' }, { id: 's12', l: '12' }] },
+      { y: 415, seats: [{ id: 's13', l: '13' }, { id: 's14', l: '14' }, { id: 's15', l: '15' }, { id: 's16', l: '16' }] },
+      { y: 480, seats: [{ id: 's17', l: '17' }, { id: 's18', l: '18' }, { id: 's19', l: '19' }, { id: 's20', l: '20' }] },
+      { y: 545, seats: [{ id: 's21', l: '21' }, { id: 's22', l: '22' }, { id: 's23', l: '23' }, { id: 's24', l: '24' }] },
+      { y: 610, seats: [{ id: 's25', l: '25' }, { id: 's26', l: '26' }, { id: 's27', l: '27' }, { id: 's28', l: '28' }] },
+      { y: 675, seats: [{ id: 's29', l: '29' }, { id: 's30', l: '30' }, { id: 's31', l: '31' }, { id: 's32', l: '32' }] }
+    ];
+
+    return (
+      <div className={`relative select-none flex flex-col items-center ${className}`}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 840" width="100%" height="100%" className="drop-shadow-lg">
+          <defs>
+            <linearGradient id="busBodyGrad" x1="0" y1="0" x2="360" y2="840" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#1e3a8a" />
+              <stop offset="25%" stopColor="#2563eb" />
+              <stop offset="85%" stopColor="#1d4ed8" />
+              <stop offset="100%" stopColor="#0f172a" />
+            </linearGradient>
+            <filter id="busShadow" x="-10%" y="-10%" width="125%" height="125%">
+              <feDropShadow dx="0" dy="8" stdDeviation="10" floodColor="#09090b" floodOpacity="0.3" />
+            </filter>
+          </defs>
+
+          {/* 6 Ruedas de Gran Porte */}
+          <rect x="14" y="140" width="18" height="85" rx="6" fill="#18181b" />
+          <rect x="328" y="140" width="18" height="85" rx="6" fill="#18181b" />
+          <rect x="14" y="600" width="18" height="85" rx="6" fill="#18181b" />
+          <rect x="328" y="600" width="18" height="85" rx="6" fill="#18181b" />
+          <rect x="14" y="695" width="18" height="85" rx="6" fill="#18181b" />
+          <rect x="328" y="695" width="18" height="85" rx="6" fill="#18181b" />
+
+          {/* Carrocería Bus Gran Porte */}
+          <rect x="32" y="25" width="296" height="785" rx="28" fill="url(#busBodyGrad)" stroke="#0f172a" strokeWidth="4" filter="url(#busShadow)" />
+
+          {/* Franja Dorada Institucional UNAB */}
+          <rect x="34" y="195" width="292" height="12" fill="#f59e0b" />
+
+          {/* Parabrisas Panorámico Superior */}
+          <rect x="48" y="55" width="264" height="85" rx="14" fill="#09090b" stroke="#3b82f6" strokeWidth="2" />
+          
+          {/* Letrero Electrónico LED UNAB */}
+          <rect x="62" y="70" width="236" height="26" rx="6" fill="#020617" stroke="#eab308" strokeWidth="1.5" />
+          <text x="180" y="88" fill="#fbbf24" fontFamily="system-ui, sans-serif" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="0.8">
+            UNAB · CAMPUS UNIVERSITARIO
+          </text>
+          <text x="180" y="125" fill="#e2e8f0" fontFamily="system-ui, sans-serif" fontSize="9.5" fontWeight="700" textAnchor="middle">
+            RUTA EXPRESA ESTUDIANTIL BARRANCA
+          </text>
+
+          {/* Cabina Delantera: Chofer + Guía/Copiloto */}
+          <g>
+            <rect x="54" y="150" width="56" height="52" rx="8" fill="#3f3f46" stroke="#18181b" strokeWidth="2" />
+            <text x="82" y="181" fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" textAnchor="middle">CHOFER</text>
+          </g>
+          {/* Puerta de Entrada Pasajeros Delantera */}
+          <g>
+            <rect x="238" y="148" width="70" height="42" rx="6" fill="#1e293b" stroke="#22c55e" strokeWidth="2" strokeDasharray="3 2" />
+            <text x="273" y="173" fill="#22c55e" fontFamily="system-ui, sans-serif" fontSize="9.5" fontWeight="800" textAnchor="middle">PUERTA 1</text>
+          </g>
+
+          {/* Pasillo Central Aislado */}
+          <rect x="162" y="215" width="36" height="520" fill="#0f172a" opacity="0.45" />
+          <text x="180" y="475" fill="#94a3b8" fontFamily="system-ui, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle" transform="rotate(-90 180 475)">
+            PASILLO CENTRAL UNAB
+          </text>
+
+          {/* 8 Filas de Asientos (2 Dobles a la Izq, 2 Dobles a la Der) */}
+          {busRows.map((row, idx) => (
+            <g key={idx}>
+              {/* Asiento Izq 1 */}
+              <g onClick={() => handleSeatClick(row.seats[0].id)} className={interactive ? 'cursor-pointer' : ''}>
+                <rect x="52" y={row.y} width="48" height="50" rx="8" fill={getSeatStatus(row.seats[0].id, 'free') ? '#22c55e' : '#ef4444'} stroke="#15803d" strokeWidth="1.8" />
+                <text x="76" y={row.y + 26} fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" textAnchor="middle">{row.seats[0].l}</text>
+                <text x="76" y={row.y + 40} fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="7.5" fontWeight="700" textAnchor="middle">
+                  {getSeatStatus(row.seats[0].id, 'free') ? 'LIBRE' : 'OCUP'}
+                </text>
+              </g>
+
+              {/* Asiento Izq 2 (Ventana) */}
+              <g onClick={() => handleSeatClick(row.seats[1].id)} className={interactive ? 'cursor-pointer' : ''}>
+                <rect x="106" y={row.y} width="48" height="50" rx="8" fill={getSeatStatus(row.seats[1].id, 'free') ? '#22c55e' : '#ef4444'} stroke="#15803d" strokeWidth="1.8" />
+                <text x="130" y={row.y + 26} fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" textAnchor="middle">{row.seats[1].l}</text>
+                <text x="130" y={row.y + 40} fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="7.5" fontWeight="700" textAnchor="middle">
+                  {getSeatStatus(row.seats[1].id, 'free') ? 'LIBRE' : 'OCUP'}
+                </text>
+              </g>
+
+              {/* Asiento Der 1 (Pasillo) */}
+              <g onClick={() => handleSeatClick(row.seats[2].id)} className={interactive ? 'cursor-pointer' : ''}>
+                <rect x="206" y={row.y} width="48" height="50" rx="8" fill={getSeatStatus(row.seats[2].id, 'free') ? '#22c55e' : '#ef4444'} stroke="#15803d" strokeWidth="1.8" />
+                <text x="230" y={row.y + 26} fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" textAnchor="middle">{row.seats[2].l}</text>
+                <text x="230" y={row.y + 40} fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="7.5" fontWeight="700" textAnchor="middle">
+                  {getSeatStatus(row.seats[2].id, 'free') ? 'LIBRE' : 'OCUP'}
+                </text>
+              </g>
+
+              {/* Asiento Der 2 (Ventana) */}
+              <g onClick={() => handleSeatClick(row.seats[3].id)} className={interactive ? 'cursor-pointer' : ''}>
+                <rect x="260" y={row.y} width="48" height="50" rx="8" fill={getSeatStatus(row.seats[3].id, 'free') ? '#22c55e' : '#ef4444'} stroke="#15803d" strokeWidth="1.8" />
+                <text x="284" y={row.y + 26} fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" textAnchor="middle">{row.seats[3].l}</text>
+                <text x="284" y={row.y + 40} fill="#ffffff" fontFamily="system-ui, sans-serif" fontSize="7.5" fontWeight="700" textAnchor="middle">
+                  {getSeatStatus(row.seats[3].id, 'free') ? 'LIBRE' : 'OCUP'}
+                </text>
+              </g>
+            </g>
+          ))}
+
+          {/* Bodega / Maletera Inferior Pasante para Mochilas Universitarias */}
+          <g onClick={interactive && onToggleTrunk ? onToggleTrunk : undefined} className={interactive ? 'cursor-pointer' : ''}>
+            <rect x="52" y="745" width="256" height="48" rx="8" fill={isTrunkFree ? '#dcfce7' : '#fee2e2'} stroke={isTrunkFree ? '#16a34a' : '#dc2626'} strokeWidth="2" strokeDasharray="4 2" />
+            <text x="180" y="767" fill="#0f172a" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" textAnchor="middle">BODEGA DE CARGA / MOCHILAS UNAB</text>
+            <text x="180" y="781" fill={isTrunkFree ? '#15803d' : '#b91c1c'} fontFamily="system-ui, sans-serif" fontSize="8.5" fontWeight="700" textAnchor="middle">
+              {isTrunkFree ? 'ESPACIO DISPONIBLE' : 'CAPACIDAD COMPLETA'}
+            </text>
+          </g>
+        </svg>
+
+        <div className="mt-2 text-center">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-800">
+            Bus Universitario UNAB · 32 Asientos · Doble Pasillo
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================================================================
+     5. SUV / STATION WAGON CON PORTAEQUIPAJE (PROBOX / RUSH)
      ========================================================================= */
   if (isStationWagon) {
     const isA1Free = getSeatStatus('s1', 'free');

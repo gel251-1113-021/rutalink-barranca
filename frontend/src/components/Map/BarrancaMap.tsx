@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../../types';
@@ -42,28 +42,52 @@ interface BarrancaMapProps {
   dropoffs?: DropoffPoint[];
   onVehicleTap?: (vehicle: VehicleUnit) => void;
   onRequestDropoff?: () => void;
+  onCancelDropoff?: () => void;
+  hasActiveDropoff?: boolean;
   onLocateUser?: () => void;
   onPinLocation?: (coords: { lat: number; lng: number; address: string }) => void;
 }
 
 // --------------------------------------------------------------------------------
-// Geocodificador Inverso Local de Precisión para la Provincia de Barranca (WGS84)
+// Geocodificador Inverso y Red de Referencias Oficiales de la Provincia de Barranca (WGS84)
+// Incorpora los 5 distritos y sus valles: Paramonga, Pativilca, Barranca, Supe Puerto, Supe y Caral
 // --------------------------------------------------------------------------------
 const BARRANCA_STREET_REFERENCES = [
+  // 1. DISTRITO DE BARRANCA (Centro Urbano y Campus UNAB)
   { lat: -10.7523, lng: -77.7622, name: 'Jr. José Gálvez cdra. 4 (Plaza de Armas de Barranca)' },
   { lat: -10.7512, lng: -77.7615, name: 'Intersección Jr. Lima con Jr. Gálvez, Barranca Centro' },
   { lat: -10.7505, lng: -77.7635, name: 'Jr. Bolognesi (Frente a Mercado Modelo de Barranca)' },
-  { lat: -10.7490, lng: -77.7580, name: 'Av. Grau cdra. 5 (Cerca a Hospital de Barranca)' },
-  { lat: -10.7550, lng: -77.7600, name: 'Av. Gálvez esq. Jr. Zavala (Terminal Terrestre)' },
-  { lat: -10.7428, lng: -77.7485, name: 'Panamericana Norte km 192 (Acceso Campus UNAB)' },
+  { lat: -10.7490, lng: -77.7580, name: 'Av. Grau (Frente a Metro y Hospital de Barranca)' },
+  { lat: -10.7550, lng: -77.7600, name: 'Av. Gálvez esq. Jr. Zavala (Terminal Terrestre Barranca)' },
+  { lat: -10.7485, lng: -77.7550, name: 'Av. Toribio de Luzuriaga (Puerta Principal Campus UNAB)' },
+  { lat: -10.7428, lng: -77.7485, name: 'Panamericana Norte km 192 (Acceso Norte Campus UNAB)' },
   { lat: -10.7580, lng: -77.7695, name: 'Malecón Chorrillos / Playa de Barranca' },
   { lat: -10.7450, lng: -77.7660, name: 'Av. Costanera con Jr. Miraflores, Barranca' },
-  { lat: -10.7981, lng: -77.7135, name: 'Jr. Bolívar con Jr. Sucre (Plaza de Supe Pueblo)' },
+  { lat: -10.7380, lng: -77.7350, name: 'Sector Vino Alto (Valle Agrícola de Barranca)' },
+
+  // 2. DISTRITO DE SUPE PUEBLO Y VALLE SAGRADO DE CARAL
+  { lat: -10.7981, lng: -77.7135, name: 'Jr. Bolívar con Jr. Sucre (Plaza de Armas de Supe Pueblo)' },
+  { lat: -10.8920, lng: -77.5250, name: 'Ciudad Sagrada de Caral (Valle de Supe)' },
+  { lat: -10.8350, lng: -77.6500, name: 'Era de Pando (Valle Supe Medio)' },
+  { lat: -10.8650, lng: -77.5850, name: 'Piedra Parada (Ruta Caral - Valle Supe)' },
+  { lat: -10.9050, lng: -77.5050, name: 'Chupacigarro (Zona Arqueológica Valle Supe)' },
+
+  // 3. DISTRITO DE SUPE PUERTO
   { lat: -10.8035, lng: -77.7420, name: 'Av. La Marina (Muelle y Terminal de Puerto Supe)' },
-  { lat: -10.6974, lng: -77.7831, name: 'Óvalo de Pativilca (Cruce Panamericana Norte)' },
-  { lat: -10.6930, lng: -77.7850, name: 'Jr. San Martín (Centro Urbano de Pativilca)' },
+  { lat: -10.8120, lng: -77.7480, name: 'Playa Hermosa (Caleta de Pescadores Puerto Supe)' },
+
+  // 4. DISTRITO DE PATIVILCA Y VALLE PATIVILCA
+  { lat: -10.6974, lng: -77.7831, name: 'Óvalo de Pativilca (Cruce Panamericana Norte con Desvío Huaraz)' },
+  { lat: -10.6930, lng: -77.7850, name: 'Jr. San Martín (Plaza de Armas de Pativilca)' },
+  { lat: -10.6850, lng: -77.7450, name: 'Huayto (Valle de Pativilca)' },
+  { lat: -10.7100, lng: -77.7650, name: 'Upaca (Valle Río Pativilca)' },
+  { lat: -10.7020, lng: -77.7780, name: 'Pampa San José / Cerro Blanco (Pativilca)' },
+
+  // 5. DISTRITO DE PARAMONGA Y VALLE FORTALEZA
   { lat: -10.6720, lng: -77.8180, name: 'Av. Central (Plaza Principal de Paramonga)' },
-  { lat: -10.6550, lng: -77.8300, name: 'Carretera Valle Fortaleza (Cerca a Fortaleza de Paramonga)' }
+  { lat: -10.6550, lng: -77.8300, name: 'Carretera Valle Fortaleza (Fortaleza de Paramonga)' },
+  { lat: -10.6250, lng: -77.8150, name: 'Huaricana (Valle Fortaleza - Paramonga)' },
+  { lat: -10.6650, lng: -77.8420, name: 'Sector Porvenir / Caballet (Paramonga)' }
 ];
 
 function reverseGeocodeBarranca(lat: number, lng: number): string {
@@ -80,8 +104,8 @@ function reverseGeocodeBarranca(lat: number, lng: number): string {
     }
   }
 
-  // Si está a menos de ~800m de una referencia conocida
-  if (minDistance < 0.008) {
+  // Si está a menos de ~1.2km de una referencia conocida
+  if (minDistance < 0.012) {
     return closest.name;
   }
   // Fallback a coordenadas WGS84 con referencia provincial
@@ -410,6 +434,8 @@ export default function BarrancaMap({
   dropoffs = [],
   onVehicleTap,
   onRequestDropoff,
+  onCancelDropoff,
+  hasActiveDropoff,
   onLocateUser,
   onPinLocation
 }: BarrancaMapProps) {
@@ -461,6 +487,29 @@ export default function BarrancaMap({
     setPinnedPoint(updated);
     if (onPinLocation) onPinLocation(updated);
   };
+
+  // Detección de Proximidad en Tiempo Real ("Vehículos Cerca de Mí" / Radar Provincial)
+  const closestVehicle = useMemo(() => {
+    if (!vehicles || vehicles.length === 0) return null;
+    const refLat = userLocation?.lat ?? -10.7512;
+    const refLng = userLocation?.lng ?? -77.7615;
+
+    let nearest: { vehicle: VehicleUnit; distKm: number; etaMin: number } | null = null;
+    let minD = 999999;
+
+    for (const v of vehicles) {
+      if (typeof v.latitude !== 'number' || typeof v.longitude !== 'number') continue;
+      const dLat = (v.latitude - refLat) * 111.32;
+      const dLng = (v.longitude - refLng) * 111.32 * Math.cos((refLat * Math.PI) / 180);
+      const d = Math.sqrt(dLat * dLat + dLng * dLng);
+      if (d < minD) {
+        minD = d;
+        const eta = Math.max(1, Math.round((d / 28) * 60));
+        nearest = { vehicle: v, distKm: d, etaMin: eta };
+      }
+    }
+    return nearest;
+  }, [vehicles, userLocation]);
 
   const isRouteSelected = (routeId: string) => {
     return selectedItem?.type === 'route' && selectedItem.data?.id === routeId;
@@ -632,6 +681,36 @@ export default function BarrancaMap({
         </div>
       )}
 
+      {/* Radar de Proximidad en Vivo: Vehículo más cercano */}
+      {closestVehicle && (
+        <div 
+          onClick={() => {
+            if (onVehicleTap) onVehicleTap(closestVehicle.vehicle);
+          }}
+          className="absolute left-3 bottom-24 sm:bottom-28 z-20 max-w-[260px] bg-white/95 dark:bg-[#13161a]/95 backdrop-blur-md px-3 py-2 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 flex items-center gap-2.5 cursor-pointer hover:border-blue-400 transition active:scale-98 pointer-events-auto"
+          title="Toca para ver la unidad más cercana"
+        >
+          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0 border border-blue-200/60 dark:border-blue-900/60 relative">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping absolute -top-0.5 -right-0.5"></span>
+            🚗
+          </div>
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                A {closestVehicle.distKm < 1 ? `${Math.round(closestVehicle.distKm * 1000)} m` : `${closestVehicle.distKm.toFixed(1)} km`}
+              </span>
+              <span className="text-[10px] text-slate-400">·</span>
+              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                ~{closestVehicle.etaMin} min
+              </span>
+            </div>
+            <p className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
+              {closestVehicle.vehicle.brand_model}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 4. Botones Flotantes Táctiles (GPS Exacto + Me Bajo Aquí) */}
       <div className="absolute right-3 bottom-24 sm:bottom-28 z-20 flex flex-col items-end gap-2.5 pointer-events-auto">
         {/* Aviso Educativo si el pasajero toca "Me bajo aquí" sin estar a bordo */}
@@ -692,8 +771,18 @@ export default function BarrancaMap({
           </div>
         )}
 
-        {/* Botón: Me bajo aquí / Timbre de Parada (Condicionado por estado) */}
-        {onRequestDropoff && !dropoffPromptOpen && (
+        {/* Botón: Me bajo aquí / Cancelar Parada (Condicionado por estado) */}
+        {hasActiveDropoff && onCancelDropoff ? (
+          <button
+            type="button"
+            onClick={onCancelDropoff}
+            className="px-3.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 border bg-rose-700 hover:bg-rose-800 text-white border-rose-600 animate-pulse"
+            title="Cancelar mi parada solicitada"
+          >
+            <span className="text-sm">❌</span>
+            <span>Cancelar Parada</span>
+          </button>
+        ) : onRequestDropoff && !dropoffPromptOpen ? (
           <button
             type="button"
             onClick={() => {
@@ -719,7 +808,7 @@ export default function BarrancaMap({
               </span>
             )}
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* 5. Contenedor de Mapa Leaflet con Motor Geográfico Real */}

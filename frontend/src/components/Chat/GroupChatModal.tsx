@@ -21,7 +21,11 @@ import {
   UserPlus, 
   Share2, 
   CheckCircle2,
-  Car
+  Car,
+  Clock,
+  Compass,
+  ArrowRightLeft,
+  Sparkles
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -31,7 +35,7 @@ interface ChatMessage {
   sender_name: string;
   sender_role: string;
   message: string;
-  message_type: 'TEXTO' | 'AVISO_RUTA' | 'UBICACION' | 'AUDIO_SIMULADO';
+  message_type: 'TEXTO' | 'AVISO_RUTA' | 'UBICACION' | 'AUDIO_SIMULADO' | 'NEGOCIACION';
   created_at: string;
 }
 
@@ -46,13 +50,16 @@ interface GroupMember {
 interface GroupOption {
   id: string;
   name: string;
-  type: 'COMUNITARIO' | 'EMPRESARIAL';
+  type: 'COMUNITARIO' | 'EMPRESARIAL' | 'DIRECTO_1A1';
   description: string;
   badge: string;
   isPrivate?: boolean;
   accessCode?: string;
   phone?: string;
   createdBy?: string;
+  vehiclePlate?: string;
+  driverName?: string;
+  vehicleModel?: string;
   members: GroupMember[];
 }
 
@@ -117,7 +124,59 @@ const INITIAL_GROUPS: GroupOption[] = [
       { userId: 'a0000000-0000-0000-0000-000000000009', name: 'Luis Morales (Asoc. Mototaxis)', phone: '+51 987654329', role: 'CREADOR', userType: 'CHOFER' },
       { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'MIEMBRO', userType: 'PASAJERO' }
     ]
+  },
+  // CHATS DIRECTOS 1 A 1 (NEGOCIACIONES Y CARRERAS)
+  {
+    id: 'direct-01',
+    name: 'Jorge Huamán · Toyota Yaris (B1A-789)',
+    type: 'DIRECTO_1A1',
+    description: 'Coordinación directa de viaje ruta Barranca Centro - UNAB',
+    badge: 'Yaris B1A-789',
+    isPrivate: false,
+    phone: '+51 987654323',
+    vehiclePlate: 'B1A-789',
+    driverName: 'Jorge Huamán Castillo',
+    vehicleModel: 'Toyota Yaris Sedán 2023',
+    members: [
+      { userId: 'a0000000-0000-0000-0000-000000000003', name: 'Jorge Huamán', phone: '+51 987654323', role: 'CREADOR', userType: 'CHOFER' },
+      { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'MIEMBRO', userType: 'PASAJERO' }
+    ]
+  },
+  {
+    id: 'direct-02',
+    name: 'Pedro Chumpitaz · Combi HiAce (Z9P-140)',
+    type: 'DIRECTO_1A1',
+    description: 'Línea Interdistrital Barranca - Supe - Puerto Supe',
+    badge: 'Combi Z9P-140',
+    isPrivate: false,
+    phone: '+51 987654330',
+    vehiclePlate: 'Z9P-140',
+    driverName: 'Pedro Chumpitaz Solís',
+    vehicleModel: 'Toyota HiAce Combi 2024',
+    members: [
+      { userId: 'd-driver-02', name: 'Pedro Chumpitaz', phone: '+51 987654330', role: 'CREADOR', userType: 'CHOFER' },
+      { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'MIEMBRO', userType: 'PASAJERO' }
+    ]
   }
+];
+
+const PASSENGER_QUICK_CHIPS = [
+  '📍 Estoy en el paradero ahora',
+  '⏱️ ¿A cuántos minutos estás?',
+  '🪑 ¿Tienes asientos libres?',
+  '🔔 Me bajo en la próxima esquina',
+  '💰 ¿Cuánto es el pasaje?',
+  '🎒 Llevo equipaje/mochila',
+  '✅ Confirmado, te espero'
+];
+
+const DRIVER_QUICK_CHIPS = [
+  '🟢 Unidad en camino hacia tu punto',
+  '⏳ Llego en 3 minutos exactos',
+  '🛑 Llegué al paradero indicado',
+  '⚠️ Mucho tráfico en Panamericana',
+  '🪑 Tengo 2 asientos disponibles',
+  '✅ Asiento reservado para ti'
 ];
 
 interface GroupChatModalProps {
@@ -131,6 +190,7 @@ export default function GroupChatModal({
   onClose,
   currentUser = { id: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', role: 'PASAJERO' }
 }: GroupChatModalProps) {
+  const [activeTabMode, setActiveTabMode] = useState<'CORREDORES' | 'DIRECTOS'>('CORREDORES');
   const [groups, setGroups] = useState<GroupOption[]>(INITIAL_GROUPS);
   const [selectedGroup, setSelectedGroup] = useState<GroupOption>(INITIAL_GROUPS[0]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -141,7 +201,9 @@ export default function GroupChatModal({
   // Control de grupos privados vs públicos
   const [unlockedGroupIds, setUnlockedGroupIds] = useState<string[]>([
     'b0000000-0000-0000-0000-000000000002', // Público UNAB
-    'b0000000-0000-0000-0000-000000000004'  // Público Urbano
+    'b0000000-0000-0000-0000-000000000004', // Público Urbano
+    'direct-01',
+    'direct-02'
   ]);
   const [passcodeAttempt, setPasscodeAttempt] = useState('');
   const [passcodeError, setPasscodeError] = useState('');
@@ -165,13 +227,16 @@ export default function GroupChatModal({
 
   const isCurrentGroupLocked = selectedGroup.isPrivate && !unlockedGroupIds.includes(selectedGroup.id);
 
-  // Verificar si el usuario actual es admin de este grupo (Creador o Co-Admin)
+  // Verificar si el usuario actual es admin de este grupo
   const currentMemberRecord = selectedGroup.members.find(m => m.userId === currentUser.id);
   const isCurrentUserAdmin = 
     selectedGroup.createdBy === currentUser.id ||
     currentMemberRecord?.role === 'CREADOR' ||
     currentMemberRecord?.role === 'CO_ADMIN' ||
     currentUser.role === 'ADMIN_EMPRESA';
+
+  const isDriverUser = currentUser.role.includes('CONDUCTOR') || currentUser.role.includes('CHOFER');
+  const quickChips = isDriverUser ? DRIVER_QUICK_CHIPS : PASSENGER_QUICK_CHIPS;
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -211,17 +276,20 @@ export default function GroupChatModal({
           const data = await res.json();
           setMessages(data.messages || []);
         } else {
-          // Mensajes demostrativos si aún no hay mensajes en base de datos
+          // Mensajes demostrativos contextuales
+          const isDirect = selectedGroup.type === 'DIRECTO_1A1';
           setMessages([
             {
               id: 'm-1',
               group_id: selectedGroup.id,
-              sender_id: 'a0000000-0000-0000-0000-000000000001',
-              sender_name: 'Coordinador RutaLink',
-              sender_role: 'ADMIN_EMPRESA',
-              message: `¡Bienvenidos al grupo oficial "${selectedGroup.name}"! Este canal es para coordinación en tiempo real de viajes, rutas y avisos en Barranca.`,
+              sender_id: selectedGroup.createdBy || 'system',
+              sender_name: isDirect ? (selectedGroup.driverName || 'Conductor') : 'Coordinación RutaLink',
+              sender_role: isDirect ? 'CONDUCTOR_AFILIADO' : 'ADMIN_EMPRESA',
+              message: isDirect
+                ? `Hola, soy ${selectedGroup.driverName || 'el conductor'}. Estoy al volante del ${selectedGroup.vehicleModel || 'vehículo'} (${selectedGroup.vehiclePlate || 'placa'}). ¿A dónde te diriges?`
+                : `¡Bienvenidos al canal oficial "${selectedGroup.name}"! Este espacio comunitario es para coordinación en tiempo real de viajes, rutas y avisos en toda la provincia de Barranca.`,
               message_type: 'TEXTO',
-              created_at: new Date(Date.now() - 3600000).toISOString()
+              created_at: new Date(Date.now() - 1800000).toISOString()
             }
           ]);
         }
@@ -322,10 +390,10 @@ export default function GroupChatModal({
     setNewGroupAccessCode('');
     setNewGroupPhone('');
 
-    showToast(`¡Grupo "${newGroup.name}" creado con éxito! Eres el Administrador.`);
+    showToast(`¡Canal "${newGroup.name}" creado con éxito! Eres el Administrador.`);
   };
 
-  // Promover o Degradar Co-Administrador estilo WhatsApp
+  // Promover o Degradar Co-Administrador
   const handleToggleAdmin = (memberId: string) => {
     if (!isCurrentUserAdmin) return;
 
@@ -333,7 +401,7 @@ export default function GroupChatModal({
       if (g.id !== selectedGroup.id) return g;
       const updatedMembers = g.members.map(m => {
         if (m.userId === memberId) {
-          if (m.role === 'CREADOR') return m; // El creador no cambia
+          if (m.role === 'CREADOR') return m;
           const nextRole: 'CO_ADMIN' | 'MIEMBRO' = m.role === 'CO_ADMIN' ? 'MIEMBRO' : 'CO_ADMIN';
           return { ...m, role: nextRole };
         }
@@ -354,7 +422,7 @@ export default function GroupChatModal({
       return { ...prev, members: updatedMembers };
     });
 
-    showToast('Roles de administración de grupo actualizados.');
+    showToast('Roles actualizados correctamente.');
   };
 
   // Agregar Nuevo Miembro al Grupo
@@ -382,7 +450,7 @@ export default function GroupChatModal({
 
     setNewMemberName('');
     setNewMemberPhone('');
-    showToast(`¡${newMember.name} agregado al grupo!`);
+    showToast(`¡${newMember.name} agregado al canal!`);
   };
 
   const formatTime = (isoString: string) => {
@@ -396,11 +464,16 @@ export default function GroupChatModal({
 
   const groupPhone = selectedGroup.phone || '+51 987654321';
   const cleanPhone = groupPhone.replace(/[^0-9]/g, '');
-  const waGroupLink = `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola, me comunico respecto al grupo "${selectedGroup.name}" en RutaLink Barranca.`)}`;
+  const waGroupLink = `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola, me comunico respecto al transporte "${selectedGroup.name}" en RutaLink Barranca.`)}`;
+
+  const visibleGroups = groups.filter(g => {
+    if (activeTabMode === 'DIRECTOS') return g.type === 'DIRECTO_1A1';
+    return g.type !== 'DIRECTO_1A1';
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
-      <div className="w-full max-w-lg bg-white dark:bg-[#121418] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col h-[90vh] sm:h-[82vh] overflow-hidden animate-in slide-in-from-bottom duration-200 relative">
+      <div className="w-full max-w-lg bg-white dark:bg-[#111317] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col h-[92vh] sm:h-[84vh] overflow-hidden animate-in slide-in-from-bottom duration-200 relative">
         
         {/* Notificación Toast flotante */}
         {toastMsg && (
@@ -410,58 +483,60 @@ export default function GroupChatModal({
           </div>
         )}
 
-        {/* Cabecera Estilo WhatsApp con Multicanales (Llamada, WhatsApp, Info) */}
-        <div className="px-4 py-3 bg-[#008069] dark:bg-[#1f2c34] text-white flex items-center justify-between shrink-0 shadow-sm">
+        {/* Cabecera Estilo WhatsApp / Red Comunitaria */}
+        <div className="px-4 py-3 bg-[#0a5c4d] dark:bg-[#162329] text-white flex items-center justify-between shrink-0 shadow-xs">
           <div 
             onClick={() => setShowGroupInfo(true)}
             className="flex items-center gap-3 cursor-pointer hover:opacity-95 transition flex-1 min-w-0 pr-2"
           >
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-base shrink-0">
-              {selectedGroup.type === 'EMPRESARIAL' ? '🚖' : '👥'}
+              {selectedGroup.type === 'DIRECTO_1A1' ? '🚗' : selectedGroup.type === 'EMPRESARIAL' ? '🚖' : '👥'}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold truncate leading-tight">
                   {selectedGroup.name}
                 </h2>
-                {isCurrentUserAdmin && (
+                {isCurrentUserAdmin && selectedGroup.type !== 'DIRECTO_1A1' && (
                   <span className="text-[9px] bg-amber-400 text-slate-900 font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shrink-0">
                     Admin
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-emerald-100 dark:text-slate-300 truncate">
-                {selectedGroup.members.length} miembros • Toca para info y ajustes
+              <p className="text-[11px] text-emerald-100/90 dark:text-slate-300 truncate flex items-center gap-1">
+                <span>{selectedGroup.type === 'DIRECTO_1A1' ? (selectedGroup.vehiclePlate || 'Directo') : `${selectedGroup.members.length} miembros`}</span>
+                <span>•</span>
+                <span className="text-emerald-300 dark:text-emerald-400 font-semibold">Toca para detalles</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Multicanal: Llamada Directa */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Llamada Directa */}
             <a
               href={`tel:${groupPhone}`}
-              title="Llamar al número de contacto del grupo"
+              title="Llamar al número de contacto"
               className="p-2 rounded-full hover:bg-white/20 transition text-white"
             >
               <Phone className="w-4 h-4" />
             </a>
 
-            {/* Multicanal: WhatsApp Directo */}
+            {/* WhatsApp Directo */}
             <a
               href={waGroupLink}
               target="_blank"
               rel="noopener noreferrer"
-              title="Abrir chat en WhatsApp del teléfono"
+              title="Abrir WhatsApp del teléfono"
               className="p-2 rounded-full hover:bg-white/20 transition text-emerald-300"
             >
               <MessageSquare className="w-4 h-4" />
             </a>
 
-            {/* Info del Grupo */}
+            {/* Info */}
             <button
               type="button"
               onClick={() => setShowGroupInfo(true)}
-              title="Ver participantes y administración del grupo"
+              title="Información y participantes"
               className="p-2 rounded-full hover:bg-white/20 transition text-white"
             >
               <Info className="w-4 h-4" />
@@ -478,19 +553,57 @@ export default function GroupChatModal({
           </div>
         </div>
 
-        {/* Barra de Pestañas de Grupos + Botón '+ Crear Grupo' */}
-        <div className="flex items-center gap-2 p-2.5 bg-slate-100 dark:bg-[#181c22] border-b border-slate-200 dark:border-slate-800 overflow-x-auto text-xs sm:text-sm font-bold no-scrollbar">
-          {/* Botón Crear Nuevo Grupo */}
+        {/* Conmutador de Modo: Corredores Viales vs Negociaciones 1 a 1 */}
+        <div className="grid grid-cols-2 bg-slate-100 dark:bg-[#161a20] border-b border-slate-200 dark:border-slate-800 p-1 gap-1 text-xs font-bold">
           <button
             type="button"
-            onClick={() => setShowCreateGroup(true)}
-            className="px-3.5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold transition flex items-center gap-1.5 shrink-0 shadow-2xs active:scale-95"
+            onClick={() => {
+              setActiveTabMode('CORREDORES');
+              const firstCorridor = groups.find(g => g.type !== 'DIRECTO_1A1');
+              if (firstCorridor) setSelectedGroup(firstCorridor);
+            }}
+            className={`py-1.5 px-3 rounded-xl flex items-center justify-center gap-2 transition ${
+              activeTabMode === 'CORREDORES'
+                ? 'bg-white dark:bg-[#20252e] text-slate-900 dark:text-white shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
           >
-            <Plus className="w-4 h-4" />
-            <span>Crear Grupo</span>
+            <Users className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Corredores Viales</span>
           </button>
 
-          {groups.map(g => (
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTabMode('DIRECTOS');
+              const firstDirect = groups.find(g => g.type === 'DIRECTO_1A1');
+              if (firstDirect) setSelectedGroup(firstDirect);
+            }}
+            className={`py-1.5 px-3 rounded-xl flex items-center justify-center gap-2 transition ${
+              activeTabMode === 'DIRECTOS'
+                ? 'bg-white dark:bg-[#20252e] text-slate-900 dark:text-white shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <Car className="w-3.5 h-3.5 text-blue-600" />
+            <span>Chats de Carrera (1 a 1)</span>
+          </button>
+        </div>
+
+        {/* Carrusel Horizontal de Canales Activos */}
+        <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-[#14171d] border-b border-slate-200 dark:border-slate-800 overflow-x-auto text-xs font-semibold no-scrollbar">
+          {activeTabMode === 'CORREDORES' && (
+            <button
+              type="button"
+              onClick={() => setShowCreateGroup(true)}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 shrink-0 shadow-2xs active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nuevo Canal</span>
+            </button>
+          )}
+
+          {visibleGroups.map(g => (
             <button
               key={g.id}
               type="button"
@@ -498,30 +611,36 @@ export default function GroupChatModal({
                 setSelectedGroup(g);
                 setShowGroupInfo(false);
               }}
-              className={`px-3.5 py-2 rounded-2xl whitespace-nowrap transition shrink-0 flex items-center gap-1.5 active:scale-95 ${
+              className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition shrink-0 flex items-center gap-1.5 active:scale-95 ${
                 selectedGroup.id === g.id
                   ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white font-black shadow-2xs'
-                  : 'bg-white dark:bg-[#20242b] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold'
+                  : 'bg-white dark:bg-[#1e232b] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700/60'
               }`}
             >
-              {g.isPrivate ? <Lock className="w-3.5 h-3.5 text-amber-500" /> : <Globe className="w-3.5 h-3.5 text-blue-500" />}
+              {g.type === 'DIRECTO_1A1' ? (
+                <Car className="w-3.5 h-3.5 text-blue-400" />
+              ) : g.isPrivate ? (
+                <Lock className="w-3.5 h-3.5 text-amber-500" />
+              ) : (
+                <Globe className="w-3.5 h-3.5 text-emerald-500" />
+              )}
               <span>{g.badge}</span>
             </button>
           ))}
         </div>
 
-        {/* VISTA 1: INFORMACIÓN Y ADMINISTRACIÓN DEL GRUPO (ESTILO WHATSAPP) */}
+        {/* VISTA 1: INFORMACIÓN Y ADMINISTRACIÓN */}
         {showGroupInfo ? (
           <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-slate-50 dark:bg-[#111317] space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-xl font-bold">
-                  {selectedGroup.type === 'EMPRESARIAL' ? '🚖' : '👥'}
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-xl font-bold">
+                  {selectedGroup.type === 'DIRECTO_1A1' ? '🚗' : selectedGroup.type === 'EMPRESARIAL' ? '🚖' : '👥'}
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">{selectedGroup.name}</h3>
                   <span className="text-[11px] text-slate-500">
-                    Tipo: {selectedGroup.type === 'EMPRESARIAL' ? 'Empresa de Transporte' : 'Comunidad de Pasajeros'}
+                    {selectedGroup.type === 'DIRECTO_1A1' ? 'Negociación 1 a 1' : selectedGroup.type === 'EMPRESARIAL' ? 'Comité Provincial' : 'Comunidad de Pasajeros'}
                   </span>
                 </div>
               </div>
@@ -530,36 +649,38 @@ export default function GroupChatModal({
                 onClick={() => setShowGroupInfo(false)}
                 className="text-xs font-bold text-emerald-600 hover:text-emerald-700 px-3 py-1.5 rounded-xl bg-white dark:bg-[#1a1d22] border border-slate-200 dark:border-slate-700"
               >
-                Volver al Chat
+                Volver
               </button>
             </div>
 
-            {/* Descripción y Estado */}
+            {/* Ficha Técnica si es Directo con Vehículo */}
+            {selectedGroup.type === 'DIRECTO_1A1' && selectedGroup.vehiclePlate && (
+              <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/30 rounded-2xl border border-blue-200 dark:border-blue-800 space-y-2">
+                <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Datos de la Unidad y Conductor</span>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">Placa de Rodaje:</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">{selectedGroup.vehiclePlate}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">Vehículo:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedGroup.vehicleModel}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Descripción */}
             <div className="p-3.5 bg-white dark:bg-[#181c22] rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Descripción del Grupo</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400">Descripción del Canal</span>
               <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                 {selectedGroup.description}
               </p>
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
-                <span className="text-slate-500">Privacidad:</span>
-                <span className="font-bold flex items-center gap-1 text-slate-800 dark:text-slate-200">
-                  {selectedGroup.isPrivate ? (
-                    <>
-                      <Lock className="w-3.5 h-3.5 text-amber-500" /> Privado (Clave: {selectedGroup.accessCode || 'COMITE1'})
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="w-3.5 h-3.5 text-blue-500" /> Público (Abierto a toda Barranca)
-                    </>
-                  )}
-                </span>
-              </div>
             </div>
 
-            {/* Canales de Contacto Directo */}
+            {/* Contacto Directo */}
             <div className="p-3.5 bg-white dark:bg-[#181c22] rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Canales de Contacto Externo</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400">Canales Directos</span>
               <div className="grid grid-cols-2 gap-2">
                 <a
                   href={`tel:${groupPhone}`}
@@ -575,29 +696,25 @@ export default function GroupChatModal({
                   className="py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 border border-emerald-200/60 hover:bg-emerald-100 transition"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>WhatsApp Grupo</span>
+                  <span>WhatsApp</span>
                 </a>
               </div>
             </div>
 
-            {/* Participantes y Designación de Administradores */}
+            {/* Participantes */}
             <div className="p-3.5 bg-white dark:bg-[#181c22] rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Miembros y Administradores</span>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">
-                    {selectedGroup.members.length} Participantes
-                  </p>
-                </div>
-                {isCurrentUserAdmin && (
+                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                  {selectedGroup.members.length} Participantes
+                </span>
+                {isCurrentUserAdmin && selectedGroup.type !== 'DIRECTO_1A1' && (
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                    Panel de Administración
+                    Modo Administrador
                   </span>
                 )}
               </div>
 
-              {/* Lista de Miembros */}
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                 {selectedGroup.members.map((member) => {
                   const isCreator = member.role === 'CREADOR';
                   const isCoAdmin = member.role === 'CO_ADMIN';
@@ -618,12 +735,12 @@ export default function GroupChatModal({
                               {member.name} {isMe && '(Tú)'}
                             </span>
                             {isCreator && (
-                              <span className="text-[9px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded-full border border-amber-300">
+                              <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-full">
                                 Creador
                               </span>
                             )}
                             {isCoAdmin && (
-                              <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-1.5 py-0.2 rounded-full border border-emerald-300">
+                              <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">
                                 Co-Admin
                               </span>
                             )}
@@ -632,8 +749,7 @@ export default function GroupChatModal({
                         </div>
                       </div>
 
-                      {/* Botón de Co-Administrador para el Admin del Grupo */}
-                      {isCurrentUserAdmin && !isCreator && !isMe && (
+                      {isCurrentUserAdmin && !isCreator && !isMe && selectedGroup.type !== 'DIRECTO_1A1' && (
                         <button
                           type="button"
                           onClick={() => handleToggleAdmin(member.userId)}
@@ -651,32 +767,31 @@ export default function GroupChatModal({
                 })}
               </div>
 
-              {/* Agregar Miembro Rápido si es Admin */}
-              {isCurrentUserAdmin && (
+              {isCurrentUserAdmin && selectedGroup.type !== 'DIRECTO_1A1' && (
                 <form onSubmit={handleAddMemberSubmit} className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
                   <span className="text-[10.5px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                     <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Agregar Miembro al Grupo</span>
+                    <span>Agregar Miembro</span>
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
-                      placeholder="Nombre (ej. Juan Pérez)"
+                      placeholder="Nombre (ej. Juan)"
                       value={newMemberName}
                       onChange={e => setNewMemberName(e.target.value)}
-                      className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] text-slate-900 dark:text-white"
+                      className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20]"
                     />
                     <input
                       type="tel"
-                      placeholder="Celular (ej. 987654321)"
+                      placeholder="Celular (987...)"
                       value={newMemberPhone}
                       onChange={e => setNewMemberPhone(e.target.value)}
-                      className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] text-slate-900 dark:text-white"
+                      className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20]"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-1.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 text-white font-bold text-xs transition"
+                    className="w-full py-1.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 text-white font-bold text-xs"
                   >
                     + Registrar Miembro
                   </button>
@@ -685,12 +800,12 @@ export default function GroupChatModal({
             </div>
           </div>
         ) : showCreateGroup ? (
-          /* VISTA 2: FORMULARIO PARA CREAR NUEVO GRUPO (PASAJEROS O EMPRESA) */
+          /* VISTA 2: CREAR NUEVO CANAL */
           <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-slate-50 dark:bg-[#111317]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Crear Nuevo Grupo de Barranca</h3>
-                <p className="text-[11px] text-slate-500">Quedarás configurado automáticamente como Administrador</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Nuevo Canal de Comunicación</h3>
+                <p className="text-[11px] text-slate-500">Quedarás como Administrador del canal</p>
               </div>
               <button
                 type="button"
@@ -702,10 +817,9 @@ export default function GroupChatModal({
             </div>
 
             <form onSubmit={handleCreateNewGroupSubmit} className="space-y-3.5">
-              {/* Tipo de Grupo */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Tipo de Grupo
+                  Finalidad del Canal
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -713,12 +827,12 @@ export default function GroupChatModal({
                     onClick={() => setNewGroupType('COMUNITARIO')}
                     className={`p-2.5 rounded-xl border text-left transition ${
                       newGroupType === 'COMUNITARIO'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-900 dark:text-emerald-100 font-bold ring-2 ring-emerald-500/20'
-                        : 'bg-white dark:bg-[#1a1d22] border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-900 font-bold'
+                        : 'bg-white dark:bg-[#1a1d22] border-slate-300 dark:border-slate-700'
                     }`}
                   >
-                    <span className="block text-xs font-bold">👥 Pasajeros / Carpool</span>
-                    <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">Comunidad UNAB, vecinos y rutas habituales</span>
+                    <span className="block text-xs font-bold">👥 Carpool / Pasajeros</span>
+                    <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">UNAB, Supe, Caral y vecinos</span>
                   </button>
 
                   <button
@@ -726,106 +840,81 @@ export default function GroupChatModal({
                     onClick={() => setNewGroupType('EMPRESARIAL')}
                     className={`p-2.5 rounded-xl border text-left transition ${
                       newGroupType === 'EMPRESARIAL'
-                        ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-900 dark:text-blue-100 font-bold ring-2 ring-blue-500/20'
-                        : 'bg-white dark:bg-[#1a1d22] border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                        ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-900 font-bold'
+                        : 'bg-white dark:bg-[#1a1d22] border-slate-300 dark:border-slate-700'
                     }`}
                   >
                     <span className="block text-xs font-bold">🚖 Empresa / Comité</span>
-                    <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">Línea de colectivos, combis y minivans</span>
+                    <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">Línea de colectivos y combis</span>
                   </button>
                 </div>
               </div>
 
-              {/* Nombre del Grupo */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Nombre del Grupo
+                  Nombre del Canal
                 </label>
                 <input
                   type="text"
                   required
                   value={newGroupName}
                   onChange={e => setNewGroupName(e.target.value)}
-                  placeholder={newGroupType === 'COMUNITARIO' ? 'Ej. Pasajeros UNAB Supe - Noche' : 'Ej. Comité 4 Colectivos Paramonga'}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                  placeholder="Ej. Colectivos Supe - Barranca Noche"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20]"
                 />
               </div>
 
-              {/* Privacidad */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Privacidad y Acceso
+                  Tipo de Acceso
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setNewGroupIsPrivate(false)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                      !newGroupIsPrivate
-                        ? 'bg-slate-900 text-white dark:bg-emerald-600'
-                        : 'bg-white dark:bg-[#1a1d22] text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition ${
+                      !newGroupIsPrivate ? 'bg-slate-900 text-white dark:bg-emerald-600' : 'bg-white dark:bg-[#1a1d22]'
                     }`}
                   >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Público</span>
+                    Público
                   </button>
-
                   <button
                     type="button"
                     onClick={() => setNewGroupIsPrivate(true)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                      newGroupIsPrivate
-                        ? 'bg-slate-900 text-white dark:bg-emerald-600'
-                        : 'bg-white dark:bg-[#1a1d22] text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition ${
+                      newGroupIsPrivate ? 'bg-slate-900 text-white dark:bg-emerald-600' : 'bg-white dark:bg-[#1a1d22]'
                     }`}
                   >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>Privado</span>
+                    Privado
                   </button>
                 </div>
               </div>
 
-              {/* Clave si es Privado */}
               {newGroupIsPrivate && (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Código de Acceso / Clave de Invitación
+                    Clave de Acceso
                   </label>
                   <input
                     type="text"
                     value={newGroupAccessCode}
                     onChange={e => setNewGroupAccessCode(e.target.value)}
-                    placeholder="Ej. UNAB2026 o BARRANCA1"
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] font-mono uppercase tracking-wider text-slate-900 dark:text-white"
+                    placeholder="Ej. BARRANCA2026"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] font-mono uppercase"
                   />
                 </div>
               )}
 
-              {/* Teléfono de Contacto */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Celular de Contacto (Para llamadas y WhatsApp)
+                  Teléfono de Contacto
                 </label>
                 <input
                   type="tel"
                   value={newGroupPhone}
                   onChange={e => setNewGroupPhone(e.target.value)}
-                  placeholder="Ej. +51 987654321"
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] text-slate-900 dark:text-white"
-                />
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Descripción o Referencia de Ruta
-                </label>
-                <textarea
-                  rows={2}
-                  value={newGroupDesc}
-                  onChange={e => setNewGroupDesc(e.target.value)}
-                  placeholder="Detalles sobre el punto de encuentro, horarios o tarifa referencial..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] text-slate-900 dark:text-white"
+                  placeholder="+51 987654321"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20]"
                 />
               </div>
 
@@ -833,30 +922,30 @@ export default function GroupChatModal({
                 <button
                   type="button"
                   onClick={() => setShowCreateGroup(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300"
+                  className="flex-1 py-2.5 rounded-xl border text-xs font-bold"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md"
                 >
-                  Crear y Ser Administrador
+                  Crear Canal
                 </button>
               </div>
             </form>
           </div>
         ) : isCurrentGroupLocked ? (
-          /* VISTA 3: GRUPO PRIVADO BLOQUEADO */
+          /* VISTA 3: CANAL PRIVADO */
           <div className="flex-1 p-6 flex flex-col items-center justify-center text-center bg-slate-50 dark:bg-[#111317]">
-            <div className="w-14 h-14 rounded-3xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 flex items-center justify-center mb-3 shadow-xs">
+            <div className="w-14 h-14 rounded-3xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 flex items-center justify-center mb-3">
               <Lock className="w-7 h-7" />
             </div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-              Grupo Privado y Cerrado
+              Canal Privado de Coordinación
             </h3>
             <p className="text-xs text-slate-500 max-w-xs mb-4">
-              Este grupo pertenece a <strong className="text-slate-800 dark:text-slate-200">{selectedGroup.name}</strong> y requiere código de acceso para ver y participar.
+              Ingresa el código de acceso autorizado para entrar a <strong className="text-slate-800 dark:text-slate-200">{selectedGroup.name}</strong>.
             </p>
 
             <form onSubmit={handleUnlockGroup} className="w-full max-w-xs space-y-2.5">
@@ -868,8 +957,8 @@ export default function GroupChatModal({
                     setPasscodeAttempt(e.target.value);
                     setPasscodeError('');
                   }}
-                  placeholder="Ingresa clave (ej. COMITE1)"
-                  className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] font-mono font-bold text-center uppercase tracking-wider focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                  placeholder="Clave (ej. COMITE1)"
+                  className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#181a20] font-mono font-bold text-center uppercase tracking-wider"
                 />
                 <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               </div>
@@ -878,22 +967,31 @@ export default function GroupChatModal({
               )}
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2"
               >
                 <Unlock className="w-4 h-4" />
-                <span>Desbloquear y Acceder al Grupo</span>
+                <span>Desbloquear Canal</span>
               </button>
             </form>
           </div>
         ) : (
-          /* VISTA 4: CHAT ACTIVO ESTILO WHATSAPP */
+          /* VISTA 4: CHAT ACTIVO CON RESPUESTAS RÁPIDAS (SMART CHIPS) */
           <>
-            <div className="flex-1 p-4 overflow-y-auto overscroll-contain touch-scroll space-y-3 bg-[#efeae2] dark:bg-[#0b141a] bg-opacity-95 pb-6">
+            {/* Mensajes */}
+            <div className="flex-1 p-3 sm:p-4 overflow-y-auto overscroll-contain touch-scroll space-y-2.5 bg-[#efeae2] dark:bg-[#0b141a] bg-opacity-95">
               {loading && messages.length === 0 && (
-                <div className="text-center py-6 text-sm text-slate-500">
-                  Cargando mensajes del grupo...
+                <div className="text-center py-6 text-xs text-slate-500">
+                  Cargando mensajes del canal...
                 </div>
               )}
+
+              {/* Mensaje de Seguridad Comunitaria */}
+              <div className="flex justify-center my-1">
+                <div className="bg-amber-100/90 dark:bg-amber-950/60 border border-amber-300/80 dark:border-amber-700/80 text-[10px] text-amber-900 dark:text-amber-200 px-3 py-1 rounded-xl shadow-2xs flex items-center gap-1.5 max-w-sm text-center">
+                  <Lock className="w-3 h-3 text-amber-700 dark:text-amber-300 shrink-0" />
+                  <span>Comunicaciones cifradas para la red de transporte provincial de Barranca.</span>
+                </div>
+              </div>
 
               {messages.map((m) => {
                 const isMe = m.sender_id === currentUser.id;
@@ -906,7 +1004,7 @@ export default function GroupChatModal({
                     className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-xs text-xs sm:text-sm relative ${
+                      className={`max-w-[85%] rounded-2xl px-3.5 py-2 shadow-2xs text-xs relative ${
                         isNotice
                           ? 'bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-100'
                           : isMe
@@ -914,39 +1012,36 @@ export default function GroupChatModal({
                           : 'bg-white dark:bg-[#202c33] text-slate-900 dark:text-slate-100 rounded-tl-none'
                       }`}
                     >
-                      {/* Remitente si no soy yo */}
                       {!isMe && (
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="font-bold text-xs text-[#008069] dark:text-[#25d366]">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="font-bold text-[11px] text-[#008069] dark:text-[#25d366]">
                             {m.sender_name}
                           </span>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold">
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold">
                             {m.sender_role === 'CONDUCTOR_AFILIADO' ? 'Chofer' : m.sender_role === 'ENCARGADO_PARADERO' ? 'Despachador' : m.sender_role.includes('ADMIN') ? 'Admin' : 'Pasajero'}
                           </span>
                         </div>
                       )}
 
-                      {/* Aviso oficial */}
                       {isNotice && (
-                        <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-bold mb-1 text-xs">
-                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <div className="flex items-center gap-1 text-amber-800 dark:text-amber-300 font-bold mb-1 text-[11px]">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                           <span>Aviso Oficial de Ruta / Tráfico</span>
                         </div>
                       )}
 
-                      {/* Ubicación compartida */}
                       {isLocation && (
-                        <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-300 font-bold mb-1 text-xs">
-                          <MapPin className="w-4 h-4 shrink-0" />
-                          <span>Ubicación Compartida en Tiempo Real</span>
+                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-300 font-bold mb-1 text-[11px]">
+                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                          <span>Punto de Espera Compartido</span>
                         </div>
                       )}
 
                       <p className="leading-relaxed whitespace-pre-wrap font-medium">{m.message}</p>
 
-                      <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                      <div className="flex items-center justify-end gap-1 mt-0.5 text-[9px] text-slate-500 dark:text-slate-400 font-mono">
                         <span>{formatTime(m.created_at)}</span>
-                        {isMe && <CheckCheck className="w-4 h-4 text-blue-500" />}
+                        {isMe && <CheckCheck className="w-3.5 h-3.5 text-blue-500" />}
                       </div>
                     </div>
                   </div>
@@ -955,25 +1050,22 @@ export default function GroupChatModal({
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Acciones Rápidas (1 Toque) */}
-            <div className="px-3 py-2 bg-slate-50 dark:bg-[#161a20] border-t border-slate-200/80 dark:border-slate-800 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
-              <button
-                type="button"
-                onClick={() => handleSendMessage('📍 Me encuentro esperando en el paradero ahora mismo.', 'UBICACION')}
-                className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#20242b] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 whitespace-nowrap flex items-center gap-1.5 shadow-2xs font-semibold active:scale-95"
-              >
-                <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                <span>Compartir ubicación</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSendMessage('⚠️ Tráfico lento en Panamericana Norte altura Óvalo Pativilca.', 'AVISO_RUTA')}
-                className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#20242b] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 whitespace-nowrap flex items-center gap-1.5 shadow-2xs font-semibold active:scale-95"
-              >
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                <span>Aviso de tráfico</span>
-              </button>
+            {/* Smart Chips de Respuesta Rápida de 1 Toque */}
+            <div className="px-2.5 py-1.5 bg-slate-50 dark:bg-[#14171d] border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              <span className="text-[10px] uppercase font-black text-slate-400 shrink-0 pl-1 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-500" />
+                <span>Rápido:</span>
+              </span>
+              {quickChips.map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSendMessage(chip, chip.includes('📍') ? 'UBICACION' : chip.includes('⚠️') ? 'AVISO_RUTA' : 'TEXTO')}
+                  className="px-2.5 py-1 rounded-full bg-white dark:bg-[#1e232b] hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 text-[11px] font-semibold whitespace-nowrap shrink-0 shadow-2xs active:scale-95 transition"
+                >
+                  {chip}
+                </button>
+              ))}
             </div>
 
             {/* Formulario de Mensaje */}
@@ -982,22 +1074,32 @@ export default function GroupChatModal({
                 e.preventDefault();
                 handleSendMessage();
               }}
-              className="p-3 bg-white dark:bg-[#1e242b] border-t border-slate-200 dark:border-slate-800 flex items-center gap-2"
+              className="p-2.5 bg-white dark:bg-[#1e242b] border-t border-slate-200 dark:border-slate-800 flex items-center gap-2"
             >
+              <button
+                type="button"
+                onClick={() => handleSendMessage('📍 Me encuentro en el paradero ahora.', 'UBICACION')}
+                title="Enviar ubicación"
+                className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#2a3942] text-slate-600 dark:text-slate-300 hover:text-blue-600 flex items-center justify-center shrink-0 transition"
+              >
+                <MapPin className="w-4 h-4" />
+              </button>
+
               <input
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Escribe un mensaje al grupo..."
-                className="flex-1 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-[#2a3942] text-slate-900 dark:text-white placeholder-slate-400 text-sm sm:text-base focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
+                placeholder="Escribe un mensaje de coordinación..."
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-[#2a3942] text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
               />
+
               <button
                 type="submit"
                 disabled={!inputText.trim()}
-                className="w-12 h-12 rounded-2xl bg-[#008069] hover:bg-[#006e5a] text-white disabled:opacity-40 transition shadow-xs flex items-center justify-center shrink-0 active:scale-95"
+                className="w-10 h-10 rounded-xl bg-[#008069] hover:bg-[#006e5a] text-white disabled:opacity-40 transition shadow-xs flex items-center justify-center shrink-0 active:scale-95"
                 aria-label="Enviar mensaje"
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4" />
               </button>
             </form>
           </>
