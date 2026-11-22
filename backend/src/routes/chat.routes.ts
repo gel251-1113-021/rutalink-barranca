@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import { io } from '../server.js';
+import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
 
 dotenv.config();
 
@@ -44,11 +45,13 @@ router.get('/groups/:groupId', async (req: Request, res: Response): Promise<void
   }
 });
 
-// POST /api/chat/groups/:groupId (Enviar mensaje grupal en tiempo real)
-router.post('/groups/:groupId', async (req: Request, res: Response): Promise<void> => {
+// POST /api/chat/groups/:groupId (Enviar mensaje grupal en tiempo real - Exclusivo usuarios autenticados)
+router.post('/groups/:groupId', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { groupId } = req.params;
-    const { senderId, senderName, senderRole, message, messageType } = req.body;
+    const { message, messageType } = req.body;
+    const senderId = req.user?.id;
+    const senderRole = req.user?.role || 'PASAJERO';
 
     if (!message || !message.trim()) {
       res.status(400).json({ error: 'El mensaje no puede estar vacío' });
@@ -57,6 +60,10 @@ router.post('/groups/:groupId', async (req: Request, res: Response): Promise<voi
 
     const client = await pool.connect();
     try {
+      // Obtener el nombre del usuario desde public.profiles
+      const profileRes = await client.query('SELECT full_name FROM public.profiles WHERE id = $1', [senderId]);
+      const senderName = profileRes.rows[0]?.full_name || req.user?.email || 'Usuario Verificado';
+
       const insertQuery = `
         INSERT INTO public.group_chat_messages (
           group_id, sender_id, sender_name, sender_role, message, message_type
@@ -66,9 +73,9 @@ router.post('/groups/:groupId', async (req: Request, res: Response): Promise<voi
       `;
       const result = await client.query(insertQuery, [
         groupId,
-        senderId || 'a0000000-0000-0000-0000-000000000005',
-        senderName || 'Usuario RutaLink',
-        senderRole || 'PASAJERO',
+        senderId,
+        senderName,
+        senderRole,
         message.trim(),
         messageType || 'TEXTO'
       ]);

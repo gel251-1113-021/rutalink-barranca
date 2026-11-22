@@ -33,15 +33,15 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
 
   // Estados principales de flujo
   const [tab, setTab] = useState<'login' | 'register' | 'forgot'>('login');
-  const [registerMode, setRegisterMode] = useState<'PHONE' | 'EMAIL'>('PHONE');
   const [onboardingStage, setOnboardingStage] = useState<1 | 2 | 3>(1);
+  const [showDemoAccounts, setShowDemoAccounts] = useState<boolean>(false);
+  const [logoClicks, setLogoClicks] = useState<number>(0);
 
   // Form states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [otpCode, setOtpCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<UserRole>('PASAJERO');
   const [avatarId, setAvatarId] = useState('av_passenger_work');
@@ -53,6 +53,7 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
   const [recoveryMethod, setRecoveryMethod] = useState<'EMAIL' | 'PHONE'>('EMAIL');
   const [recoveryStage, setRecoveryStage] = useState<'INPUT' | 'VERIFY' | 'NEW_PASS'>('INPUT');
   const [newPassword, setNewPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
 
   // Cooldown de reenvío OTP (60s)
   const [cooldown, setCooldown] = useState(0);
@@ -195,10 +196,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
     setSuccessMsg('');
     setLoading(true);
 
-    const effectiveEmail = email || `${phone.replace(/\+/g, '')}@movil.rutalink.pe`;
-    const effectivePassword = password || 'RutaLink2026!';
+    const effectiveEmail = email.trim().toLowerCase();
+    const effectivePassword = password;
 
-    const res = await register(effectiveEmail, effectivePassword, fullName, phone, role);
+    const res = await register(effectiveEmail, effectivePassword, fullName.trim(), phone.trim(), role);
     setLoading(false);
 
     if (res.error) {
@@ -248,8 +249,22 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
         
         {/* Cabecera del Modal con Botón Cancelar/Cerrar */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <RutaLinkIsotype className="w-8 h-8 shrink-0" />
+          <div 
+            onClick={() => {
+              setLogoClicks(prev => {
+                const next = prev + 1;
+                if (next >= 3) {
+                  setShowDemoAccounts(true);
+                  setDemoNotice('🔑 Modo Demostración Activado: Cuentas de prueba disponibles abajo.');
+                  return 0;
+                }
+                return next;
+              });
+            }}
+            className="flex items-center gap-2.5 cursor-pointer select-none group"
+            title="Toca 3 veces para modo evaluador"
+          >
+            <RutaLinkIsotype className="w-8 h-8 shrink-0 group-hover:scale-105 transition" />
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">
                 {tab === 'login' ? 'Iniciar Sesión' : tab === 'register' ? 'Crear Cuenta RutaLink' : 'Recuperar Acceso'}
@@ -372,28 +387,39 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                 {loading ? 'Comprobando credenciales...' : 'Entrar a RutaLink'}
               </button>
 
-              {/* Cuentas de Acceso Rápido para la Demostración */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider text-center">
-                  Cuentas de Demostración Verificadas
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {quickDemoAccounts.map((acc) => (
+              {/* Cuentas de Acceso Rápido para la Demostración (Ocultas por defecto para público real) */}
+              {showDemoAccounts && (
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 animate-in fade-in">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                      🔑 Modo Evaluador / Demostración
+                    </p>
                     <button
-                      key={acc.email}
                       type="button"
-                      onClick={() => {
-                        setEmail(acc.email);
-                        setPassword(acc.pass);
-                      }}
-                      className="text-left p-2 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800/60 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 transition"
+                      onClick={() => setShowDemoAccounts(false)}
+                      className="text-[10px] text-slate-400 hover:text-slate-600"
                     >
-                      <span className="font-bold block truncate">{acc.label}</span>
-                      <span className="text-[10px] text-slate-400 truncate block">{acc.email.split('@')[0]}</span>
+                      Ocultar
                     </button>
-                  ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {quickDemoAccounts.map((acc) => (
+                      <button
+                        key={acc.email}
+                        type="button"
+                        onClick={() => {
+                          setEmail(acc.email);
+                          setPassword(acc.pass);
+                        }}
+                        className="text-left p-2 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800/60 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 transition"
+                      >
+                        <span className="font-bold block truncate">{acc.label}</span>
+                        <span className="text-[10px] text-slate-400 truncate block">{acc.email.split('@')[0]}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </form>
           )}
 
@@ -403,165 +429,92 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
           {tab === 'register' && (
             <div className="space-y-4">
               
-              {/* Selector de Modalidad (Solo en Etapa 1) */}
+              {/* ETAPA 1: Credenciales y Seguridad Base */}
               {onboardingStage === 1 && (
-                <div className="space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => setRegisterMode('PHONE')}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                        registerMode === 'PHONE'
-                          ? 'bg-white dark:bg-[#16181d] text-blue-600 dark:text-blue-400 shadow-2xs'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      <Smartphone className="w-3.5 h-3.5" />
-                      <span>Por Celular (+51)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRegisterMode('EMAIL')}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                        registerMode === 'EMAIL'
-                          ? 'bg-white dark:bg-[#16181d] text-blue-600 dark:text-blue-400 shadow-2xs'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      <Mail className="w-3.5 h-3.5" />
-                      <span>Correo + Celular</span>
-                    </button>
+                <div className="space-y-3 pt-1">
+                  <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 shrink-0 text-blue-600" />
+                    <span>Etapa 1 de 3: Credenciales oficiales y contacto</span>
                   </div>
 
-                  {/* MODALIDAD A: Registro Rápido por Celular (+51) */}
-                  {registerMode === 'PHONE' && (
-                    <div className="space-y-3 pt-1">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Número Telefónico Móvil (Perú)
-                        </label>
-                        <div className="flex gap-2">
-                          <div className="px-3 py-2.5 rounded-2xl bg-slate-100 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-700 dark:text-slate-300 flex items-center shrink-0">
-                            🇵🇪 +51
-                          </div>
-                          <input
-                            type="tel"
-                            maxLength={9}
-                            value={phone.replace(/^\+51/, '')}
-                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                            placeholder="987654321"
-                            className="flex-1 px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={loading || cooldown > 0}
-                        onClick={() => handleSendOtp(phone, 'register')}
-                        className="w-full py-2.5 px-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5"
-                      >
-                        <KeyRound className="w-4 h-4" />
-                        <span>{cooldown > 0 ? `Reenviar código en ${cooldown}s` : 'Solicitar Código OTP'}</span>
-                      </button>
-
-                      {cooldown > 0 && (
-                        <div className="space-y-2 pt-2 animate-in fade-in">
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                            Código de Verificación (6 dígitos)
-                          </label>
-                          <input
-                            type="text"
-                            maxLength={6}
-                            value={otpCode}
-                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                            placeholder="123456"
-                            className="w-full text-center tracking-widest text-lg font-mono font-black py-2.5 rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <button
-                            type="button"
-                            disabled={loading || otpCode.length !== 6}
-                            onClick={handleVerifyOtp}
-                            className="w-full py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition disabled:opacity-50"
-                          >
-                            Verificar y Continuar →
-                          </button>
-                        </div>
-                      )}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Correo Electrónico Real
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="tu_correo@gmail.com"
+                        className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                      />
                     </div>
-                  )}
+                  </div>
 
-                  {/* MODALIDAD B: Registro Completo con Correo + Celular */}
-                  {registerMode === 'EMAIL' && (
-                    <div className="space-y-3 pt-1">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Correo Electrónico Real
-                        </label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                          <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="ejemplo@rutalink.pe"
-                            className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Contraseña Segura (Mínimo 8 caracteres)
-                        </label>
-                        <div className="relative">
-                          <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                          <input
-                            type="password"
-                            required
-                            minLength={8}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Número Telefónico de Respaldo (+51)
-                        </label>
-                        <div className="relative">
-                          <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                          <input
-                            type="tel"
-                            required
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="987654321"
-                            className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!email || !password || password.length < 8 || !phone) {
-                            setErrorMsg('Completa tu correo, una contraseña de mínimo 8 caracteres y tu número telefónico.');
-                            return;
-                          }
-                          setErrorMsg('');
-                          setOnboardingStage(2);
-                        }}
-                        className="w-full py-3 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition"
-                      >
-                        Continuar a Identidad →
-                      </button>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Contraseña Segura (Mínimo 8 caracteres)
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="password"
+                        required
+                        minLength={8}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                      />
                     </div>
-                  )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Número Telefónico Móvil (Perú +51)
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="px-3 py-2.5 rounded-2xl bg-slate-100 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-700 dark:text-slate-300 flex items-center shrink-0">
+                        🇵🇪 +51
+                      </div>
+                      <input
+                        type="tel"
+                        maxLength={9}
+                        required
+                        value={phone.replace(/^\+51/, '')}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                        placeholder="987654321"
+                        className="flex-1 px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!email || !email.includes('@')) {
+                        setErrorMsg('Por favor ingresa un correo electrónico válido.');
+                        return;
+                      }
+                      if (!password || password.length < 8) {
+                        setErrorMsg('La contraseña debe tener al menos 8 caracteres.');
+                        return;
+                      }
+                      const cleanPhone = phone.replace(/\D/g, '');
+                      if (cleanPhone.length < 9) {
+                        setErrorMsg('Ingresa un número telefónico móvil peruano de 9 dígitos.');
+                        return;
+                      }
+                      setErrorMsg('');
+                      setOnboardingStage(2);
+                    }}
+                    className="w-full py-3 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition active:scale-98"
+                  >
+                    Continuar a Identidad →
+                  </button>
                 </div>
               )}
 
@@ -604,26 +557,6 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                     </select>
                   </div>
 
-                  {registerMode === 'PHONE' && (
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Contraseña de Acceso (Mínimo 8 caracteres)
-                      </label>
-                      <div className="relative">
-                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                        <input
-                          type="password"
-                          required
-                          minLength={8}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                        />
-                      </div>
-                    </div>
-                  )}
-
                   <div className="flex items-center gap-2 pt-2">
                     <button
                       type="button"
@@ -638,10 +571,6 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                       onClick={() => {
                         if (!fullName.trim()) {
                           setErrorMsg('Por favor ingresa tus nombres y apellidos reales.');
-                          return;
-                        }
-                        if (registerMode === 'PHONE' && (!password || password.length < 8)) {
-                          setErrorMsg('Por favor define una contraseña de al menos 8 caracteres.');
                           return;
                         }
                         setErrorMsg('');

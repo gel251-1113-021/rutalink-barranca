@@ -464,29 +464,49 @@ export default function Header({
                 </button>
               )}
 
-              {/* 4. Calificaciones y Reseñas */}
+              {/* 4. Calificaciones y Reseñas (Solo registrados) */}
               {onOpenReviews && (
                 <button
-                  onClick={() => { setMobileMenuOpen(false); onOpenReviews(); }}
-                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-amber-600 dark:text-amber-400 active:scale-98 transition"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (isGuest) {
+                      onOpenAuth();
+                      return;
+                    }
+                    onOpenReviews();
+                  }}
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center justify-between text-amber-600 dark:text-amber-400 active:scale-98 transition"
                 >
-                  <Star className="w-5 h-5 shrink-0 fill-amber-500 text-amber-500" />
-                  <span>Calificaciones y Reseñas</span>
+                  <div className="flex items-center gap-3">
+                    <Star className="w-5 h-5 shrink-0 fill-amber-500 text-amber-500" />
+                    <span>Calificaciones y Reseñas</span>
+                  </div>
+                  {isGuest && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-md">Regístrate</span>}
                 </button>
               )}
 
-              {/* 5. Historial de Viajes */}
+              {/* 5. Historial de Viajes (Solo registrados) */}
               {onOpenHistory && (
                 <button
-                  onClick={() => { setMobileMenuOpen(false); onOpenHistory(); }}
-                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-slate-700 dark:text-slate-200 active:scale-98 transition"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (isGuest) {
+                      onOpenAuth();
+                      return;
+                    }
+                    onOpenHistory();
+                  }}
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center justify-between text-slate-700 dark:text-slate-200 active:scale-98 transition"
                 >
-                  <Clock className="w-5 h-5 text-blue-600 shrink-0" />
-                  <span>Historial de Mis Viajes</span>
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-blue-600 shrink-0" />
+                    <span>Historial de Mis Viajes</span>
+                  </div>
+                  {isGuest && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-md">Regístrate</span>}
                 </button>
               )}
 
-              {/* 6. Modo Sin Internet (SMS) */}
+              {/* 6. Modo Sin Internet (SMS) (Público / Abierto) */}
               {onOpenSmsFallback && (
                 <button
                   onClick={() => { setMobileMenuOpen(false); onOpenSmsFallback(); }}
@@ -497,14 +517,24 @@ export default function Header({
                 </button>
               )}
 
-              {/* 7. Grupos de Transporte y Pasajeros */}
+              {/* 7. Grupos de Transporte y Pasajeros (Solo registrados) */}
               {onOpenGroupManagement && (
                 <button
-                  onClick={() => { setMobileMenuOpen(false); onOpenGroupManagement(); }}
-                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center gap-3 text-purple-600 dark:text-purple-400 active:scale-98 transition"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (isGuest) {
+                      onOpenAuth();
+                      return;
+                    }
+                    onOpenGroupManagement();
+                  }}
+                  className="w-full p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left text-sm font-semibold flex items-center justify-between text-purple-600 dark:text-purple-400 active:scale-98 transition"
                 >
-                  <Users className="w-5 h-5 shrink-0" />
-                  <span>Grupos de Pasajeros y Empresas</span>
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 shrink-0" />
+                    <span>Grupos de Pasajeros y Empresas</span>
+                  </div>
+                  {isGuest && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-md">Regístrate</span>}
                 </button>
               )}
 

@@ -65,9 +65,7 @@ export default function VehicleInspectModal({
   const freeCount = passengerSeats.length - occupiedCount;
 
   const rawPlate = (vehicle.plate || '').trim();
-  const cleanPlate = rawPlate.includes('-')
-    ? rawPlate.replace(/\s*-\s*/g, '-').replace(/\s+/g, '')
-    : rawPlate.replace(/\s+/g, '-').toUpperCase();
+  const cleanPlate = rawPlate.replace(/\s+/g, '').toUpperCase();
   const phone = vehicle.driver_phone || '+51 987654323';
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const waLink = `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola, veo tu vehículo ${vehicle.brand_model} (${cleanPlate}) en RutaLink.`)}`;
@@ -96,13 +94,12 @@ export default function VehicleInspectModal({
           </div>
 
           {/* Placa oficial peruana blindada sin corte vertical jamás */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 flex-nowrap">
             <div 
               title="Placa oficial registrada"
-              className="bg-white text-slate-900 border-2 border-slate-300 rounded-lg px-2.5 py-1 shadow-sm flex items-center gap-1 select-none shrink-0"
-              style={{ minWidth: '82px', justifyContent: 'center' }}
+              className="bg-white text-slate-950 border border-slate-300 rounded-lg px-2 py-1 shadow-sm flex items-center gap-1 select-none shrink-0 whitespace-nowrap"
             >
-              <span className="text-[10px] text-red-600 font-black leading-none">🇵🇪</span>
+              <span className="text-[10px] text-red-600 font-black leading-none select-none">🇵🇪</span>
               <span className="font-mono text-xs sm:text-sm font-black whitespace-nowrap tracking-wider text-slate-950 leading-none">
                 {cleanPlate}
               </span>
@@ -110,10 +107,10 @@ export default function VehicleInspectModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/25 transition text-white shrink-0 active:scale-95 flex items-center justify-center"
+              className="p-1.5 sm:p-2 rounded-xl bg-white/15 hover:bg-white/25 transition text-white shrink-0 active:scale-95 flex items-center justify-center"
               aria-label="Cerrar modal"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>

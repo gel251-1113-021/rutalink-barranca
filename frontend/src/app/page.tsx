@@ -639,8 +639,18 @@ export default function HomePage() {
     }
   };
 
-  // Función: "Me bajo aquí" (Parada solicitada en 1 toque)
+  // Función: "Me bajo aquí" (Parada solicitada en 1 toque - Requiere usuario registrado a bordo)
   const handleRequestDropoff = async () => {
+    if (isGuest) {
+      setNotificationToast({
+        title: '🔒 Pasajero Registrado',
+        message: 'Debes iniciar sesión con tu cuenta de pasajero para accionar el timbre de bajada.',
+        type: 'info'
+      });
+      setAuthModalOpen(true);
+      return;
+    }
+
     const lat = userLocation ? userLocation.lat : -10.7512;
     const lng = userLocation ? userLocation.lng : -77.7615;
 
@@ -673,8 +683,18 @@ export default function HomePage() {
     }
   };
 
-  // Manejador de navegación inferior adaptado por rol
+  // Manejador de navegación inferior adaptado por rol con protección de invitados
   const handleSelectBottomTab = (tab: 'map' | 'driver' | 'chat' | 'contacts' | 'builder' | 'history') => {
+    if ((tab === 'chat' || tab === 'driver' || tab === 'history' || tab === 'builder') && isGuest) {
+      setNotificationToast({
+        title: '🔒 Acceso Exclusivo de Pasajeros Registrados',
+        message: 'Crea tu cuenta o ingresa para acceder a los chats de grupo, coordinación de flota y viajes.',
+        type: 'info'
+      });
+      setAuthModalOpen(true);
+      return;
+    }
+
     setActiveMobileTab(tab);
     if (tab === 'driver') setDriverCockpitOpen(true);
     if (tab === 'history') setTripHistoryOpen(true);
@@ -799,6 +819,15 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => {
+                if (isGuest) {
+                  setNotificationToast({
+                    title: '🔒 Pasajero Registrado',
+                    message: 'Crea tu cuenta o inicia sesión para pactar carreras seguras con choferes.',
+                    type: 'info'
+                  });
+                  setAuthModalOpen(true);
+                  return;
+                }
                 setSelectedDriverForAgreement(null);
                 setAgreementModalOpen(true);
               }}
@@ -857,6 +886,15 @@ export default function HomePage() {
         onWaitingClick={handleLocateUser}
         onOpenLiveCabin={(v) => setInspectedVehicle(v)}
         onOpenAgreement={(d) => {
+          if (isGuest) {
+            setNotificationToast({
+              title: '🔒 Pasajero Registrado',
+              message: 'Crea tu cuenta o inicia sesión para acordar viajes con choferes.',
+              type: 'info'
+            });
+            setAuthModalOpen(true);
+            return;
+          }
           setSelectedDriverForAgreement(d);
           setAgreementModalOpen(true);
         }}
@@ -913,18 +951,54 @@ export default function HomePage() {
         onClose={() => setInspectedVehicle(null)}
         vehicle={inspectedVehicle}
         onOpenAgreement={(driverData) => {
+          if (isGuest) {
+            setNotificationToast({
+              title: '🔒 Pasajero Registrado',
+              message: 'Crea tu cuenta o inicia sesión para acordar viajes con choferes.',
+              type: 'info'
+            });
+            setAuthModalOpen(true);
+            return;
+          }
           setSelectedDriverForAgreement(driverData);
           setAgreementModalOpen(true);
         }}
         onOpenReview={(target) => {
+          if (isGuest) {
+            setNotificationToast({
+              title: '🔒 Pasajero Registrado',
+              message: 'Inicia sesión para calificar a conductores y empresas.',
+              type: 'info'
+            });
+            setAuthModalOpen(true);
+            return;
+          }
           setReviewTarget(target);
           setReviewModalOpen(true);
         }}
         onOpenPhotoUpload={(title, category) => {
+          if (isGuest) {
+            setNotificationToast({
+              title: '🔒 Pasajero Registrado',
+              message: 'Inicia sesión para subir fotografías de evidencia.',
+              type: 'info'
+            });
+            setAuthModalOpen(true);
+            return;
+          }
           setPhotoModalTarget({ title, category });
           setPhotoModalOpen(true);
         }}
         onBoardRequest={() => {
+          if (isGuest) {
+            setNotificationToast({
+              title: '🔒 Pasajero Registrado',
+              message: 'Inicia sesión para solicitar abordaje a choferes.',
+              type: 'info'
+            });
+            setAuthModalOpen(true);
+            return;
+          }
           handleLocateUser();
           setNotificationToast({
             title: 'Abordaje Solicitado',

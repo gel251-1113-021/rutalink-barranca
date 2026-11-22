@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import { io } from '../server.js';
+import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
 
 dotenv.config();
 
@@ -45,10 +46,11 @@ router.get('/active', async (_req: Request, res: Response): Promise<void> => {
   }
 });
 
-// POST /api/dropoffs (Pasajero solicita "Me bajo aquí")
-router.post('/', async (req: Request, res: Response): Promise<void> => {
+// POST /api/dropoffs (Pasajero autenticado solicita "Me bajo aquí")
+router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { passengerId, passengerName, vehicleId, vehiclePlate, lat, lng, landmark } = req.body;
+    const passengerId = req.user?.id;
+    const { vehicleId, vehiclePlate, lat, lng, landmark } = req.body;
 
     if (isNaN(lat) || isNaN(lng)) {
       res.status(400).json({ error: 'Coordenadas de bajada inválidas' });
@@ -57,6 +59,9 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
     const client = await pool.connect();
     try {
+      const profileRes = await client.query('SELECT full_name FROM public.profiles WHERE id = $1', [passengerId]);
+      const passengerName = profileRes.rows[0]?.full_name || req.user?.email || 'Pasajero a Bordo';
+
       const query = `
         INSERT INTO public.passenger_dropoffs (
           passenger_id, passenger_name, vehicle_id, vehicle_plate, dropoff_location, landmark_reference, status
@@ -68,8 +73,8 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
           landmark_reference, status, created_at;
       `;
       const result = await client.query(query, [
-        passengerId || null,
-        passengerName || 'Pasajero a Bordo',
+        passengerId,
+        passengerName,
         vehicleId || null,
         vehiclePlate || 'EN_RUTA',
         lng,
