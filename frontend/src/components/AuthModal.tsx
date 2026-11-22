@@ -545,16 +545,22 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Tipo de Participación en la Red
+                      Tipo de Cuenta / Rol en la Red Comunitaria
                     </label>
                     <select
                       value={role}
                       onChange={(e) => setRole(e.target.value as UserRole)}
                       className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
                     >
-                      <option value="PASAJERO">Pasajero (Estudiante UNAB / Poblador de Barranca)</option>
-                      <option value="CONDUCTOR_INDEPENDIENTE">Conductor con Vehículo Propio (Postulante)</option>
+                      <option value="PASAJERO">👤 Pasajero (Estudiante UNAB / Poblador Frecuente)</option>
+                      <option value="CONDUCTOR_INDEPENDIENTE">🚗 Chofer Independiente (Auto Propio / Colectivo)</option>
+                      <option value="CONDUCTOR_AFILIADO">🚖 Chofer Afiliado (Línea, Combi o Miniván de Comité)</option>
+                      <option value="ENCARGADO_PARADERO">📋 Despachador de Base / Controlador de Turnos</option>
+                      <option value="ADMIN_EMPRESA">🏢 Administrador de Empresa / Gerente de Comité</option>
                     </select>
+                    <p className="text-[10.5px] text-slate-400 mt-1">
+                      Tu interfaz y funciones (cabina, radar o tablero) se adaptarán automáticamente a este rol.
+                    </p>
                   </div>
 
                   <div className="flex items-center gap-2 pt-2">

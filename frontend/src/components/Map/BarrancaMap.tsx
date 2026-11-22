@@ -90,26 +90,114 @@ const BARRANCA_STREET_REFERENCES = [
   { lat: -10.6650, lng: -77.8420, name: 'Sector Porvenir / Caballet (Paramonga)' }
 ];
 
-function reverseGeocodeBarranca(lat: number, lng: number): string {
-  let closest = BARRANCA_STREET_REFERENCES[0];
-  let minDistance = 999999;
+interface GeoLocationAnalysis {
+  address: string;
+  isWithinProvince: boolean;
+  zoneTag: string;
+}
 
-  for (const ref of BARRANCA_STREET_REFERENCES) {
-    const dLat = ref.lat - lat;
-    const dLng = ref.lng - lng;
-    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
-    if (dist < minDistance) {
-      minDistance = dist;
-      closest = ref;
+function analyzeGeographicLocation(lat: number, lng: number): GeoLocationAnalysis {
+  // Cuadrante oficial de la Provincia de Barranca:
+  // Sur: -10.95 (límite Huaura/Medio Mundo), Norte: -10.58 (Río Fortaleza / límite Huarmey)
+  // Oeste: -77.92 (Litoral Pacífico), Este: -77.40 (Caral / Valle Supe Alto)
+  const isWithinProvince = lat >= -10.95 && lat <= -10.58 && lng >= -77.92 && lng <= -77.40;
+
+  if (isWithinProvince) {
+    let closest = BARRANCA_STREET_REFERENCES[0];
+    let minDistance = 999999;
+
+    for (const ref of BARRANCA_STREET_REFERENCES) {
+      const dLat = ref.lat - lat;
+      const dLng = ref.lng - lng;
+      const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closest = ref;
+      }
     }
+
+    let district = 'Barranca';
+    if (lat > -10.68) district = 'Paramonga';
+    else if (lat > -10.72) district = 'Pativilca';
+    else if (lat > -10.78) district = 'Barranca Centro / UNAB';
+    else if (lng < -77.72 && lat > -10.83) district = 'Supe Puerto';
+    else district = 'Supe Pueblo / Caral';
+
+    if (minDistance < 0.014) {
+      return {
+        address: `${closest.name} (${district})`,
+        isWithinProvince: true,
+        zoneTag: `Provincia de Barranca · ${district}`
+      };
+    }
+
+    return {
+      address: `Punto en ${district} (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+      isWithinProvince: true,
+      zoneTag: `Provincia de Barranca · ${district}`
+    };
   }
 
-  // Si está a menos de ~1.2km de una referencia conocida
-  if (minDistance < 0.012) {
-    return closest.name;
+  // Exploración fuera de la Provincia de Barranca (Red Nacional / Limítrofes)
+  // 1. Mar Peruano
+  if (lng < -77.85 && lat >= -12.5 && lat <= -10.0) {
+    return {
+      address: `Litoral Marítimo Peruano (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+      isWithinProvince: false,
+      zoneTag: 'Océano Pacífico (Zona Marítima)'
+    };
   }
-  // Fallback a coordenadas WGS84 con referencia provincial
-  return `Punto Geográfico en Barranca (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+
+  // 2. Huaura / Huacho (Sur)
+  if (lat < -10.95 && lat >= -11.45) {
+    return {
+      address: `Provincia de Huaura (Huacho / Végueta / Sayán)`,
+      isWithinProvince: false,
+      zoneTag: 'Provincia de Huaura (Lima Provincias)'
+    };
+  }
+
+  // 3. Lima Metropolitana (Sur)
+  if (lat < -11.45 && lat >= -12.40) {
+    return {
+      address: `Región Lima Metropolitana / Callao (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+      isWithinProvince: false,
+      zoneTag: 'Lima Metropolitana (Expansión Nacional)'
+    };
+  }
+
+  // 4. Huarmey (Norte)
+  if (lat > -10.58 && lat <= -10.15) {
+    return {
+      address: `Provincia de Huarmey (Región Áncash)`,
+      isWithinProvince: false,
+      zoneTag: 'Huarmey (Áncash)'
+    };
+  }
+
+  // 5. Casma / Chimbote (Norte)
+  if (lat > -10.15 && lat <= -9.00 && lng <= -78.0) {
+    return {
+      address: `Provincia del Santa / Casma (Chimbote, Áncash)`,
+      isWithinProvince: false,
+      zoneTag: 'Chimbote / Santa (Áncash)'
+    };
+  }
+
+  // 6. Huaraz / Callejón de Huaylas (Sierra Este)
+  if (lng > -77.40 && lat >= -10.40 && lat <= -9.00) {
+    return {
+      address: `Callejón de Huaylas / Huaraz (Áncash)`,
+      isWithinProvince: false,
+      zoneTag: 'Huaraz / Callejón de Huaylas'
+    };
+  }
+
+  return {
+    address: `Zona Externa Nacional (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+    isWithinProvince: false,
+    zoneTag: 'Red Nacional RutaLink (Próxima Cobertura)'
+  };
 }
 
 // --------------------------------------------------------------------------------
@@ -452,6 +540,8 @@ export default function BarrancaMap({
     lat: number;
     lng: number;
     address: string;
+    isWithinProvince?: boolean;
+    zoneTag?: string;
   } | null>(null);
 
   // Estado para confirmación táctil de "Me bajo aquí" (Timbre de parada)
@@ -470,10 +560,16 @@ export default function BarrancaMap({
   const isDarkMap = mapLayer === 'night-mode' || (mapLayer === 'google-streets' && darkMode);
   const currentTileUrl = TILE_SERVERS[mapLayer] || TILE_SERVERS['google-streets'];
 
-  // Manejar clic en el mapa para fijar punto real
+  // Manejar clic en el mapa para fijar punto real y analizar cobertura provincial/nacional
   const handleMapClick = (lat: number, lng: number) => {
-    const address = reverseGeocodeBarranca(lat, lng);
-    const newPin = { lat, lng, address };
+    const analysis = analyzeGeographicLocation(lat, lng);
+    const newPin = { 
+      lat, 
+      lng, 
+      address: analysis.address,
+      isWithinProvince: analysis.isWithinProvince,
+      zoneTag: analysis.zoneTag
+    };
     setPinnedPoint(newPin);
     if (onPinLocation) onPinLocation(newPin);
   };
@@ -482,8 +578,14 @@ export default function BarrancaMap({
   const handleMarkerDragEnd = (e: any) => {
     const marker = e.target;
     const position = marker.getLatLng();
-    const address = reverseGeocodeBarranca(position.lat, position.lng);
-    const updated = { lat: position.lat, lng: position.lng, address };
+    const analysis = analyzeGeographicLocation(position.lat, position.lng);
+    const updated = { 
+      lat: position.lat, 
+      lng: position.lng, 
+      address: analysis.address,
+      isWithinProvince: analysis.isWithinProvince,
+      zoneTag: analysis.zoneTag
+    };
     setPinnedPoint(updated);
     if (onPinLocation) onPinLocation(updated);
   };
@@ -632,13 +734,23 @@ export default function BarrancaMap({
       {pinnedPoint && (
         <div className="absolute bottom-28 left-4 right-4 sm:left-auto sm:right-20 sm:w-96 z-30 bg-white/98 dark:bg-[#121417]/98 backdrop-blur-md p-4 rounded-3xl shadow-2xl border border-slate-200/90 dark:border-slate-800 animate-in slide-in-from-bottom duration-200 pointer-events-auto">
           <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-xl bg-red-100 dark:bg-red-950/60 text-red-600 flex items-center justify-center font-bold">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                pinnedPoint.isWithinProvince 
+                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400' 
+                  : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+              }`}>
                 <MapPin className="w-4 h-4" />
               </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Punto Fijado en Mapa</span>
-                <strong className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight block">
+              <div className="min-w-0">
+                <span className={`text-[9.5px] uppercase font-black px-1.5 py-0.2 rounded-md ${
+                  pinnedPoint.isWithinProvince 
+                    ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300' 
+                    : 'bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300'
+                }`}>
+                  {pinnedPoint.isWithinProvince ? '📍 Nodo Barranca Activo' : '🌐 Exploración Nacional'}
+                </span>
+                <strong className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight block mt-0.5 truncate">
                   {pinnedPoint.address}
                 </strong>
               </div>
@@ -646,14 +758,16 @@ export default function BarrancaMap({
             <button
               type="button"
               onClick={() => setPinnedPoint(null)}
-              className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+              className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 shrink-0"
+              aria-label="Cerrar tarjeta de punto"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="text-[11px] font-mono text-slate-500 mb-3 bg-slate-50 dark:bg-[#181a20] px-2.5 py-1 rounded-xl">
-            WGS84: {pinnedPoint.lat.toFixed(6)}, {pinnedPoint.lng.toFixed(6)}
+          <div className="text-[10.5px] font-mono text-slate-500 mb-3 bg-slate-50 dark:bg-[#181a20] px-2.5 py-1.5 rounded-xl flex items-center justify-between">
+            <span className="truncate pr-1 text-slate-600 dark:text-slate-400">{pinnedPoint.zoneTag || 'WGS84'}</span>
+            <span className="shrink-0">{pinnedPoint.lat.toFixed(5)}, {pinnedPoint.lng.toFixed(5)}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -675,7 +789,7 @@ export default function BarrancaMap({
               }}
               className="py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-200 transition active:scale-95"
             >
-              <span>Guardar Punto</span>
+              <span>Aceptar Punto</span>
             </button>
           </div>
         </div>

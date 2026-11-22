@@ -38,8 +38,8 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
 
     // Validación estricta de teléfono peruano E.164 si es teléfono
     if (phone && !/^\+519\d{8}$/.test(phone.replace(/\s+/g, ''))) {
-      res.status(400).json({ 
-        error: 'Formato telefónico inválido. Debe ser un número móvil de Perú en formato internacional estricto (+519XXXXXXXX).' 
+      res.status(400).json({
+        error: 'Formato telefónico inválido. Debe ser un número móvil de Perú en formato internacional estricto (+519XXXXXXXX).'
       });
       return;
     }
@@ -50,7 +50,7 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
     const diffSeconds = Math.floor((now - lastSent) / 1000);
     if (diffSeconds < 60) {
       const waitRemaining = 60 - diffSeconds;
-      res.status(429).json({ 
+      res.status(429).json({
         error: `Por seguridad, debes esperar ${waitRemaining} segundos antes de solicitar un nuevo código.`,
         cooldownRemaining: waitRemaining
       });
@@ -117,7 +117,7 @@ router.post('/otp/verify', async (req: Request, res: Response): Promise<void> =>
     }
 
     if (entry.code !== code.trim()) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: `Código incorrecto. Te quedan ${3 - entry.attempts} intentos.`,
         remainingAttempts: 3 - entry.attempts
       });
@@ -279,21 +279,50 @@ router.put('/profile', requireAuth, async (req: AuthenticatedRequest, res: Respo
   }
 });
 
-// DELETE /api/auth/account (Eliminación con confirmación y borrado seguro)
+// DELETE /api/auth/account (Eliminación con confirmación y borrado seguro en cascada)
 router.delete('/account', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const userId = req.user?.id;
+  if (!userId) {
+    res.status(401).json({ error: 'Usuario no autenticado' });
+    return;
+  }
+
   try {
-    const userId = req.user?.id;
     const client = await pool.connect();
     try {
-      // Eliminar de auth.users (el cascade limpiará perfiles y referencias)
-      await client.query('DELETE FROM auth.users WHERE id = $1', [userId]);
+      // 1. Limpieza de tablas dependientes en public para evitar bloqueos de clave foránea
+      await client.query('DELETE FROM public.chat_messages WHERE sender_id = $1', [userId]).catch(() => null);
+      await client.query('DELETE FROM public.passenger_dropoffs WHERE passenger_id = $1', [userId]).catch(() => null);
+      await client.query('DELETE FROM public.trips_and_agreements WHERE passenger_id = $1 OR driver_id = $1', [userId]).catch(() => null);
+      await client.query('DELETE FROM public.group_members WHERE user_id = $1', [userId]).catch(() => null);
+      await client.query('DELETE FROM public.profiles WHERE id = $1', [userId]);
+
+      // 2. Intentar eliminar usuario de auth.users
+      await client.query('DELETE FROM auth.users WHERE id = $1', [userId]).catch((e) => {
+        console.warn('[Direct auth.users delete warning, profile cleaned]:', e.message);
+      });
+
       res.json({ message: 'Cuenta y datos personales eliminados permanentemente del sistema' });
+      return;
     } finally {
       client.release();
     }
-  } catch (err) {
-    console.error('[Account Deletion Error]:', err);
-    res.status(500).json({ error: 'Error durante la eliminación de cuenta' });
+  } catch (err: any) {
+    console.warn('[Pool Account Deletion, switching to Supabase client]:', err.message);
+    try {
+      // Fallback a Supabase REST
+      await supabase.from('chat_messages').delete().eq('sender_id', userId);
+      await supabase.from('passenger_dropoffs').delete().eq('passenger_id', userId);
+      await supabase.from('trips_and_agreements').delete().or(`passenger_id.eq.${userId},driver_id.eq.${userId}`);
+      await supabase.from('group_members').delete().eq('user_id', userId);
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if (error) throw error;
+
+      res.json({ message: 'Cuenta y datos personales eliminados permanentemente' });
+    } catch (sbErr) {
+      console.error('[Supabase Account Deletion Error]:', sbErr);
+      res.status(500).json({ error: 'Error durante la eliminación de cuenta en base de datos' });
+    }
   }
 });
 

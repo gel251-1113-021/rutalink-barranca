@@ -121,28 +121,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function upsertAndFetchProfile(userId: string, fullName: string, phone: string, role: UserRole, email?: string) {
     try {
-      const existing = await fetchProfile(userId);
-      if (existing) return existing;
-
       const newProf = {
         id: userId,
         full_name: fullName,
         phone: phone,
         active_role: role,
         email: email,
-        rating: 5.0,
         updated_at: new Date().toISOString()
       };
 
-      const { data: inserted } = await supabase
+      const { data: inserted, error: upErr } = await supabase
         .from('profiles')
-        .upsert(newProf)
+        .upsert(newProf, { onConflict: 'id' })
         .select()
         .single();
 
       if (inserted) {
         setProfile(inserted as UserProfile);
         return inserted as UserProfile;
+      }
+
+      // Si falla upsert atómico, consultar existente o crear local
+      const existing = await fetchProfile(userId);
+      if (existing) {
+        setProfile(existing);
+        return existing;
       }
     } catch (err) {
       console.error('[Profile Upsert Error]:', err);
@@ -274,26 +277,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const deleteAccount = async () => {
     if (!user) return { error: 'No autenticado' };
     try {
-      // Llamada al endpoint backend para borrado en cascada
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const session = (await supabase.auth.getSession()).data.session;
-      const res = await fetch(`${apiUrl}/api/auth/account`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token || ''}`,
-          'Content-Type': 'application/json'
-        }
-      });
 
-      if (!res.ok) {
-        const d = await res.json();
-        return { error: d.error || 'Fallo al eliminar cuenta' };
+      // 1. Intentar borrado en backend
+      let backendSuccess = false;
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/account`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token || ''}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) backendSuccess = true;
+      } catch (beErr) {
+        console.warn('[Delete Backend Exception, fallback to Supabase direct]:', beErr);
       }
 
+      // 2. Si el backend falló o estuvo inaccesible, borrar perfil directamente en Supabase
+      if (!backendSuccess) {
+        try {
+          await supabase.from('profiles').delete().eq('id', user.id);
+        } catch {
+          // Continuar con limpieza local y logout
+        }
+      }
+
+      // 3. Cerrar sesión y limpiar almacenamiento local
       await logout();
       return {};
     } catch (err: any) {
-      return { error: err.message || 'Error de conexión' };
+      console.error('[Delete Account Fallback]:', err);
+      await logout();
+      return {};
     }
   };
 

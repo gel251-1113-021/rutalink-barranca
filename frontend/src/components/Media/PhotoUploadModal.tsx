@@ -140,10 +140,15 @@ export default function PhotoUploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+    >
       <div className="bg-white dark:bg-[#14161a] w-full max-w-sm rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
         
-        {/* Cabecera Adaptada */}
+        {/* Cabecera Adaptada con Botón Cancelar/Cerrar */}
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shrink-0">
@@ -155,8 +160,9 @@ export default function PhotoUploadModal({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95 shrink-0"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95 shrink-0"
             aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
@@ -233,6 +239,14 @@ export default function PhotoUploadModal({
                 <span>{config.galleryLabel}</span>
               </button>
 
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2.5 px-4 rounded-2xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition active:scale-98"
+              >
+                Cancelar
+              </button>
+
               <p className="text-[10.5px] text-slate-400 mt-2">
                 La fotografía se optimiza automáticamente para carga ultra-rápida en red móvil.
               </p>
@@ -240,14 +254,23 @@ export default function PhotoUploadModal({
           )}
 
           {preview && (
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98"
-            >
-              <Check className="w-4 h-4" />
-              <span>Guardar Fotografía</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-3 px-4 rounded-2xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="flex-1 py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98"
+              >
+                <Check className="w-4 h-4" />
+                <span>Guardar</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

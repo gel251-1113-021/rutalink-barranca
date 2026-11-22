@@ -31,7 +31,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { offlineStore } from '../lib/offlineStore';
-import { BellRing, Car, Check, MapPin, Navigation } from 'lucide-react';
+import { BellRing, Car, Check, MapPin, Navigation, X } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 const INITIAL_STOPS: StopPoint[] = [
@@ -865,16 +865,33 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Notificación Toast Flotante */}
+      {/* Notificación Toast Flotante Fija y Descartable con 1 Toque */}
       {notificationToast && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-white dark:bg-[#16181d] text-slate-900 dark:text-white text-xs px-4 py-2.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-3 animate-in fade-in slide-in-from-top duration-200">
-          <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 shrink-0">
-            <BellRing className="w-3.5 h-3.5" />
+        <div 
+          onClick={() => setNotificationToast(null)}
+          className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-50 max-w-[92vw] sm:max-w-md bg-slate-900/95 dark:bg-[#16181d]/95 text-white text-xs px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top duration-150 cursor-pointer backdrop-blur-md"
+          title="Toca para descartar"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+              <BellRing className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <strong className="block text-xs font-bold text-white truncate">{notificationToast.title}</strong>
+              <span className="text-[11px] text-slate-300 block leading-tight">{notificationToast.message}</span>
+            </div>
           </div>
-          <div>
-            <strong className="block text-[11px] font-bold text-blue-600">{notificationToast.title}</strong>
-            <span className="text-[11px] text-slate-600 dark:text-slate-300">{notificationToast.message}</span>
-          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setNotificationToast(null);
+            }}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition shrink-0"
+            aria-label="Cerrar notificación"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
