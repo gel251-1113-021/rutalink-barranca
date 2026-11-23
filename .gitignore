@@ -9,6 +9,15 @@ Credenciales.txt
 *.pem
 *.key
 
+# Private project documentation & prompts (Privados)
+CONCEPTO*
+CONCETPO*
+Informe_Tecnico_RutaLink_UNAB-v2*
+docs/Informe_Tecnico_RutaLink_UNAB-v2*
+Prompt*
+Sprint_6_Especificacion_Tecnica_Red_Comunitaria_Barranca*
+scratch/
+
 # Dependencies
 node_modules/
 .pnp
