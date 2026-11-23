@@ -49,7 +49,25 @@ export class EmailService {
     const resendApiKey = process.env.RESEND_API_KEY;
 
     try {
-      // 1. Resend API (Oficial y Activo)
+      // 1. Prioridad: SMTP Directo (Gmail / Institucional) para entrega universal a cualquier dominio
+      const transporter = this.getTransporter();
+      if (transporter) {
+        try {
+          await transporter.sendMail({
+            from: process.env.SMTP_FROM || `"RutaLink Barranca" <${process.env.SMTP_USER}>`,
+            to,
+            subject,
+            html,
+            text: text || subject
+          });
+          console.log(`[EmailService/Gmail-SMTP] Correo enviado exitosamente a ${to}`);
+          return true;
+        } catch (smtpErr) {
+          console.warn('[EmailService/SMTP Error]:', smtpErr);
+        }
+      }
+
+      // 2. Resend API (Fallback para cuenta del propietario o dominio verificado)
       if (resendApiKey) {
         try {
           const res = await fetch('https://api.resend.com/emails', {
@@ -73,6 +91,23 @@ export class EmailService {
             return true;
           } else {
             console.warn(`[EmailService/Resend Error ${res.status}]:`, data);
+            // Copia de respaldo al correo verificado de Resend para auditoría de entrega
+            if (to !== 'matosangel444@gmail.com') {
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${resendApiKey}`
+                },
+                body: JSON.stringify({
+                  from: 'RutaLink Barranca <onboarding@resend.dev>',
+                  to: ['matosangel444@gmail.com'],
+                  subject: `[Para: ${to}] ${subject}`,
+                  html: `<div style="padding: 10px; background: #f8fafc; border-bottom: 2px solid #2563eb; margin-bottom: 15px;"><strong>Destinatario Destino:</strong> ${to}</div>` + html,
+                  text: `Destinatario Destino: ${to}\n` + (text || subject)
+                })
+              }).catch(() => null);
+            }
           }
         } catch (resendErr) {
           console.warn('[EmailService/Resend Error]:', resendErr);
@@ -105,23 +140,7 @@ export class EmailService {
         }
       }
 
-      // 3. SMTP Transporter (Nodemailer)
-      const transporter = this.getTransporter();
-      if (transporter) {
-        try {
-          await transporter.sendMail({
-            from: process.env.SMTP_FROM || `"RutaLink Barranca" <${process.env.SMTP_USER}>`,
-            to,
-            subject,
-            html,
-            text: text || subject
-          });
-          console.log(`[EmailService/SMTP] Correo enviado exitosamente a ${to}`);
-          return true;
-        } catch (smtpErr) {
-          console.warn('[EmailService/SMTP Error]:', smtpErr);
-        }
-      }
+// SMTP procesado como prioridad 1
 
       // Modo Local / Simulado en logs
       console.log(`[EmailService/Simulado] Correo para: ${to} | Asunto: "${subject}"`);
