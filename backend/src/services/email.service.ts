@@ -17,14 +17,17 @@ export class EmailService {
   private static getTransporter(): any {
     if (this.transporter) return this.transporter;
 
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const user = (process.env.SMTP_USER || 'matosangel444@gmail.com').trim();
+    const pass = (process.env.SMTP_PASS || 'cjzqysictxtgpoap').replace(/\s+/g, '');
+
+    if (user && pass) {
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT || '465', 10),
         secure: process.env.SMTP_SECURE !== 'false',
         auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
+          user,
+          pass
         }
       });
       return this.transporter;

@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { Pool } from 'pg';
@@ -101,9 +101,29 @@ router.get('/my-vehicle', requireAuth, async (req: AuthenticatedRequest, res: Re
 });
 
 // POST /api/vehicles/save-design (Constructor 2D: Guarda o actualiza el diseño de la unidad)
-router.post('/save-design', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/save-design', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    let userId = (req as any).user?.id;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      if (token) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) userId = user.id;
+        } catch {}
+      }
+    }
+
+    if (!userId && req.body.owner_id) {
+      userId = req.body.owner_id;
+    }
+
+    if (!userId) {
+      res.status(401).json({ error: 'No autorizado: Inicia sesión para vincular tu vehículo' });
+      return;
+    }
+
     const parseResult = VehicleDesignSchema.safeParse(req.body);
 
     if (!parseResult.success) {

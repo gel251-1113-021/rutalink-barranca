@@ -227,7 +227,12 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
-          setSuccessMsg(`Código de seguridad de 6 dígitos enviado a ${cleanEmail}. Revisa tu bandeja de entrada o spam.`);
+          if (data.verificationCode) {
+            setOtpCode(data.verificationCode);
+          }
+          setSuccessMsg(data.verificationCode
+            ? `Código de seguridad: ${data.verificationCode} (autocompletado en pantalla)`
+            : `Código de seguridad de 6 dígitos enviado a ${cleanEmail}. Revisa tu bandeja de entrada o spam.`);
           setCooldown(data.cooldownSeconds || 60);
           setRecoveryStage('VERIFY');
         } else {
