@@ -29,40 +29,69 @@ const VehicleDesignSchema = z.object({
 router.get('/my-vehicle', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const client = await pool.connect();
     try {
-      const query = `
-        SELECT 
-          v.id,
-          v.plate,
-          v.brand_model,
-          v.vehicle_type,
-          v.seat_layout,
-          v.capacity,
-          v.roof_rack,
-          v.max_cargo_kg,
-          v.cargo_status,
-          v.status,
-          ST_Y(v.current_location)::float AS latitude,
-          ST_X(v.current_location)::float AS longitude,
-          v.current_heading::float AS current_heading,
-          v.last_location_update,
-          g.name AS group_name
-        FROM public.vehicles v
-        LEFT JOIN public.groups g ON v.group_id = g.id
-        WHERE v.owner_id = $1
-        LIMIT 1;
-      `;
-      const result = await client.query(query, [userId]);
+      const client = await pool.connect();
+      try {
+        const query = `
+          SELECT 
+            v.id,
+            v.plate,
+            v.brand_model,
+            v.vehicle_type,
+            v.seat_layout,
+            v.capacity,
+            v.roof_rack,
+            v.max_cargo_kg,
+            v.cargo_status,
+            v.status,
+            ST_Y(v.current_location)::float AS latitude,
+            ST_X(v.current_location)::float AS longitude,
+            v.current_heading::float AS current_heading,
+            v.last_location_update,
+            g.name AS group_name
+          FROM public.vehicles v
+          LEFT JOIN public.groups g ON v.group_id = g.id
+          WHERE v.owner_id = $1
+          LIMIT 1;
+        `;
+        const result = await client.query(query, [userId]);
 
-      if (result.rowCount === 0) {
+        if (result.rowCount === 0) {
+          res.json({ vehicle: null });
+          return;
+        }
+
+        res.json({ vehicle: result.rows[0] });
+        return;
+      } finally {
+        client.release();
+      }
+    } catch (poolErr) {
+      console.warn('[My Vehicle Pool, fallback to Supabase client]:', poolErr);
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select(`
+          id, plate, brand_model, vehicle_type, seat_layout, capacity,
+          roof_rack, max_cargo_kg, cargo_status, status, current_location,
+          current_heading, last_location_update, group_id
+        `)
+        .eq('owner_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) {
         res.json({ vehicle: null });
         return;
       }
-
-      res.json({ vehicle: result.rows[0] });
-    } finally {
-      client.release();
+      res.json({
+        vehicle: {
+          ...data,
+          latitude: (data.current_location as any)?.coordinates ? (data.current_location as any).coordinates[1] : -10.7512,
+          longitude: (data.current_location as any)?.coordinates ? (data.current_location as any).coordinates[0] : -77.7615
+        }
+      });
+      return;
     }
   } catch (err) {
     console.error('[My Vehicle Error]:', err);
@@ -173,30 +202,51 @@ router.put('/seats', requireAuth, async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    const client = await pool.connect();
     try {
-      const query = `
-        UPDATE public.vehicles
-        SET seat_layout = $1::jsonb,
-            cargo_status = COALESCE($2, cargo_status),
-            last_location_update = NOW()
-        WHERE id = $3 AND owner_id = $4
-        RETURNING *;
-      `;
-      const result = await client.query(query, [JSON.stringify(seatLayout), cargoStatus || null, vehicleId, userId]);
+      const client = await pool.connect();
+      try {
+        const query = `
+          UPDATE public.vehicles
+          SET seat_layout = $1::jsonb,
+              cargo_status = COALESCE($2, cargo_status),
+              last_location_update = NOW()
+          WHERE id = $3 AND owner_id = $4
+          RETURNING *;
+        `;
+        const result = await client.query(query, [JSON.stringify(seatLayout), cargoStatus || null, vehicleId, userId]);
 
-      if (result.rowCount === 0) {
-        res.status(404).json({ error: 'Vehículo no encontrado o no pertenece al usuario autenticado' });
+        if (result.rowCount === 0) {
+          res.status(404).json({ error: 'Vehículo no encontrado o no pertenece al usuario autenticado' });
+          return;
+        }
+
+        res.json({ message: 'Cabina táctil sincronizada', vehicle: result.rows[0] });
         return;
+      } finally {
+        client.release();
       }
+    } catch (poolErr) {
+      console.warn('[Vehicle Seats Pool, fallback to Supabase client]:', poolErr);
+      const updateData: any = {
+        seat_layout: seatLayout,
+        last_location_update: new Date().toISOString()
+      };
+      if (cargoStatus) updateData.cargo_status = cargoStatus;
 
-      res.json({ message: 'Cabina táctil sincronizada', vehicle: result.rows[0] });
-    } finally {
-      client.release();
+      const { data, error } = await supabase
+        .from('vehicles')
+        .update(updateData)
+        .match({ id: vehicleId, owner_id: userId })
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json({ message: 'Cabina táctil sincronizada (Supabase)', vehicle: data });
+      return;
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Vehicle Seats Update Error]:', err);
-    res.status(500).json({ error: 'Error sincronizando asientos de cabina' });
+    res.status(500).json({ error: err?.message || 'Error sincronizando asientos de cabina' });
   }
 });
 
