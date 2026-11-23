@@ -22,7 +22,7 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-  
+
   // Seguridad de 2 Pasos para Eliminación de Cuenta
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteOtpChannel, setDeleteOtpChannel] = useState<'EMAIL' | 'PHONE'>('EMAIL');
@@ -332,11 +332,10 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
                       <button
                         type="button"
                         onClick={() => setDeleteOtpChannel('EMAIL')}
-                        className={`p-2 rounded-xl border text-left font-semibold transition ${
-                          deleteOtpChannel === 'EMAIL'
-                            ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-900 dark:text-blue-100 font-bold'
-                            : 'bg-white dark:bg-[#181a20] border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                        }`}
+                        className={`p-2 rounded-xl border text-left font-semibold transition ${deleteOtpChannel === 'EMAIL'
+                          ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-900 dark:text-blue-100 font-bold'
+                          : 'bg-white dark:bg-[#181a20] border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}
                       >
                         <span className="block text-[11px]">📧 Correo</span>
                         <span className="text-[10px] text-slate-400 truncate block">{user.email}</span>
@@ -345,11 +344,10 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
                       <button
                         type="button"
                         onClick={() => setDeleteOtpChannel('PHONE')}
-                        className={`p-2 rounded-xl border text-left font-semibold transition ${
-                          deleteOtpChannel === 'PHONE'
-                            ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-900 dark:text-blue-100 font-bold'
-                            : 'bg-white dark:bg-[#181a20] border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                        }`}
+                        className={`p-2 rounded-xl border text-left font-semibold transition ${deleteOtpChannel === 'PHONE'
+                          ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-900 dark:text-blue-100 font-bold'
+                          : 'bg-white dark:bg-[#181a20] border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}
                       >
                         <span className="block text-[11px]">💬 WhatsApp / SMS</span>
                         <span className="text-[10px] text-slate-400 truncate block">{phone || 'No registrado'}</span>

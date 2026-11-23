@@ -206,7 +206,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           backendSuccess = true;
         } else {
           const d = await directRes.json().catch(() => ({}));
-          if (d.error && !d.error.includes('interno')) {
+          // Si el backend arrojó ENETUNREACH o fallo de red IPv6 en Render, continuar al SDK directo
+          if (d.error && (d.error.includes('ENETUNREACH') || d.error.includes('connect') || d.error.includes('network') || d.error.includes('fetch'))) {
+            console.warn('[Direct Register IPv6 network warning, switching to Supabase SDK]:', d.error);
+          } else if (d.error && !d.error.includes('interno') && !d.error.includes('Database error')) {
             return { error: d.error };
           }
         }

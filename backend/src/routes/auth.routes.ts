@@ -111,17 +111,17 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
 
 // POST /api/auth/register-direct - Registro profesional inmediato y blindado contra límites SMTP de Supabase
 router.post('/register-direct', async (req: Request, res: Response): Promise<void> => {
+  const { email, password, fullName, phone, role = 'PASAJERO' } = req.body || {};
+
+  if (!email || !password || !fullName) {
+    res.status(400).json({ error: 'Debes proporcionar correo, contraseña y nombre completo.' });
+    return;
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const cleanPhone = phone ? String(phone).trim() : null;
+
   try {
-    const { email, password, fullName, phone, role = 'PASAJERO' } = req.body;
-
-    if (!email || !password || !fullName) {
-      res.status(400).json({ error: 'Debes proporcionar correo, contraseña y nombre completo.' });
-      return;
-    }
-
-    const normalizedEmail = String(email).trim().toLowerCase();
-    const cleanPhone = phone ? String(phone).trim() : null;
-
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -222,6 +222,33 @@ router.post('/register-direct', async (req: Request, res: Response): Promise<voi
     }
   } catch (err: any) {
     console.error('[Register Direct Error]:', err);
+    // Fallback resiliente a Supabase REST si hay fallo de red IPv6 (ENETUNREACH en Render)
+    try {
+      const { data: sbData, error: sbErr } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone: cleanPhone,
+            active_role: role
+          }
+        }
+      });
+
+      if (!sbErr && sbData.user) {
+        EmailService.sendWelcomeEmail(normalizedEmail, fullName, role).catch(() => null);
+        res.status(201).json({
+          success: true,
+          message: 'Cuenta creada exitosamente vía Supabase.',
+          user: { id: sbData.user.id, email: normalizedEmail, fullName, phone: cleanPhone, role }
+        });
+        return;
+      }
+    } catch (sbCatchErr) {
+      console.warn('[Supabase REST fallback error]:', sbCatchErr);
+    }
+
     res.status(500).json({ error: 'Error al registrar la cuenta: ' + (err.message || 'Error interno') });
   }
 });
