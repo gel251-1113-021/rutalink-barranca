@@ -386,11 +386,13 @@ export default function HomePage() {
   }, []);
 
   // Vehículo dinámico del conductor activo (vinculado por owner_id, nombre o teléfono)
-  const myVehicle = vehicles.find(v =>
-    (v.owner_id && v.owner_id === user?.id) ||
-    (profile?.full_name && v.driver_name?.toLowerCase().includes(profile.full_name.toLowerCase())) ||
-    (profile?.phone && v.driver_phone === profile.phone)
-  ) || null;
+  const myVehicle = (Array.isArray(vehicles) && vehicles.find(v =>
+    v && (
+      (v.owner_id && user?.id && v.owner_id === user.id) ||
+      (profile?.full_name && typeof v.driver_name === 'string' && typeof profile.full_name === 'string' && v.driver_name.toLowerCase().includes(profile.full_name.toLowerCase())) ||
+      (profile?.phone && v.driver_phone && v.driver_phone === profile.phone)
+    )
+  )) || null;
 
   // Sincronización de tema
   useEffect(() => {
@@ -1157,7 +1159,7 @@ export default function HomePage() {
             userLocation={userLocation}
             passengerState={passengerContextState}
             dropoffs={dropoffs}
-            hasActiveDropoff={!!dropoffs.find(d => d.passenger_id === user?.id && d.status === 'PENDIENTE')}
+            hasActiveDropoff={!!(Array.isArray(dropoffs) && dropoffs.find(d => d && d.passenger_id === user?.id && d.status === 'PENDIENTE'))}
             onRequestDropoff={handleRequestDropoff}
             onCancelDropoff={handleCancelDropoff}
             onLocateUser={handleLocateUser}

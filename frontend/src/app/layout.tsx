@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '../context/AuthContext';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'RutaLink — Red de Movilidad Segura y Geolocalización | Provincia de Barranca',
@@ -25,7 +26,9 @@ export default function RootLayout({
     <html lang="es">
       <body className="bg-slate-50 dark:bg-[#0c0d0f] text-slate-900 dark:text-slate-100 h-[100dvh] min-h-[100dvh] w-full overflow-hidden antialiased flex flex-col">
         <AuthProvider>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </AuthProvider>
       </body>
     </html>

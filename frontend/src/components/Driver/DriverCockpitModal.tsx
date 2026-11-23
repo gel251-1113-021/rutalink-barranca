@@ -80,6 +80,29 @@ const getCategorySeats = (type?: string): Seat[] => {
   ];
 };
 
+const normalizeSeats = (input: any, vehicleType?: string): Seat[] => {
+  if (!input) return getCategorySeats(vehicleType);
+  let parsed = input;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return getCategorySeats(vehicleType);
+    }
+  }
+  if (Array.isArray(parsed) && parsed.length > 0) {
+    return parsed.map((s: any, idx: number) => ({
+      id: s.id || `s${idx}`,
+      label: s.label || `Asiento ${idx + 1}`,
+      type: s.type || 'passenger',
+      status: s.status === 'occupied' ? 'occupied' : 'free',
+      x: typeof s.x === 'number' ? s.x : 1,
+      y: typeof s.y === 'number' ? s.y : 1
+    }));
+  }
+  return getCategorySeats(vehicleType);
+};
+
 export default function DriverCockpitModal({
   isOpen,
   onClose,
@@ -100,14 +123,10 @@ export default function DriverCockpitModal({
   const [statusNote, setStatusNote] = useState('Conduciendo ahora');
 
   // Disposición 2D de asientos adaptada por tipo de vehículo o cargada de la BD
-  const [seats, setSeats] = useState<Seat[]>(() => (initialSeats && initialSeats.length > 0) ? initialSeats : getCategorySeats(vehicleType));
+  const [seats, setSeats] = useState<Seat[]>(() => normalizeSeats(initialSeats, vehicleType));
 
   React.useEffect(() => {
-    if (initialSeats && initialSeats.length > 0) {
-      setSeats(initialSeats);
-    } else {
-      setSeats(getCategorySeats(vehicleType));
-    }
+    setSeats(normalizeSeats(initialSeats, vehicleType));
   }, [vehicleType, initialSeats]);
 
   const [notification, setNotification] = useState<string | null>(null);

@@ -122,8 +122,12 @@ export default function Header({
   }, []);
 
   const currentRole = profile?.active_role || 'PASAJERO';
-  const roleInfo = ROLE_LABELS[currentRole] || ROLE_LABELS.PASAJERO;
-  const RoleIcon = roleInfo.icon;
+  const roleInfo = (ROLE_LABELS && ROLE_LABELS[currentRole]) || (ROLE_LABELS && ROLE_LABELS.PASAJERO) || {
+    label: 'Pasajero',
+    badgeClass: 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200/60',
+    icon: User
+  };
+  const RoleIcon = roleInfo?.icon || User;
 
   const availableRoles: UserRole[] = [
     'PASAJERO',
@@ -294,8 +298,8 @@ export default function Header({
                       Alternar Rol Activo
                     </div>
                     {availableRoles.map((r) => {
-                      const item = ROLE_LABELS[r];
-                      const Icon = item.icon;
+                      const item = (ROLE_LABELS && ROLE_LABELS[r]) || roleInfo;
+                      const Icon = item?.icon || User;
                       const isCurrent = currentRole === r;
                       return (
                         <button
@@ -427,8 +431,8 @@ export default function Header({
                 <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Mi Rol Activo</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {availableRoles.map(r => {
-                    const item = ROLE_LABELS[r];
-                    const Icon = item.icon;
+                    const item = (ROLE_LABELS && ROLE_LABELS[r]) || roleInfo;
+                    const Icon = item?.icon || User;
                     const isCurrent = currentRole === r;
                     return (
                       <button

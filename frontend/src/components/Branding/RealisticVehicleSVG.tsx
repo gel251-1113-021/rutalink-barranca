@@ -44,7 +44,13 @@ export default function RealisticVehicleSVG({
   const isTrunkFree = trunkStatus !== 'OCUPADO';
 
   const getSeatStatus = (seatId: string, defaultStatus: 'free' | 'occupied' = 'free'): boolean => {
-    const s = seats.find(item => item.id === seatId || item.label.toLowerCase().includes(seatId.toLowerCase()));
+    if (!Array.isArray(seats)) return defaultStatus === 'free';
+    const s = seats.find(item => 
+      item && (
+        item.id === seatId || 
+        (typeof item.label === 'string' && item.label.toLowerCase().includes(seatId.toLowerCase()))
+      )
+    );
     if (!s) return defaultStatus === 'free';
     return s.status === 'free';
   };
