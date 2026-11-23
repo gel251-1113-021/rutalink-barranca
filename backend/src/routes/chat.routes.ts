@@ -98,4 +98,28 @@ router.post('/groups/:groupId', requireAuth, async (req: AuthenticatedRequest, r
   }
 });
 
+// DELETE /api/chat/groups/:groupId (Eliminar canal de chat y mensajes)
+router.delete('/groups/:groupId', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { groupId } = req.params;
+    const client = await pool.connect();
+    try {
+      await client.query('DELETE FROM public.group_chat_messages WHERE group_id = $1;', [groupId]);
+      await client.query('DELETE FROM public.group_members WHERE group_id = $1;', [groupId]);
+      await client.query('DELETE FROM public.groups WHERE id = $1;', [groupId]).catch(() => null);
+
+      if (io) {
+        io.to(`group_${groupId}`).emit('group_deleted', { groupId });
+      }
+
+      res.json({ message: 'Canal de chat eliminado permanentemente', groupId });
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('[Delete Chat Error]:', err);
+    res.status(500).json({ error: 'Error al eliminar canal de chat' });
+  }
+});
+
 export default router;

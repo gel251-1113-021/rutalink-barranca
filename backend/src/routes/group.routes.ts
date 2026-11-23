@@ -2,6 +2,8 @@ import { Router, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { Pool } from 'pg';
+import { supabase } from '../config/supabase.js';
+import { io } from '../server.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -465,6 +467,111 @@ router.post('/:id/approve-driver', requireAuth, async (req: AuthenticatedRequest
   } catch (err) {
     console.error('[Approve Driver Error]:', err);
     res.status(500).json({ error: 'Error al procesar aprobación del conductor' });
+  }
+});
+
+// DELETE /api/groups/:id (Eliminación definitiva del grupo / comité - Solo creador o administrador)
+router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = req.params.id;
+    const userId = req.user?.id;
+
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        // 1. Verificar si el usuario es creador o admin del grupo
+        const checkGroup = await client.query(`
+          SELECT g.created_by, gm.role_in_group
+          FROM public.groups g
+          LEFT JOIN public.group_members gm ON g.id = gm.group_id AND gm.user_id = $2
+          WHERE g.id = $1;
+        `, [groupId, userId]);
+
+        if (checkGroup.rows.length === 0) {
+          await client.query('ROLLBACK');
+          res.status(404).json({ error: 'Grupo no encontrado' });
+          return;
+        }
+
+        const groupRow = checkGroup.rows[0];
+        const isCreator = groupRow.created_by === userId;
+        const isAdmin = ['ADMIN_EMPRESA', 'ADMIN_GRUPO_PASAJEROS'].includes(groupRow.role_in_group);
+
+        if (!isCreator && !isAdmin) {
+          await client.query('ROLLBACK');
+          res.status(403).json({ error: 'Solo el creador o administrador puede eliminar este grupo' });
+          return;
+        }
+
+        // 2. Limpieza de tablas dependientes en cascada
+        await client.query('DELETE FROM public.group_chat_messages WHERE group_id = $1;', [groupId]);
+        await client.query('DELETE FROM public.group_members WHERE group_id = $1;', [groupId]);
+        await client.query('DELETE FROM public.stops WHERE group_id = $1;', [groupId]).catch(() => null);
+        await client.query('UPDATE public.vehicles SET group_id = NULL WHERE group_id = $1;', [groupId]).catch(() => null);
+        await client.query('DELETE FROM public.groups WHERE id = $1;', [groupId]);
+
+        await client.query('COMMIT');
+
+        if (io) {
+          io.to(`group_${groupId}`).emit('group_deleted', { groupId });
+          io.to('barranca_live_map').emit('group_deleted', { groupId });
+        }
+
+        res.json({ message: 'Grupo y canales asociados eliminados permanentemente', groupId });
+        return;
+      } catch (poolInnerErr) {
+        await client.query('ROLLBACK');
+        throw poolInnerErr;
+      } finally {
+        client.release();
+      }
+    } catch (poolErr) {
+      console.warn('[Delete Group Pool, fallback to Supabase]:', poolErr);
+      await supabase.from('group_chat_messages').delete().eq('group_id', groupId);
+      await supabase.from('group_members').delete().eq('group_id', groupId);
+      await supabase.from('groups').delete().eq('id', groupId);
+
+      if (io) {
+        io.to(`group_${groupId}`).emit('group_deleted', { groupId });
+        io.to('barranca_live_map').emit('group_deleted', { groupId });
+      }
+
+      res.json({ message: 'Grupo eliminado permanentemente', groupId });
+    }
+  } catch (err) {
+    console.error('[Delete Group Error]:', err);
+    res.status(500).json({ error: 'Error al eliminar grupo' });
+  }
+});
+
+// DELETE /api/groups/:id/leave (Abandonar grupo como miembro)
+router.delete('/:id/leave', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = req.params.id;
+    const userId = req.user?.id;
+
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(`
+          DELETE FROM public.group_members
+          WHERE group_id = $1 AND user_id = $2;
+        `, [groupId, userId]);
+        res.json({ message: 'Has abandonado el grupo exitosamente', groupId });
+        return;
+      } finally {
+        client.release();
+      }
+    } catch (poolErr) {
+      console.warn('[Leave Group Pool fallback to Supabase]:', poolErr);
+      await supabase.from('group_members').delete().match({ group_id: groupId, user_id: userId });
+      res.json({ message: 'Has abandonado el grupo exitosamente', groupId });
+    }
+  } catch (err) {
+    console.error('[Leave Group Error]:', err);
+    res.status(500).json({ error: 'Error al abandonar grupo' });
   }
 });
 

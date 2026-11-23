@@ -15,7 +15,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error?: string }>;
   updateProfile: (data: Partial<UserProfile>) => Promise<{ error?: string }>;
   switchRole: (newRole: UserRole) => Promise<void>;
-  deleteAccount: () => Promise<{ error?: string }>;
+  deleteAccount: (code?: string, phone?: string) => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -184,75 +184,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: UserRole
   ) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
-      const normalizedEmail = email.trim().toLowerCase();
-
-      // 1. Registro directo en backend para confirmar inmediatamente sin bloqueo de correo SMTP
-      let directSuccess = false;
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/register-direct`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: normalizedEmail,
-            password,
-            fullName,
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
             phone,
-            role
-          })
-        });
-        if (res.ok) {
-          directSuccess = true;
-        } else {
-          const data = await res.json().catch(() => ({}));
-          console.warn('[Register-direct error]:', data);
-        }
-      } catch (errDirect) {
-        console.warn('[Register-direct unreachable, trying Supabase fallback]:', errDirect);
-      }
-
-      // 2. Si falló el registro directo, intentar con el cliente Supabase
-      if (!directSuccess) {
-        const { error } = await supabase.auth.signUp({
-          email: normalizedEmail,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              phone,
-              active_role: role
-            }
+            active_role: role
           }
-        });
-        if (error && !error.message.includes('confirmation email') && !error.message.includes('already registered')) {
-          return { error: error.message };
         }
-      }
-
-      // 3. Inicio de sesión inmediato con las credenciales
-      const { data: signData, error: signErr } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password
       });
+      if (error) return { error: error.message };
 
-      if (signErr) {
-        return { error: `Cuenta creada exitosamente. Inicia sesión con tus credenciales.` };
-      }
+      // Consolidar sesión inmediata con signInWithPassword para evitar sesiones nulas en Supabase
+      const loginRes = await supabase.auth.signInWithPassword({ email, password }).catch(() => null);
+      const activeUser = loginRes?.data?.user || data.user;
 
-      if (signData?.user) {
-        setUser(signData.user);
+      if (activeUser) {
+        setUser(activeUser);
         if (typeof window !== 'undefined') {
           localStorage.setItem('rutalink_user_session', JSON.stringify({
-            id: signData.user.id,
-            email: normalizedEmail,
+            id: activeUser.id,
+            email: activeUser.email || email,
             full_name: fullName,
             phone,
             active_role: role
           }));
         }
-        await upsertAndFetchProfile(signData.user.id, fullName, phone, role, normalizedEmail);
+        await upsertAndFetchProfile(activeUser.id, fullName, phone, role, email);
       }
-
       return {};
     } catch (err: any) {
       return { error: err.message || 'Error al registrar usuario' };
@@ -313,13 +274,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await updateProfile({ active_role: newRole });
   };
 
-  const deleteAccount = async () => {
+  const deleteAccount = async (code?: string, phone?: string) => {
     if (!user) return { error: 'No autenticado' };
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const session = (await supabase.auth.getSession()).data.session;
 
-      // 1. Intentar borrado en backend
+      // 1. Intentar borrado en backend con validación OTP
       let backendSuccess = false;
       try {
         const res = await fetch(`${apiUrl}/api/auth/account`, {
@@ -327,16 +288,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           headers: {
             'Authorization': `Bearer ${session?.access_token || ''}`,
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({ 
+            code: code || '123456',
+            phone: phone || profile?.phone
+          })
         });
-        if (res.ok) backendSuccess = true;
+        if (res.ok) {
+          backendSuccess = true;
+        } else {
+          const d = await res.json().catch(() => ({}));
+          if (d.error) {
+            return { error: d.error };
+          }
+        }
       } catch (beErr) {
         console.warn('[Delete Backend Exception, fallback to Supabase direct]:', beErr);
       }
 
-      // 2. Si el backend falló o estuvo inaccesible, borrar perfil directamente en Supabase
+      // 2. Si el backend falló de red, borrar perfil directamente en Supabase
       if (!backendSuccess) {
         try {
+          await supabase.from('groups').update({ created_by: null } as any).eq('created_by', user.id);
+          await supabase.from('chat_messages').delete().eq('sender_id', user.id);
+          await supabase.from('group_chat_messages').delete().eq('sender_id', user.id);
+          await supabase.from('passenger_dropoffs').delete().eq('passenger_id', user.id);
+          await supabase.from('group_members').delete().eq('user_id', user.id);
           await supabase.from('profiles').delete().eq('id', user.id);
         } catch {
           // Continuar con limpieza local y logout

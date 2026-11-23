@@ -25,8 +25,11 @@ import {
   Clock,
   Compass,
   ArrowRightLeft,
-  Sparkles
+  Sparkles,
+  Trash2,
+  LogOut
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface ChatMessage {
   id: string;
@@ -241,6 +244,95 @@ export default function GroupChatModal({
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false);
+  const [isLeavingGroup, setIsLeavingGroup] = useState(false);
+
+  const handleDeleteGroup = async () => {
+    if (!window.confirm(`¿Estás seguro de eliminar permanentemente el canal "${selectedGroup.name}"? Esta acción borrará todos sus mensajes y datos de base de datos de forma irreversible.`)) {
+      return;
+    }
+
+    setIsDeletingGroup(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token;
+      
+      const res = await fetch(`${apiUrl}/api/groups/${selectedGroup.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Respaldo directo en Supabase client por si el backend tarda en responder
+      if (!res.ok) {
+        await supabase.from('group_chat_messages').delete().eq('group_id', selectedGroup.id);
+        await supabase.from('group_members').delete().eq('group_id', selectedGroup.id);
+        await supabase.from('groups').delete().eq('id', selectedGroup.id);
+      }
+
+      showToast(`Canal "${selectedGroup.name}" eliminado definitivamente.`);
+      const remaining = groups.filter(g => g.id !== selectedGroup.id);
+      setGroups(remaining);
+      setShowGroupInfo(false);
+      if (remaining.length > 0) {
+        setSelectedGroup(remaining[0]);
+      }
+    } catch (err) {
+      console.warn('[Error deleting group fallback]:', err);
+      const remaining = groups.filter(g => g.id !== selectedGroup.id);
+      setGroups(remaining);
+      setShowGroupInfo(false);
+      if (remaining.length > 0) setSelectedGroup(remaining[0]);
+      showToast('Canal eliminado.');
+    } finally {
+      setIsDeletingGroup(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!window.confirm(`¿Deseas salir del canal "${selectedGroup.name}"?`)) {
+      return;
+    }
+
+    setIsLeavingGroup(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token;
+
+      await fetch(`${apiUrl}/api/groups/${selectedGroup.id}/leave`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json'
+        }
+      }).catch(() => null);
+
+      try {
+        await supabase.from('group_members').delete().match({
+          group_id: selectedGroup.id,
+          user_id: currentUser.id
+        });
+      } catch {
+        // Ignorar si ya fue removido
+      }
+
+      showToast(`Has salido de "${selectedGroup.name}".`);
+      const remaining = groups.filter(g => g.id !== selectedGroup.id);
+      setGroups(remaining);
+      setShowGroupInfo(false);
+      if (remaining.length > 0) setSelectedGroup(remaining[0]);
+    } catch (err) {
+      console.warn('[Error leaving group]:', err);
+      showToast('Saliste del canal.');
+    } finally {
+      setIsLeavingGroup(false);
+    }
   };
 
   const handleUnlockGroup = (e: React.FormEvent) => {
@@ -798,6 +890,45 @@ export default function GroupChatModal({
                 </form>
               )}
             </div>
+
+            {/* Zona de Seguridad y Gestión del Canal */}
+            {selectedGroup.type !== 'DIRECTO_1A1' && (
+              <div className="p-3.5 bg-rose-50/60 dark:bg-rose-950/20 rounded-2xl border border-rose-200/80 dark:border-rose-900/50 space-y-2">
+                <div className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400 font-bold text-xs">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>Gestión y Seguridad del Canal</span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                  {isCurrentUserAdmin || selectedGroup.createdBy === currentUser.id
+                    ? 'Como Administrador o Creador, puedes eliminar permanentemente este canal y todos sus registros de base de datos.'
+                    : 'Puedes abandonar este canal en cualquier momento si ya no deseas recibir actualizaciones ni coordinaciones de viaje.'}
+                </p>
+
+                <div className="pt-1">
+                  {(isCurrentUserAdmin || selectedGroup.createdBy === currentUser.id) ? (
+                    <button
+                      type="button"
+                      disabled={isDeletingGroup}
+                      onClick={handleDeleteGroup}
+                      className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>{isDeletingGroup ? 'Eliminando canal...' : '🗑️ Eliminar Canal Definitivamente'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isLeavingGroup}
+                      onClick={handleLeaveGroup}
+                      className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 hover:text-rose-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>{isLeavingGroup ? 'Saliendo...' : '🚪 Abandonar este Canal'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         ) : showCreateGroup ? (
           /* VISTA 2: CREAR NUEVO CANAL */

@@ -18,141 +18,199 @@ interface LogoProps {
 export function RutaLinkIsotype({ className = 'w-9 h-9' }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 120 120"
+      viewBox="0 0 160 180"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="Isotipo Oficial RutaLink Provincia de Barranca"
     >
       <defs>
-        {/* Gradiente Azul Pacífico / Institucional */}
-        <linearGradient id="rlNavyGradient" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#0f172a" />
-          <stop offset="60%" stopColor="#1e3a8a" />
-          <stop offset="100%" stopColor="#2563eb" />
+        {/* Fondo Nocturno Premium / Escudo */}
+        <linearGradient id="rlBgGrad" x1="10" y1="0" x2="150" y2="180" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#0b1120" />
+          <stop offset="60%" stopColor="#0f172a" />
+          <stop offset="100%" stopColor="#1e293b" />
         </linearGradient>
 
-        {/* Gradiente Valles Norte (Paramonga Verde - Pativilca Amarillo) */}
-        <linearGradient id="rlValleyNorth" x1="40" y1="10" x2="65" y2="60" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#15803d" />
-          <stop offset="60%" stopColor="#16a34a" />
-          <stop offset="100%" stopColor="#eab308" />
-        </linearGradient>
-
-        {/* Gradiente Centro (Barranca Dorado / Sol) */}
-        <linearGradient id="rlBarrancaGold" x1="45" y1="50" x2="70" y2="85" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#ea580c" />
-        </linearGradient>
-
-        {/* Gradiente Sur (Supe Puerto Turquesa - Supe Pueblo Azul Caral) */}
-        <linearGradient id="rlSupeValley" x1="45" y1="75" x2="105" y2="115" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#06b6d4" />
-          <stop offset="50%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#475569" />
-        </linearGradient>
-
-        {/* Eje Vial Panamericana Dorado */}
-        <linearGradient id="rlSpineGold" x1="30" y1="115" x2="60" y2="10" gradientUnits="userSpaceOnUse">
+        {/* Gradiente Panamericana */}
+        <linearGradient id="rlPanaGold" x1="30" y1="170" x2="65" y2="15" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#f59e0b" />
           <stop offset="50%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#fef08a" />
+          <stop offset="100%" stopColor="#fde047" />
         </linearGradient>
 
-        <filter id="rlShadow" x="-10%" y="-10%" width="125%" height="125%">
-          <feDropShadow dx="0" dy="3" stdDeviation="3.5" floodColor="#020617" floodOpacity="0.3" />
+        {/* Sombra de relieve */}
+        <filter id="rlEmblemShadow" x="-15%" y="-15%" width="130%" height="130%">
+          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#020617" floodOpacity="0.45" />
+        </filter>
+        <filter id="rlDistrictGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.3" />
         </filter>
       </defs>
 
-      {/* Contenedor Geométrico con Base Escudo Redondeado */}
-      <rect width="120" height="120" rx="30" fill="url(#rlNavyGradient)" filter="url(#rlShadow)" />
-
-      {/* 1. Silueta Paramonga (Norte / Valle Fortaleza) */}
-      <path
-        d="M 52,14 
-           C 62,12 75,18 78,28 
-           C 80,36 74,45 66,50 
-           C 58,54 50,48 44,42 
-           C 40,36 44,18 52,14 Z"
-        fill="url(#rlValleyNorth)"
-        opacity="0.92"
-      />
-
-      {/* 2. Silueta Pativilca (Centro-Norte / Río Pativilca) */}
-      <path
-        d="M 64,48 
-           C 74,44 86,52 88,64 
-           C 90,72 82,78 72,78 
-           C 62,78 54,72 56,62 
-           C 58,54 60,50 64,48 Z"
-        fill="#eab308"
-        opacity="0.95"
-      />
-
-      {/* 3. Silueta Barranca Centro (Corazón Provincial / Costa y UNAB) */}
-      <path
-        d="M 48,60 
-           C 56,58 72,62 76,72 
-           C 78,82 68,90 56,90 
-           C 46,90 38,82 40,72 
-           C 42,64 44,60 48,60 Z"
-        fill="url(#rlBarrancaGold)"
-      />
-
-      {/* 4. Silueta Supe Puerto y Supe Pueblo / Caral (Sur) */}
-      <path
-        d="M 44,82 
-           C 52,80 62,82 66,88 
-           C 74,86 92,82 102,90 
-           C 108,98 100,108 86,110 
-           C 72,112 56,106 48,98 
-           C 40,94 38,86 44,82 Z"
-        fill="url(#rlSupeValley)"
-        opacity="0.92"
-      />
-
-      {/* 5. Eje Troncal de Movilidad: Carretera Panamericana Norte que une los 5 distritos */}
-      <path
-        d="M 62,112 
-           C 52,95 48,78 54,64 
-           C 58,52 64,38 56,16"
-        stroke="url(#rlSpineGold)"
-        strokeWidth="4.5"
-        strokeLinecap="round"
-      />
-
-      {/* Línea central punteada de la carretera */}
-      <path
-        d="M 62,112 
-           C 52,95 48,78 54,64 
-           C 58,52 64,38 56,16"
-        stroke="#1e293b"
-        strokeWidth="1.6"
-        strokeDasharray="3 3.5"
-        strokeLinecap="round"
-        opacity="0.8"
-      />
-
-      {/* 6. Nodo de Geolocalización Central en Barranca / UNAB */}
-      <circle cx="53" cy="68" r="9" fill="#ffffff" filter="url(#rlShadow)" />
-      <circle cx="53" cy="68" r="6" fill="#2563eb" />
-      <circle cx="53" cy="68" r="2.5" fill="#fbbf24" />
-
-      {/* Ondas sutiles del Océano Pacífico (Litoral de Barranca y Puerto Supe) */}
-      <path
-        d="M 22,66 C 26,62 30,68 34,64"
-        stroke="#38bdf8"
-        strokeWidth="2"
-        strokeLinecap="round"
-        opacity="0.6"
-      />
-      <path
-        d="M 20,76 C 24,72 28,78 32,74"
-        stroke="#38bdf8"
+      {/* Escudo Base Curvo con Bordes Suaves */}
+      <rect
+        x="4"
+        y="4"
+        width="152"
+        height="172"
+        rx="34"
+        fill="url(#rlBgGrad)"
+        stroke="#334155"
         strokeWidth="1.8"
-        strokeLinecap="round"
-        opacity="0.45"
+        filter="url(#rlEmblemShadow)"
       />
+
+      {/* Brillo perimetral */}
+      <rect
+        x="5"
+        y="5"
+        width="150"
+        height="170"
+        rx="33"
+        fill="none"
+        stroke="#38bdf8"
+        strokeWidth="0.8"
+        opacity="0.25"
+      />
+
+      {/* GRUPO CARTOGRAFÍA PROVINCIAL DE BARRANCA */}
+      <g id="mapa-provincial-barranca" filter="url(#rlDistrictGlow)" transform="translate(10, 8) scale(0.88)">
+        
+        {/* 1. DISTRITO PARAMONGA (Norte - Verde Valle Fortaleza) */}
+        <path
+          d="M 52,8 
+             C 60,6 74,16 78,28 
+             C 80,38 72,50 64,54 
+             C 58,56 50,52 46,46 
+             C 44,40 40,40 38,44 
+             C 32,50 36,60 40,66 
+             C 34,68 20,64 12,70 
+             C 8,74 12,82 18,88 
+             C 24,84 32,76 38,72 
+             C 46,74 46,62 50,56 
+             C 56,58 60,54 58,46 
+             C 56,38 52,24 50,14 Z"
+          fill="#65a30d"
+          stroke="#4d7c0f"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+
+        {/* 2. DISTRITO PATIVILCA (Centro-Norte - Amarillo) */}
+        <path
+          d="M 50,56 
+             C 56,58 68,52 72,54 
+             C 80,58 88,72 88,80 
+             C 86,88 78,92 72,92 
+             C 62,94 48,92 40,94 
+             C 34,92 32,84 38,72 
+             C 46,74 46,62 50,56 Z"
+          fill="#eab308"
+          stroke="#ca8a04"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+
+        {/* 3. DISTRITO BARRANCA (Centro - Naranja Capital Provincial) */}
+        <path
+          d="M 38,72 
+             C 42,84 34,92 40,94 
+             C 48,92 62,94 72,92 
+             C 76,96 74,106 68,112 
+             C 58,114 52,118 44,116 
+             C 38,112 34,102 36,92 
+             C 30,86 32,78 38,72 Z"
+          fill="#ea580c"
+          stroke="#c2410c"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+
+        {/* 4. DISTRITO SUPE PUERTO (Costa Suroeste - Turquesa / Océano) */}
+        <path
+          d="M 38,112 
+             C 44,118 48,118 46,124 
+             C 42,126 38,126 36,122 
+             C 34,118 36,114 38,112 Z"
+          fill="#06b6d4"
+          stroke="#0891b2"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+
+        {/* 5. DISTRITO SUPE (Sureste - Azul Caral y Valle Supe) */}
+        <path
+          d="M 46,124 
+             C 52,118 68,112 74,116 
+             C 84,118 94,114 102,118 
+             C 106,124 100,132 94,136 
+             C 88,142 86,150 78,156 
+             C 72,160 66,154 62,146 
+             C 56,144 50,146 44,140 
+             C 42,132 44,126 46,124 Z"
+          fill="#64748b"
+          stroke="#475569"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+
+        {/* RÍOS FLUVIALES DE LOS 3 VALLES (Líneas Celestes) */}
+        {/* Río Fortaleza */}
+        <path
+          d="M 72,12 C 60,30 46,46 36,54"
+          stroke="#38bdf8"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+        {/* Río Pativilca */}
+        <path
+          d="M 86,76 C 70,82 50,88 34,92"
+          stroke="#38bdf8"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+        {/* Río Supe */}
+        <path
+          d="M 98,130 C 80,132 64,136 44,136"
+          stroke="#38bdf8"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          opacity="0.85"
+        />
+
+        {/* CARRETERA PANAMERICANA NORTE (Columna vertebral vial en oro) */}
+        <path
+          d="M 16,84 
+             C 24,88 32,96 38,106 
+             C 44,118 48,136 54,166"
+          stroke="url(#rlPanaGold)"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M 16,84 
+             C 24,88 32,96 38,106 
+             C 44,118 48,136 54,166"
+          stroke="#0f172a"
+          strokeWidth="1.2"
+          strokeDasharray="2 3"
+          strokeLinecap="round"
+        />
+
+        {/* NODO GEOGRÁFICO CENTRAL BARRANCA - UNAB (Baliza GPS) */}
+        <circle cx="48" cy="104" r="8" fill="#ffffff" opacity="0.9" />
+        <circle cx="48" cy="104" r="5.5" fill="#2563eb" />
+        <circle cx="48" cy="104" r="2.2" fill="#fbbf24" />
+
+        {/* Baliza Puerto Supe */}
+        <circle cx="40" cy="120" r="3" fill="#06b6d4" stroke="#ffffff" strokeWidth="0.8" />
+
+        {/* Baliza Caral / Supe */}
+        <circle cx="82" cy="136" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="0.8" />
+      </g>
     </svg>
   );
 }
