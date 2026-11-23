@@ -4,6 +4,7 @@ import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { supabase } from '../config/supabase.js';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -172,6 +173,160 @@ router.post('/recover/reset', async (req: Request, res: Response): Promise<void>
   }
 });
 
+// Esquema de validación para registro profesional directo (Resiliente, sin bloqueo por SMTP)
+const RegisterDirectSchema = z.object({
+  email: z.string().email('Correo electrónico inválido'),
+  password: z.string().min(6, 'La contraseña debe tener mínimo 6 caracteres'),
+  fullName: z.string().min(2, 'Ingresa un nombre y apellido válido'),
+  phone: z.string().min(6, 'Número telefónico inválido'),
+  role: z.enum([
+    'PASAJERO',
+    'CONDUCTOR_AFILIADO',
+    'CONDUCTOR_INDEPENDIENTE',
+    'ADMIN_EMPRESA',
+    'ENCARGADO_PARADERO'
+  ]).default('PASAJERO'),
+  district: z.string().optional(),
+  avatarId: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional()
+});
+
+// POST /api/auth/register-direct - Registro profesional con activación inmediata en DB
+router.post('/register-direct', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const parseResult = RegisterDirectSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({
+        error: 'Datos de registro incompletos o inválidos',
+        details: parseResult.error.format()
+      });
+      return;
+    }
+
+    const {
+      email,
+      password,
+      fullName,
+      phone,
+      role,
+      district = 'Barranca',
+      emergencyContactName,
+      emergencyContactPhone
+    } = parseResult.data;
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.trim();
+
+    const client = await pool.connect();
+    try {
+      // 1. Verificar si ya existe en auth.users
+      const existingUser = await client.query('SELECT id FROM auth.users WHERE email = $1', [normalizedEmail]);
+      let userId: string;
+
+      if (existingUser.rows.length > 0) {
+        userId = existingUser.rows[0].id;
+        // Usuario existente: actualizar credenciales, confirmar email y actualizar metadatos
+        await client.query(`
+          UPDATE auth.users
+          SET encrypted_password = crypt($1, gen_salt('bf')),
+              email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+              raw_user_meta_data = $2,
+              updated_at = NOW()
+          WHERE id = $3::uuid
+        `, [
+          password,
+          JSON.stringify({ full_name: fullName, phone: cleanPhone, active_role: role, district }),
+          userId
+        ]);
+
+        // Asegurar identidad
+        await client.query(`
+          INSERT INTO auth.identities (
+            id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+          ) VALUES (
+            $1::uuid, $1::text, $1::uuid, jsonb_build_object('sub', $1::text, 'email', $2::text), 'email', NOW(), NOW(), NOW()
+          ) ON CONFLICT (provider_id, provider) DO UPDATE SET
+            updated_at = NOW()
+        `, [userId, normalizedEmail]);
+      } else {
+        // Nuevo usuario: generar UUID e insertar directamente confirmado
+        userId = crypto.randomUUID();
+        await client.query(`
+          INSERT INTO auth.users (
+            id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+            confirmation_token, recovery_token, email_change_token_new, email_change,
+            email_change_token_current, reauthentication_token, email_change_confirm_status
+          ) VALUES (
+            $1::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2,
+            crypt($3, gen_salt('bf')), NOW(),
+            '{"provider":"email","providers":["email"]}',
+            $4, NOW(), NOW(),
+            '', '', '', '', '', '', 0
+          )
+        `, [
+          userId,
+          normalizedEmail,
+          password,
+          JSON.stringify({ full_name: fullName, phone: cleanPhone, active_role: role, district })
+        ]);
+
+        // Insertar en auth.identities
+        await client.query(`
+          INSERT INTO auth.identities (
+            id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+          ) VALUES (
+            $1::uuid, $1::text, $1::uuid, jsonb_build_object('sub', $1::text, 'email', $2::text), 'email', NOW(), NOW(), NOW()
+          ) ON CONFLICT (provider_id, provider) DO UPDATE SET
+            updated_at = NOW()
+        `, [userId, normalizedEmail]);
+      }
+
+      // 2. Insertar o actualizar perfil en public.profiles
+      await client.query(`
+        INSERT INTO public.profiles (
+          id, full_name, phone, active_role, email, emergency_contact_name, emergency_contact_phone, updated_at
+        ) VALUES (
+          $1::uuid, $2, $3, $4, $5, $6, $7, NOW()
+        ) ON CONFLICT (id) DO UPDATE SET
+          full_name = EXCLUDED.full_name,
+          phone = EXCLUDED.phone,
+          active_role = EXCLUDED.active_role,
+          email = EXCLUDED.email,
+          emergency_contact_name = COALESCE(EXCLUDED.emergency_contact_name, public.profiles.emergency_contact_name),
+          emergency_contact_phone = COALESCE(EXCLUDED.emergency_contact_phone, public.profiles.emergency_contact_phone),
+          updated_at = NOW()
+      `, [
+        userId,
+        fullName,
+        cleanPhone,
+        role,
+        normalizedEmail,
+        emergencyContactName || null,
+        emergencyContactPhone || null
+      ]);
+
+      res.status(201).json({
+        success: true,
+        message: 'Cuenta creada y activada con éxito para la red comunitaria.',
+        user: {
+          id: userId,
+          email: normalizedEmail,
+          fullName,
+          phone: cleanPhone,
+          role
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (err: any) {
+    console.error('[Direct Register Error]:', err);
+    res.status(500).json({ error: 'Error interno al registrar cuenta en el servidor: ' + (err.message || 'Error desconocido') });
+  }
+});
+
 const UpdateProfileSchema = z.object({
   fullName: z.string().min(2).max(100).optional(),
   phone: z.string().min(6).max(20).optional(),
@@ -292,17 +447,21 @@ router.delete('/account', requireAuth, async (req: AuthenticatedRequest, res: Re
     try {
       // 1. Limpieza de tablas dependientes en public para evitar bloqueos de clave foránea
       await client.query('DELETE FROM public.chat_messages WHERE sender_id = $1', [userId]).catch(() => null);
+      await client.query('DELETE FROM public.group_chat_messages WHERE sender_id = $1', [userId]).catch(() => null);
       await client.query('DELETE FROM public.passenger_dropoffs WHERE passenger_id = $1', [userId]).catch(() => null);
+      await client.query('DELETE FROM public.waiting_passengers WHERE user_id = $1', [userId]).catch(() => null);
+      await client.query('DELETE FROM public.vehicles WHERE owner_id = $1', [userId]).catch(() => null);
+      await client.query('DELETE FROM public.dispatcher_shifts WHERE dispatcher_id = $1', [userId]).catch(() => null);
       await client.query('DELETE FROM public.trips_and_agreements WHERE passenger_id = $1 OR driver_id = $1', [userId]).catch(() => null);
       await client.query('DELETE FROM public.group_members WHERE user_id = $1', [userId]).catch(() => null);
-      await client.query('DELETE FROM public.profiles WHERE id = $1', [userId]);
+      await client.query('DELETE FROM public.profiles WHERE id = $1', [userId]).catch(() => null);
 
-      // 2. Intentar eliminar usuario de auth.users
-      await client.query('DELETE FROM auth.users WHERE id = $1', [userId]).catch((e) => {
-        console.warn('[Direct auth.users delete warning, profile cleaned]:', e.message);
-      });
+      // 2. Limpieza de identidades, sesiones y usuario en auth
+      await client.query('DELETE FROM auth.identities WHERE user_id = $1::uuid', [userId]).catch(() => null);
+      await client.query('DELETE FROM auth.sessions WHERE user_id = $1::uuid', [userId]).catch(() => null);
+      await client.query('DELETE FROM auth.users WHERE id = $1::uuid', [userId]).catch(() => null);
 
-      res.json({ message: 'Cuenta y datos personales eliminados permanentemente del sistema' });
+      res.json({ success: true, message: 'Cuenta y datos personales eliminados permanentemente del sistema' });
       return;
     } finally {
       client.release();

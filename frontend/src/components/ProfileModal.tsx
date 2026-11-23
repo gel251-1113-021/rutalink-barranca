@@ -49,7 +49,10 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
   };
 
   const handleDeleteAccount = async () => {
+    setIsUpdating(true);
+    setMsg(null);
     const res = await deleteAccount();
+    setIsUpdating(false);
     if (res.error) {
       setMsg({ text: res.error, type: 'error' });
     } else {

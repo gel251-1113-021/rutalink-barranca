@@ -198,8 +198,13 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
 
     const effectiveEmail = email.trim().toLowerCase();
     const effectivePassword = password;
+    let cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('51') && cleanPhone.length === 11) {
+      cleanPhone = cleanPhone.slice(2);
+    }
+    const formattedPhone = cleanPhone.length === 9 ? `+51${cleanPhone}` : phone.trim();
 
-    const res = await register(effectiveEmail, effectivePassword, fullName.trim(), phone.trim(), role);
+    const res = await register(effectiveEmail, effectivePassword, fullName.trim(), formattedPhone, role);
     setLoading(false);
 
     if (res.error) {
@@ -447,7 +452,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                         type="email"
                         required
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setErrorMsg('');
+                        }}
                         placeholder="tu_correo@gmail.com"
                         className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                       />
@@ -465,7 +473,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                         required
                         minLength={8}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setErrorMsg('');
+                        }}
                         placeholder="••••••••"
                         className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                       />
@@ -485,7 +496,14 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                         maxLength={9}
                         required
                         value={phone.replace(/^\+51/, '')}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                        onChange={(e) => {
+                          setErrorMsg('');
+                          let val = e.target.value.replace(/\D/g, '');
+                          if (val.startsWith('51') && val.length > 9) {
+                            val = val.slice(2);
+                          }
+                          setPhone(val);
+                        }}
                         placeholder="987654321"
                         className="flex-1 px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold"
                       />
@@ -503,11 +521,15 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                         setErrorMsg('La contraseña debe tener al menos 8 caracteres.');
                         return;
                       }
-                      const cleanPhone = phone.replace(/\D/g, '');
-                      if (cleanPhone.length < 9) {
-                        setErrorMsg('Ingresa un número telefónico móvil peruano de 9 dígitos.');
+                      let cleanPhone = phone.replace(/\D/g, '');
+                      if (cleanPhone.startsWith('51') && cleanPhone.length === 11) {
+                        cleanPhone = cleanPhone.slice(2);
+                      }
+                      if (cleanPhone.length !== 9 || !cleanPhone.startsWith('9')) {
+                        setErrorMsg('Ingresa un número telefónico móvil peruano de 9 dígitos que inicie con 9 (ej. 987654321).');
                         return;
                       }
+                      setPhone(`+51${cleanPhone}`);
                       setErrorMsg('');
                       setOnboardingStage(2);
                     }}
@@ -536,7 +558,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                         type="text"
                         required
                         value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        onChange={(e) => {
+                          setFullName(e.target.value);
+                          setErrorMsg('');
+                        }}
                         placeholder="Ej. Carlos Mendoza Huamán"
                         className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                       />

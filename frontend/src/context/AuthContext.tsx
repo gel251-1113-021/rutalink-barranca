@@ -184,36 +184,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: UserRole
   ) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // 1. Registro directo en backend para confirmar inmediatamente sin bloqueo de correo SMTP
+      let directSuccess = false;
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/register-direct`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password,
+            fullName,
             phone,
-            active_role: role
-          }
+            role
+          })
+        });
+        if (res.ok) {
+          directSuccess = true;
+        } else {
+          const data = await res.json().catch(() => ({}));
+          console.warn('[Register-direct error]:', data);
         }
+      } catch (errDirect) {
+        console.warn('[Register-direct unreachable, trying Supabase fallback]:', errDirect);
+      }
+
+      // 2. Si falló el registro directo, intentar con el cliente Supabase
+      if (!directSuccess) {
+        const { error } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              phone,
+              active_role: role
+            }
+          }
+        });
+        if (error && !error.message.includes('confirmation email') && !error.message.includes('already registered')) {
+          return { error: error.message };
+        }
+      }
+
+      // 3. Inicio de sesión inmediato con las credenciales
+      const { data: signData, error: signErr } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password
       });
-      if (error) return { error: error.message };
 
-      // Consolidar sesión inmediata con signInWithPassword para evitar sesiones nulas en Supabase
-      const loginRes = await supabase.auth.signInWithPassword({ email, password }).catch(() => null);
-      const activeUser = loginRes?.data?.user || data.user;
+      if (signErr) {
+        return { error: `Cuenta creada exitosamente. Inicia sesión con tus credenciales.` };
+      }
 
-      if (activeUser) {
-        setUser(activeUser);
+      if (signData?.user) {
+        setUser(signData.user);
         if (typeof window !== 'undefined') {
           localStorage.setItem('rutalink_user_session', JSON.stringify({
-            id: activeUser.id,
-            email: activeUser.email || email,
+            id: signData.user.id,
+            email: normalizedEmail,
             full_name: fullName,
             phone,
             active_role: role
           }));
         }
-        await upsertAndFetchProfile(activeUser.id, fullName, phone, role, email);
+        await upsertAndFetchProfile(signData.user.id, fullName, phone, role, normalizedEmail);
       }
+
       return {};
     } catch (err: any) {
       return { error: err.message || 'Error al registrar usuario' };
