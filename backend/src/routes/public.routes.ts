@@ -1,3 +1,4 @@
+import { EmailService } from '../services/email.service.js';
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
@@ -226,6 +227,14 @@ router.get('/vehicles', async (_req: Request, res: Response): Promise<void> => {
       res.json({ vehicles: [] });
     }
   }
+});
+
+// Endpoint de verificación inmediata de salida SMTP
+router.get('/test-email', async (req: Request, res: Response): Promise<void> => {
+  const to = String(req.query.to || 'matosangel444@gmail.com');
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const ok = await EmailService.sendOtpEmail(to, code, 'recovery');
+  res.json({ to, code, sent: ok, timestamp: new Date().toISOString() });
 });
 
 export default router;

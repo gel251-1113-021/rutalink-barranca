@@ -12,28 +12,19 @@ interface SendEmailParams {
 }
 
 export class EmailService {
-  private static transporter: any = null;
-
   private static getTransporter(): any {
-    if (this.transporter) return this.transporter;
-
     const user = (process.env.SMTP_USER || 'matosangel444@gmail.com').trim();
     const pass = (process.env.SMTP_PASS || 'cjzqysictxtgpoap').replace(/\s+/g, '');
 
-    if (user && pass) {
-      this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '465', 10),
-        secure: process.env.SMTP_SECURE !== 'false',
-        auth: {
-          user,
-          pass
-        }
-      });
-      return this.transporter;
-    }
-
-    return null;
+    return nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user,
+        pass
+      }
+    });
   }
 
   public static isConfigured(): boolean {
