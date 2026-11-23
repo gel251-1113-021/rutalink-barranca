@@ -13,6 +13,25 @@ const pool = new Pool({
 // Memoria de control de throttling GPS: { vehicleId: { lastTime: number, lat: number, lng: number } }
 const gpsThrottlingCache = new Map<string, { lastTime: number; lat: number; lng: number }>();
 
+// Presencia simultánea en tiempo real de todos los usuarios (Choferes y Pasajeros transmitiendo)
+export interface LiveUserPresence {
+  userId: string;
+  userName: string;
+  role: 'PASAJERO' | 'CONDUCTOR';
+  lat: number;
+  lng: number;
+  heading?: number;
+  driverStatus?: 'DISPONIBLE' | 'PAUSA';
+  plate?: string;
+  brandModel?: string;
+  phone?: string;
+  vehicleType?: string;
+  socketId: string;
+  lastSeen: number;
+}
+
+const liveUsersPresence = new Map<string, LiveUserPresence>();
+
 export function initializeSockets(io: SocketIOServer): void {
   io.use(async (socket: Socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -34,12 +53,85 @@ export function initializeSockets(io: SocketIOServer): void {
   });
 
   io.on('connection', (socket: Socket) => {
-    const userId = socket.data.user?.id;
-    if (userId) {
-      socket.join(`user_${userId}`);
+    const handshakeUserId = socket.data.user?.id || (socket.handshake.auth?.userId as string | undefined);
+    if (handshakeUserId) {
+      socket.join(`user_${handshakeUserId}`);
+      socket.data.userId = handshakeUserId;
     }
 
     socket.join('barranca_live_map');
+
+    // Enviar al recién conectado el snapshot de todos los usuarios transmitiendo simultáneamente
+    socket.emit('user_presence_updated', Array.from(liveUsersPresence.values()));
+
+    // Registro explícito del cliente para garantizar sala privada user_{userId}
+    socket.on('register_user', (data: { userId: string; role?: string; name?: string }) => {
+      if (data?.userId) {
+        socket.data.userId = data.userId;
+        socket.data.userName = data.name;
+        socket.data.role = data.role;
+        socket.join(`user_${data.userId}`);
+      }
+    });
+
+    // 0. Inicio de transmisión en vivo simultánea de cualquier usuario (Conductor o Pasajero)
+    socket.on('user_start_broadcast', (presence: {
+      userId: string;
+      userName: string;
+      role: 'PASAJERO' | 'CONDUCTOR';
+      lat: number;
+      lng: number;
+      heading?: number;
+      driverStatus?: 'DISPONIBLE' | 'PAUSA';
+      plate?: string;
+      brandModel?: string;
+      phone?: string;
+      vehicleType?: string;
+    }) => {
+      if (!presence.userId || isNaN(presence.lat) || isNaN(presence.lng)) return;
+
+      const record: LiveUserPresence = {
+        ...presence,
+        socketId: socket.id,
+        lastSeen: Date.now()
+      };
+      liveUsersPresence.set(presence.userId, record);
+      socket.data.userId = presence.userId;
+
+      // Notificar a todos en el mapa provincial
+      io.to('barranca_live_map').emit('user_presence_updated', Array.from(liveUsersPresence.values()));
+    });
+
+    // Actualización continua de posición en vivo
+    socket.on('user_update_coords', (data: {
+      userId: string;
+      lat: number;
+      lng: number;
+      heading?: number;
+      driverStatus?: 'DISPONIBLE' | 'PAUSA';
+    }) => {
+      if (!data.userId || isNaN(data.lat) || isNaN(data.lng)) return;
+
+      const existing = liveUsersPresence.get(data.userId);
+      if (existing) {
+        existing.lat = data.lat;
+        existing.lng = data.lng;
+        if (data.heading !== undefined) existing.heading = data.heading;
+        if (data.driverStatus) existing.driverStatus = data.driverStatus;
+        existing.lastSeen = Date.now();
+        liveUsersPresence.set(data.userId, existing);
+
+        io.to('barranca_live_map').emit('user_presence_single_moved', existing);
+      }
+    });
+
+    // Detener transmisión en vivo
+    socket.on('user_stop_broadcast', (data: { userId: string }) => {
+      if (data?.userId) {
+        liveUsersPresence.delete(data.userId);
+        io.to('barranca_live_map').emit('user_presence_removed', { userId: data.userId });
+      }
+    });
 
     // 1. Unirse a sala efímera de viaje o grupo
     socket.on('join_trip', (tripId: string) => {
@@ -233,8 +325,24 @@ export function initializeSockets(io: SocketIOServer): void {
       }
     });
 
+    // 8. Mensajería Privada 1 a 1 de Negociación y Carrera Pactada en Tiempo Real
+    socket.on('send_ride_chat', (data: {
+      targetUserId: string;
+      message: any;
+      fromUserId?: string;
+    }) => {
+      if (data?.targetUserId && data?.message) {
+        io.to(`user_${data.targetUserId}`).emit('ride_chat_message', data.message);
+      }
+    });
+
     socket.on('disconnect', () => {
-      // Limpieza de socket
+      // Limpieza de presencia si el usuario estaba transmitiendo
+      const uid = socket.data.userId;
+      if (uid && liveUsersPresence.has(uid)) {
+        liveUsersPresence.delete(uid);
+        io.to('barranca_live_map').emit('user_presence_removed', { userId: uid });
+      }
     });
   });
 }

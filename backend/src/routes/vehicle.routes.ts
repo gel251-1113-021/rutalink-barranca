@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { Pool } from 'pg';
-import { supabase } from '../config/supabase.js';
+import { supabase, supabaseAdmin, getAuthenticatedSupabaseClient } from '../config/supabase.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -68,7 +68,8 @@ router.get('/my-vehicle', requireAuth, async (req: AuthenticatedRequest, res: Re
       }
     } catch (poolErr) {
       console.warn('[My Vehicle Pool, fallback to Supabase client]:', poolErr);
-      const { data, error } = await supabase
+      const sbClient = getAuthenticatedSupabaseClient(req.headers.authorization);
+      const { data, error } = await sbClient
         .from('vehicles')
         .select(`
           id, plate, brand_model, vehicle_type, seat_layout, capacity,
@@ -158,7 +159,8 @@ router.post('/save-design', requireAuth, async (req: AuthenticatedRequest, res: 
     } catch (poolErr) {
       console.warn('[Save Vehicle Pool error, using Supabase client]:', poolErr);
       const cleanPlate = plate.toUpperCase().trim();
-      const { data: upserted, error: sbError } = await supabase
+      const sbClient = getAuthenticatedSupabaseClient(req.headers.authorization);
+      const { data: upserted, error: sbError } = await sbClient
         .from('vehicles')
         .upsert({
           owner_id: userId,
@@ -233,7 +235,8 @@ router.put('/seats', requireAuth, async (req: AuthenticatedRequest, res: Respons
       };
       if (cargoStatus) updateData.cargo_status = cargoStatus;
 
-      const { data, error } = await supabase
+      const sbClient = getAuthenticatedSupabaseClient(req.headers.authorization);
+      const { data, error } = await sbClient
         .from('vehicles')
         .update(updateData)
         .match({ id: vehicleId, owner_id: userId })

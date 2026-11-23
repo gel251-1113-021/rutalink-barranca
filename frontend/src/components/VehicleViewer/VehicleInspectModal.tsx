@@ -68,9 +68,11 @@ export default function VehicleInspectModal({
 
   const rawPlate = (vehicle.plate || '').trim();
   const cleanPlate = rawPlate.replace(/\s+/g, '').toUpperCase();
-  const phone = vehicle.driver_phone || '+51 987654323';
-  const cleanPhone = phone.replace(/[^0-9]/g, '');
-  const waLink = `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola, veo tu vehículo ${vehicle.brand_model} (${cleanPlate}) en RutaLink.`)}`;
+  const phone = vehicle.driver_phone ? vehicle.driver_phone.trim() : '';
+  const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+  const waLink = cleanPhone
+    ? `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola, veo tu vehículo ${vehicle.brand_model} (${cleanPlate}) en RutaLink Barranca.`)}`
+    : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
@@ -170,24 +172,38 @@ export default function VehicleInspectModal({
           {/* 3. Botones de Acción Directa con el Conductor (1 toque) */}
           <div className="grid grid-cols-2 gap-2">
             {/* Llamar */}
-            <a
-              href={`tel:${phone}`}
-              className="py-2.5 px-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
-            >
-              <Phone className="w-4 h-4" />
-              <span>Llamar Chofer</span>
-            </a>
+            {phone ? (
+              <a
+                href={`tel:${phone}`}
+                className="py-2.5 px-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
+              >
+                <Phone className="w-4 h-4" />
+                <span>Llamar Chofer</span>
+              </a>
+            ) : (
+              <div className="py-2.5 px-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
+                <Phone className="w-4 h-4" />
+                <span>Sin Teléfono</span>
+              </div>
+            )}
 
             {/* WhatsApp */}
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-2.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>WhatsApp</span>
-            </a>
+            {waLink ? (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp</span>
+              </a>
+            ) : (
+              <div className="py-2.5 px-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
+                <MessageCircle className="w-4 h-4" />
+                <span>Sin WhatsApp</span>
+              </div>
+            )}
           </div>
 
           {/* 4. Fotos y Calificaciones Reales */}
@@ -234,11 +250,11 @@ export default function VehicleInspectModal({
               onClick={() => {
                 onOpenAgreement({
                   id: vehicle.id,
-                  name: vehicle.driver_name || 'Jorge Huamán Castillo',
+                  name: vehicle.driver_name || 'Conductor Autorizado',
                   plate: vehicle.plate,
                   brandModel: vehicle.brand_model,
                   rating: ratingNum,
-                  phone: vehicle.driver_phone
+                  phone: vehicle.driver_phone || ''
                 });
                 onClose();
               }}

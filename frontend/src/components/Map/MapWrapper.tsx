@@ -29,6 +29,9 @@ interface MapWrapperProps {
   hasActiveDropoff?: boolean;
   onLocateUser?: () => void;
   onPinLocation?: (coords: { lat: number; lng: number; address: string }) => void;
+  activeLiveUsers?: any[];
+  currentUserId?: string;
+  onPactWithDriver?: (driver: any) => void;
 }
 
 // Carga dinámica del mapa deshabilitando SSR para evitar incompatibilidad de window en Node.js

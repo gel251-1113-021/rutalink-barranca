@@ -47,6 +47,9 @@ interface BarrancaMapProps {
   hasActiveDropoff?: boolean;
   onLocateUser?: () => void;
   onPinLocation?: (coords: { lat: number; lng: number; address: string }) => void;
+  activeLiveUsers?: any[];
+  currentUserId?: string;
+  onPactWithDriver?: (driver: any) => void;
 }
 
 // --------------------------------------------------------------------------------
@@ -583,6 +586,101 @@ const createWaitingPassengerIcon = () => {
   });
 };
 
+// Icono de Chofer en Vivo Simultáneo
+const createLiveDriverIcon = (name: string, plate: string, status?: string) => {
+  const isAvailable = status !== 'PAUSA';
+  const color = isAvailable ? '#10b981' : '#f59e0b';
+  const shortName = (name || 'Chofer').split(' ')[0];
+  const tagText = plate ? plate : shortName;
+  return L.divIcon({
+    className: 'custom-live-driver-marker',
+    html: `
+      <div style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));
+      ">
+        <div style="
+          background: #1e293b;
+          color: #ffffff;
+          padding: 2px 6px;
+          border-radius: 6px;
+          font-size: 9px;
+          font-weight: 800;
+          border: 1px solid ${color};
+          white-space: nowrap;
+          margin-bottom: 2px;
+        ">
+          ${tagText}
+        </div>
+        <div style="
+          width: 32px;
+          height: 32px;
+          background: ${color};
+          border: 2px solid #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 0 4px ${isAvailable ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'};
+        ">
+          <span style="font-size: 16px;">🚗</span>
+        </div>
+      </div>
+    `,
+    iconSize: [60, 48],
+    iconAnchor: [30, 48],
+    popupAnchor: [0, -48]
+  });
+};
+
+// Icono de Pasajero en Vivo Simultáneo
+const createLivePassengerIcon = (name: string) => {
+  const shortName = (name || 'Pasajero').split(' ')[0];
+  return L.divIcon({
+    className: 'custom-live-passenger-marker',
+    html: `
+      <div style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+      ">
+        <div style="
+          background: #0f172a;
+          color: #38bdf8;
+          padding: 2px 6px;
+          border-radius: 6px;
+          font-size: 9px;
+          font-weight: 700;
+          border: 1px solid #38bdf8;
+          white-space: nowrap;
+          margin-bottom: 2px;
+        ">
+          ${shortName}
+        </div>
+        <div style="
+          width: 28px;
+          height: 28px;
+          background: #0284c7;
+          border: 2px solid #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 0 5px rgba(2, 132, 199, 0.3);
+        ">
+          <span style="font-size: 14px;">🚶</span>
+        </div>
+      </div>
+    `,
+    iconSize: [60, 44],
+    iconAnchor: [30, 44],
+    popupAnchor: [0, -44]
+  });
+};
+
 // Controlador de Cámara Desacoplado para Movimiento Libre
 function MapController({
   selectedItem,
@@ -659,7 +757,10 @@ export default function BarrancaMap({
   onCancelDropoff,
   hasActiveDropoff,
   onLocateUser,
-  onPinLocation
+  onPinLocation,
+  activeLiveUsers = [],
+  currentUserId,
+  onPactWithDriver
 }: BarrancaMapProps) {
   const defaultCenter: [number, number] = [-10.7512, -77.7615];
 
@@ -1404,6 +1505,85 @@ export default function BarrancaMap({
             </Popup>
           </Marker>
         ))}
+
+        {/* Marcadores de Todos los Usuarios Transmitiendo en Vivo Simultáneamente (Choferes y Pasajeros) */}
+        {activeLiveUsers
+          .filter(u => u && u.userId !== currentUserId && !isNaN(Number(u.lat)) && !isNaN(Number(u.lng)))
+          .map((liveUser) => {
+            const isDriverUser = liveUser.role === 'CONDUCTOR';
+            const userLat = Number(liveUser.lat);
+            const userLng = Number(liveUser.lng);
+            return (
+              <Marker
+                key={`live-${liveUser.userId}`}
+                position={[userLat, userLng]}
+                icon={isDriverUser
+                  ? createLiveDriverIcon(liveUser.userName, liveUser.plate || '', liveUser.driverStatus)
+                  : createLivePassengerIcon(liveUser.userName)
+                }
+              >
+                <Popup className="custom-map-popup">
+                  <div className="p-2 text-xs min-w-[180px]">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <strong className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        {liveUser.userName}
+                      </strong>
+                    </div>
+
+                    <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                      Rol en Red: <strong className="text-blue-600 dark:text-blue-400">{liveUser.role}</strong>
+                    </div>
+
+                    {isDriverUser ? (
+                      <>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Unidad: {liveUser.brandModel || 'Vehículo'} {liveUser.plate ? `(${liveUser.plate})` : ''}
+                        </div>
+                        <div className="text-[11px] font-semibold mt-1">
+                          Disponibilidad: <span className={liveUser.driverStatus === 'PAUSA' ? 'text-amber-500 font-bold' : 'text-emerald-600 font-bold'}>
+                            {liveUser.driverStatus === 'PAUSA' ? '⏸️ En Pausa / Almuerzo' : '🟢 En Servicio Activo'}
+                          </span>
+                        </div>
+                        {liveUser.phone && liveUser.phone.replace(/[^0-9]/g, '').length >= 6 && (
+                          <a
+                            href={`https://wa.me/${liveUser.phone.replace(/[^0-9]/g, '').startsWith('51') ? liveUser.phone.replace(/[^0-9]/g, '') : '51' + liveUser.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${liveUser.userName}, te veo en el mapa de RutaLink Barranca en tiempo real.`)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 block w-full text-center py-1.5 px-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-[11px] shadow-xs transition"
+                          >
+                            💬 Contactar por WhatsApp
+                          </a>
+                        )}
+                        {onPactWithDriver && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onPactWithDriver({
+                                id: liveUser.userId,
+                                name: liveUser.userName,
+                                plate: liveUser.plate || 'EXP-001',
+                                brandModel: liveUser.brandModel || 'Unidad Autorizada',
+                                rating: 5.0,
+                                phone: liveUser.phone || ''
+                              });
+                            }}
+                            className="mt-1.5 block w-full text-center py-1.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-[11px] shadow-xs transition"
+                          >
+                            🤝 Solicitar Carrera
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-[11px] text-sky-600 dark:text-sky-400 font-semibold mt-1">
+                        📍 Pasajero esperando en ruta (GPS en Vivo)
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
 
         {/* Señal de Pasajero Esperando */}
         {passengerSignal && (

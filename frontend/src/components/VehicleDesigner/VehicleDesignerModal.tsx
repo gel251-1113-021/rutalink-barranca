@@ -199,26 +199,65 @@ export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: Vehic
         owner_id: user?.id
       };
 
-      const res = await fetch(`${apiUrl}/api/vehicles/save-design`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      let savedSuccessfully = false;
 
-      const data = await res.json();
+      // 1. Intento por backend API
+      try {
+        const res = await fetch(`${apiUrl}/api/vehicles/save-design`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          savedSuccessfully = true;
+        } else {
+          console.warn('[VehicleDesigner] Backend returned error, trying direct Supabase fallback...');
+        }
+      } catch (backendFetchErr) {
+        console.warn('[VehicleDesigner] Backend fetch failed, trying direct Supabase fallback...', backendFetchErr);
+      }
+
+      // 2. Fallback de alta disponibilidad directo a Supabase con la sesión del usuario
+      if (!savedSuccessfully && user) {
+        const { error: sbError } = await supabase
+          .from('vehicles')
+          .upsert({
+            owner_id: user.id,
+            plate: plate.toUpperCase().trim(),
+            brand_model: brandModel,
+            vehicle_type: selectedTemplate,
+            seat_layout: seats,
+            capacity: seats.filter(s => s.type === 'passenger').length,
+            roof_rack: roofRack,
+            max_cargo_kg: maxCargoKg,
+            cargo_status: cargoStatus,
+            status: 'DISPONIBLE',
+            last_location_update: new Date().toISOString()
+          }, { onConflict: 'plate' });
+
+        if (!sbError) {
+          savedSuccessfully = true;
+        } else {
+          console.error('[VehicleDesigner] Supabase direct error:', sbError);
+          setIsSaving(false);
+          setMsg({ text: sbError.message || 'Error guardando en base de datos', type: 'error' });
+          return;
+        }
+      }
+
       setIsSaving(false);
-
-      if (!res.ok) {
-        setMsg({ text: data.error || 'Fallo al guardar diseño', type: 'error' });
-      } else {
+      if (savedSuccessfully) {
         setMsg({ text: '¡Diseño 2D de la unidad guardado con éxito!', type: 'success' });
         if (onSaved) onSaved();
         setTimeout(() => {
           onClose();
         }, 1200);
+      } else {
+        setMsg({ text: 'No se pudo guardar el diseño vehicular. Verifica tu sesión.', type: 'error' });
       }
     } catch (err: any) {
       setIsSaving(false);

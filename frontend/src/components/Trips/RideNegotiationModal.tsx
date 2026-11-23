@@ -82,9 +82,20 @@ export default function RideNegotiationModal({
     const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 4
+      reconnectionAttempts: 4,
+      auth: {
+        userId: user?.id
+      }
     });
     socketRef.current = socket;
+
+    if (user?.id) {
+      socket.emit('register_user', {
+        userId: user.id,
+        role: profile?.active_role || 'PASAJERO',
+        name: profile?.full_name || 'Pasajero'
+      });
+    }
 
     // Escuchar respuesta de choferes en tiempo real
     socket.on('ride_response_received', (driverResp: any) => {
@@ -102,6 +113,14 @@ export default function RideNegotiationModal({
         return [driverResp, ...prev];
       });
       setIsBroadcasting(false);
+    });
+
+    // Escuchar mensajes de chat en vivo del chofer
+    socket.on('ride_chat_message', (msg: any) => {
+      setChatMessages(prev => {
+        if (prev.some(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
     });
 
     return () => {
@@ -191,14 +210,14 @@ export default function RideNegotiationModal({
     ]);
   };
 
-  // Enviar mensaje en chat 1 a 1
+  // Enviar mensaje en chat 1 a 1 en tiempo real
   const handleSendChatMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
     const newMsg = {
       id: `msg-${Date.now()}`,
-      sender: user?.email?.split('@')[0] || 'Pasajero',
+      sender: profile?.full_name || user?.email?.split('@')[0] || 'Pasajero',
       text: chatInput.trim(),
       isSystem: false,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -207,20 +226,14 @@ export default function RideNegotiationModal({
     setChatMessages(prev => [...prev, newMsg]);
     setChatInput('');
 
-    // Respuesta del conductor
-    if (selectedDriverForRide) {
-      setTimeout(() => {
-        setChatMessages(prev => [
-          ...prev,
-          {
-            id: `reply-${Date.now()}`,
-            sender: selectedDriverForRide.name,
-            text: `Entendido. Estoy llegando en el ${selectedDriverForRide.brandModel} (${selectedDriverForRide.plate}). Te espero con las luces intermitentes.`,
-            isSystem: false,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }
-        ]);
-      }, 1000);
+    // Emitir mensaje real por WebSockets hacia la sala privada del conductor
+    if (socketRef.current && selectedDriverForRide) {
+      const targetDriverId = selectedDriverForRide.driverId || selectedDriverForRide.id;
+      socketRef.current.emit('send_ride_chat', {
+        targetUserId: targetDriverId,
+        message: newMsg,
+        fromUserId: user?.id
+      });
     }
   };
 
@@ -588,22 +601,28 @@ export default function RideNegotiationModal({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <a
-                    href={`tel:${selectedDriverForRide.phone || '+51987654323'}`}
-                    className="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 transition"
-                    title="Llamar al chofer"
-                  >
-                    <Phone className="w-4 h-4 text-blue-600" />
-                  </a>
-                  <a
-                    href={`https://wa.me/${(selectedDriverForRide.phone || '51987654323').replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition"
-                    title="WhatsApp"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                  </a>
+                  {selectedDriverForRide.phone && selectedDriverForRide.phone.replace(/[^0-9]/g, '').length >= 6 ? (
+                    <>
+                      <a
+                        href={`tel:${selectedDriverForRide.phone}`}
+                        className="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 transition"
+                        title="Llamar al chofer"
+                      >
+                        <Phone className="w-4 h-4 text-blue-600" />
+                      </a>
+                      <a
+                        href={`https://wa.me/${selectedDriverForRide.phone.replace(/[^0-9]/g, '').startsWith('51') ? selectedDriverForRide.phone.replace(/[^0-9]/g, '') : '51' + selectedDriverForRide.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola ${selectedDriverForRide.name || ''}, te escribo por la carrera en RutaLink Barranca (PIN: ${securityPin}).`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition"
+                        title="WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 italic">Sin teléfono registrado</span>
+                  )}
                 </div>
               </div>
 

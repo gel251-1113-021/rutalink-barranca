@@ -91,154 +91,22 @@ const INITIAL_STOPS: StopPoint[] = [
   }
 ];
 
-const INITIAL_VEHICLES: VehicleUnit[] = [
-  // 1. SEDÁN ESTÁNDAR
-  {
-    id: 'd0000000-0000-0000-0000-000000000001',
-    plate: 'B1A-789',
-    brand_model: 'Toyota Yaris Sedán 2023',
-    vehicle_type: 'SEDAN',
-    seat_layout: [
-      { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Conductor', status: 'occupied' },
-      { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto A1', status: 'free' },
-      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'Atrás Izq A2', status: 'occupied' },
-      { x: 1.5, y: 2, id: 's3', type: 'passenger', label: 'Atrás Centro A3', status: 'free' },
-      { x: 2, y: 2, id: 's4', type: 'passenger', label: 'Atrás Der A4', status: 'free' }
-    ],
-    capacity: 4,
-    roof_rack: true,
-    max_cargo_kg: 45,
-    cargo_status: 'VACIO',
-    status: 'DISPONIBLE',
-    latitude: -10.7538,
-    longitude: -77.7612,
-    current_heading: 110,
-    driver_name: 'Jorge Huamán Castillo',
-    driver_phone: '+51 987654323',
-    driver_rating: 4.8,
-    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
-    last_location_update: new Date().toISOString()
-  },
-  // 2. COMBI INTERDISTRITAL (14 PASAJEROS)
-  {
-    id: 'd0000000-0000-0000-0000-000000000006',
-    plate: 'Z9P-140',
-    brand_model: 'Toyota HiAce Combi 2024',
-    vehicle_type: 'COMBI',
-    seat_layout: [
-      { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
-      { x: 3, y: 1, id: 's1', type: 'passenger', label: 'Copiloto A1', status: 'free' },
-      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'A2', status: 'free' },
-      { x: 2, y: 2, id: 's3', type: 'passenger', label: 'A3', status: 'free' },
-      { x: 3, y: 2, id: 's4', type: 'passenger', label: 'A4', status: 'occupied' },
-      { x: 1, y: 3, id: 's5', type: 'passenger', label: 'A5', status: 'free' },
-      { x: 2, y: 3, id: 's6', type: 'passenger', label: 'A6', status: 'occupied' },
-      { x: 3, y: 3, id: 's7', type: 'passenger', label: 'A7', status: 'free' },
-      { x: 1, y: 4, id: 's8', type: 'passenger', label: 'A8', status: 'free' },
-      { x: 2, y: 4, id: 's9', type: 'passenger', label: 'A9', status: 'free' },
-      { x: 3, y: 4, id: 's10', type: 'passenger', label: 'A10', status: 'free' },
-      { x: 1, y: 5, id: 's11', type: 'passenger', label: 'A11', status: 'free' },
-      { x: 1.6, y: 5, id: 's12', type: 'passenger', label: 'A12', status: 'free' },
-      { x: 2.3, y: 5, id: 's13', type: 'passenger', label: 'A13', status: 'free' },
-      { x: 3, y: 5, id: 's14', type: 'passenger', label: 'A14', status: 'free' }
-    ],
-    capacity: 14,
-    roof_rack: true,
-    max_cargo_kg: 150,
-    cargo_status: 'DISPONIBLE',
-    status: 'DISPONIBLE',
-    latitude: -10.7280,
-    longitude: -77.7580,
-    current_heading: 340,
-    driver_name: 'Pedro Chumpitaz Solís',
-    driver_phone: '+51 987654330',
-    driver_rating: 4.9,
-    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
-    last_location_update: new Date().toISOString()
-  },
-  // 3. MINIVÁN COLECTIVO (6 PASAJEROS)
-  {
-    id: 'd0000000-0000-0000-0000-000000000003',
-    plate: 'A7U-102',
-    brand_model: 'Toyota Avanza Miniván 2024',
-    vehicle_type: 'MINIVAN',
-    seat_layout: [
-      { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
-      { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto A1', status: 'free' },
-      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'A2 Intermedio', status: 'occupied' },
-      { x: 2, y: 2, id: 's3', type: 'passenger', label: 'A3 Intermedio', status: 'free' },
-      { x: 1, y: 3, id: 's4', type: 'passenger', label: 'A4 Atrás', status: 'free' },
-      { x: 1.5, y: 3, id: 's5', type: 'passenger', label: 'A5 Atrás Centro', status: 'free' },
-      { x: 2, y: 3, id: 's6', type: 'passenger', label: 'A6 Atrás Der', status: 'free' }
-    ],
-    capacity: 6,
-    roof_rack: true,
-    max_cargo_kg: 80,
-    cargo_status: 'DISPONIBLE',
-    status: 'DISPONIBLE',
-    latitude: -10.7435,
-    longitude: -77.7480,
-    current_heading: 45,
-    driver_name: 'Carlos Morales Echevarría',
-    driver_phone: '+51 987654313',
-    driver_rating: 4.95,
-    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
-    last_location_update: new Date().toISOString()
-  },
-  // 4. STATION WAGON / PROBOX CON PARRILLA (4 PASAJEROS + 120 KG)
-  {
-    id: 'd0000000-0000-0000-0000-000000000002',
-    plate: 'P4R-550',
-    brand_model: 'Toyota Probox Station Wagon con Parrilla',
-    vehicle_type: 'STATION_WAGON',
-    seat_layout: [
-      { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
-      { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto A1', status: 'free' },
-      { x: 1, y: 2, id: 's2', type: 'passenger', label: 'Atrás Izq A2', status: 'occupied' },
-      { x: 1.5, y: 2, id: 's3', type: 'passenger', label: 'Atrás Centro A3', status: 'free' },
-      { x: 2, y: 2, id: 's4', type: 'passenger', label: 'Atrás Der A4', status: 'free' }
-    ],
-    capacity: 4,
-    roof_rack: true,
-    max_cargo_kg: 120,
-    cargo_status: 'DISPONIBLE',
-    status: 'DISPONIBLE',
-    latitude: -10.7780,
-    longitude: -77.7420,
-    current_heading: 150,
-    driver_name: 'Walter Rosales Díaz',
-    driver_phone: '+51 987654324',
-    driver_rating: 4.7,
-    group_name: 'Asociación de Mototaxis y Colectivos Rápidos Barranca',
-    last_location_update: new Date().toISOString()
-  },
-  // 5. MOTOTAXI TORITO (3 PASAJEROS)
-  {
-    id: 'd0000000-0000-0000-0000-000000000007',
-    plate: 'MT-4021',
-    brand_model: 'Bajaj Torito 4T Mototaxi Barranca',
-    vehicle_type: 'MOTOTAXI',
-    seat_layout: [
-      { x: 1.5, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
-      { x: 1, y: 2, id: 's1', type: 'passenger', label: 'P1 Izq', status: 'free' },
-      { x: 1.5, y: 2, id: 's2', type: 'passenger', label: 'P2 Centro', status: 'occupied' },
-      { x: 2, y: 2, id: 's3', type: 'passenger', label: 'P3 Der', status: 'free' }
-    ],
-    capacity: 3,
-    roof_rack: false,
-    max_cargo_kg: 20,
-    cargo_status: 'DISPONIBLE',
-    status: 'DISPONIBLE',
-    latitude: -10.7505,
-    longitude: -77.7635,
-    current_heading: 270,
-    driver_name: 'Luis Morales Pajuelo',
-    driver_phone: '+51 987654329',
-    driver_rating: 4.85,
-    group_name: 'Asociación de Mototaxis y Colectivos Rápidos Barranca',
-    last_location_update: new Date().toISOString()
-  }
-];
+export interface LiveUserPresence {
+  userId: string;
+  userName: string;
+  role: 'PASAJERO' | 'CONDUCTOR';
+  lat: number;
+  lng: number;
+  heading?: number;
+  driverStatus?: 'DISPONIBLE' | 'PAUSA';
+  plate?: string;
+  brandModel?: string;
+  phone?: string;
+  vehicleType?: string;
+}
+
+// Inicialmente limpio: la red se alimenta exclusivamente de choferes y vehículos reales registrados
+const INITIAL_VEHICLES: VehicleUnit[] = [];
 
 const INITIAL_ROUTES: RouteCorridor[] = [
   {
@@ -363,6 +231,7 @@ export default function HomePage() {
   // Estados de Datos Cartográficos
   const [stops, setStops] = useState<StopPoint[]>([]);
   const [vehicles, setVehicles] = useState<VehicleUnit[]>([]);
+  const [activeLiveUsers, setActiveLiveUsers] = useState<LiveUserPresence[]>([]);
   const [routes, setRoutes] = useState<RouteCorridor[]>(INITIAL_ROUTES);
   const [selectedItem, setSelectedItem] = useState<{ type: 'stop' | 'vehicle' | 'route'; data: any } | null>(null);
   const [passengerSignal, setPassengerSignal] = useState<{ lat: number; lng: number; note?: string } | null>(null);
@@ -520,8 +389,43 @@ export default function HomePage() {
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
+      auth: {
+        userId: user?.id
+      }
     });
     socketRef.current = socket;
+
+    // Registrar identificación de usuario para recibir alertas privadas en tiempo real
+    if (user?.id) {
+      socket.emit('register_user', {
+        userId: user.id,
+        role: currentRole,
+        name: profile?.full_name || (isDriver ? 'Conductor' : 'Pasajero')
+      });
+    }
+
+    // Presencia de geolocalización simultánea de todos los usuarios en vivo
+    socket.on('user_presence_updated', (presenceList: LiveUserPresence[]) => {
+      if (Array.isArray(presenceList)) {
+        setActiveLiveUsers(presenceList);
+      }
+    });
+
+    socket.on('user_presence_single_moved', (movedUser: LiveUserPresence) => {
+      setActiveLiveUsers(prev => {
+        const idx = prev.findIndex(u => u.userId === movedUser.userId);
+        if (idx >= 0) {
+          const copy = [...prev];
+          copy[idx] = movedUser;
+          return copy;
+        }
+        return [...prev, movedUser];
+      });
+    });
+
+    socket.on('user_presence_removed', (data: { userId: string }) => {
+      setActiveLiveUsers(prev => prev.filter(u => u.userId !== data.userId));
+    });
 
     // Movimiento continuo de vehículos
     socket.on('vehicle_moved', (data: { vehicleId: string; latitude: number; longitude: number; heading?: number }) => {
@@ -670,6 +574,16 @@ export default function HomePage() {
 
             // Transmitir en tiempo real a la red comunitaria si está activado
             if (isLiveBroadcastingRef.current) {
+              if (socketRef.current && user?.id) {
+                socketRef.current.emit('user_update_coords', {
+                  userId: user.id,
+                  lat: newCoords.lat,
+                  lng: newCoords.lng,
+                  heading: pos.coords.heading || 0,
+                  driverStatus: driverWorkStatusRef.current
+                });
+              }
+
               if (isDriver && driverWorkStatusRef.current === 'DISPONIBLE') {
                 const targetVeh = vehicles.find(v => v.owner_id === user?.id) || myVehicle;
                 if (targetVeh && socketRef.current) {
@@ -711,23 +625,42 @@ export default function HomePage() {
     }
     const nextState = !isLiveBroadcasting;
     setIsLiveBroadcasting(nextState);
+
     if (nextState) {
       setNotificationToast({
-        title: '📡 Transmisión en Tiempo Real Activada',
+        title: '📡 Transmisión Satelital en Tiempo Real Activada',
         message: isDriver
-          ? 'Tu vehículo ahora es visible en vivo para los pasajeros y otros choferes en el mapa.'
-          : 'Tu posición se transmite en tiempo real a los conductores cercanos.',
+          ? 'Tu vehículo y disponibilidad son visibles en vivo para pasajeros y otros choferes en el mapa.'
+          : 'Tu posición se transmite en tiempo real a los conductores para coordinar recojo.',
         type: 'success'
       });
-      if (userLocation && socketRef.current && isDriver) {
-        const targetVeh = vehicles.find(v => v.owner_id === user?.id) || myVehicle;
-        if (targetVeh) {
-          socketRef.current.emit('driver_gps_update', {
-            vehicleId: targetVeh.id,
-            lat: userLocation.lat,
-            lng: userLocation.lng,
-            heading: 0
-          });
+
+      const currentCoords = userLocation || { lat: -10.7512, lng: -77.7615 };
+      if (socketRef.current && user?.id) {
+        socketRef.current.emit('user_start_broadcast', {
+          userId: user.id,
+          userName: profile?.full_name || (isDriver ? 'Conductor de Barranca' : 'Pasajero'),
+          role: isDriver ? 'CONDUCTOR' : 'PASAJERO',
+          lat: currentCoords.lat,
+          lng: currentCoords.lng,
+          heading: 0,
+          driverStatus: driverWorkStatus,
+          plate: myVehicle?.plate || '',
+          brandModel: myVehicle?.brand_model || '',
+          phone: profile?.phone || '',
+          vehicleType: myVehicle?.vehicle_type || 'SEDAN'
+        });
+
+        if (isDriver) {
+          const targetVeh = vehicles.find(v => v.owner_id === user?.id) || myVehicle;
+          if (targetVeh) {
+            socketRef.current.emit('driver_gps_update', {
+              vehicleId: targetVeh.id,
+              lat: currentCoords.lat,
+              lng: currentCoords.lng,
+              heading: 0
+            });
+          }
         }
       }
     } else {
@@ -736,6 +669,9 @@ export default function HomePage() {
         message: 'Tu ubicación ya no se comparte en la red comunitaria (Modo Privado).',
         type: 'info'
       });
+      if (socketRef.current && user?.id) {
+        socketRef.current.emit('user_stop_broadcast', { userId: user.id });
+      }
     }
   };
 
@@ -1163,6 +1099,12 @@ export default function HomePage() {
             onCancelDropoff={handleCancelDropoff}
             onLocateUser={handleLocateUser}
             onPinLocation={handlePinLocation}
+            activeLiveUsers={activeLiveUsers}
+            currentUserId={user?.id}
+            onPactWithDriver={(d) => {
+              setSelectedDriverForAgreement(d);
+              setAgreementModalOpen(true);
+            }}
           />
         </ErrorBoundary>
       </div>
