@@ -153,11 +153,10 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
         <div className="p-4 sm:p-5 max-h-[80vh] overflow-y-auto space-y-4">
           {msg && (
             <div
-              className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                msg.type === 'success'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200/70 text-rose-700 dark:text-rose-300'
-              }`}
+              className={`p-3 rounded-xl text-xs flex items-center gap-2 ${msg.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 text-emerald-700 dark:text-emerald-300'
+                : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200/70 text-rose-700 dark:text-rose-300'
+                }`}
             >
               {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
               <span>{msg.text}</span>
