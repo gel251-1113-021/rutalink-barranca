@@ -19,6 +19,8 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
   const [emergencyName, setEmergencyName] = useState(profile?.emergency_contact_name || '');
   const [emergencyPhone, setEmergencyPhone] = useState(profile?.emergency_contact_phone || '');
   const [activeRole, setActiveRole] = useState<UserRole>(profile?.active_role || user?.user_metadata?.active_role || 'PASAJERO');
+  const [driverLicense, setDriverLicense] = useState<string>((profile as any)?.license_number || '');
+  const [roleChangeStep, setRoleChangeStep] = useState<'IDLE' | 'REQUIRE_LICENSE'>('IDLE');
 
   // Sincronizar automáticamente campos al abrir el modal o recibir perfil
   React.useEffect(() => {

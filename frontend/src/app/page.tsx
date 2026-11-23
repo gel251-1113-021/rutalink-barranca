@@ -27,6 +27,7 @@ import ReviewModal from '../components/Reviews/ReviewModal';
 import PhotoUploadModal from '../components/Media/PhotoUploadModal';
 import LoadingSplashScreen from '../components/Branding/LoadingSplashScreen';
 import InteractiveGuideModal from '../components/Guide/InteractiveGuideModal';
+import ActiveRidesModal from '../components/Trips/ActiveRidesModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -35,61 +36,7 @@ import { BellRing, Car, Check, MapPin, Navigation, X, Radio } from 'lucide-react
 import { io, Socket } from 'socket.io-client';
 import { notificationService } from '../lib/notifications';
 
-const INITIAL_STOPS: StopPoint[] = [
-  {
-    id: 'c0000000-0000-0000-0000-000000000001',
-    name: 'Paradero Base Central Barranca',
-    type: 'BASE',
-    address_reference: 'Av. José Gálvez 450 (Cerca a Plaza Vea)',
-    latitude: -10.7512,
-    longitude: -77.7615,
-    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
-    queued_vehicles_count: 3,
-    status_note: 'Flujo normal. Salidas cada 5 minutos hacia UNAB y Supe.'
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000002',
-    name: 'Punto de Parada UNAB - Campus Universitario',
-    type: 'ZONA_TRANQUILA',
-    address_reference: 'Puerta Principal Av. Toribio de Luzuriaga',
-    latitude: -10.7485,
-    longitude: -77.7550,
-    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
-    queued_vehicles_count: 1,
-    status_note: 'Parada autorizada frente al campus UNAB.'
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000003',
-    name: 'Paradero Supe Pueblo',
-    type: 'BASE',
-    address_reference: 'Calle Francisco Bolognesi (Plaza de Supe)',
-    latitude: -10.7980,
-    longitude: -77.7125,
-    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
-    queued_vehicles_count: 2,
-    status_note: 'Salidas hacia Barranca cada 10 min.'
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000004',
-    name: 'Punto Tranquilo Óvalo Pativilca',
-    type: 'ZONA_TRANQUILA',
-    address_reference: 'Cruce Panamericana Norte y desvío Huaraz',
-    latitude: -10.6970,
-    longitude: -77.7845,
-    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
-    queued_vehicles_count: 0
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000005',
-    name: 'Punto de Abordaje Paramonga',
-    type: 'ZONA_TRANQUILA',
-    address_reference: 'Entrada Av. Ferrocarril',
-    latitude: -10.6720,
-    longitude: -77.8150,
-    group_name: 'Comité 1 de Transporte Barranca - Supe - UNAB',
-    queued_vehicles_count: 0
-  }
-];
+const INITIAL_STOPS: StopPoint[] = [];
 
 export interface LiveUserPresence {
   userId: string;
@@ -108,66 +55,7 @@ export interface LiveUserPresence {
 // Inicialmente limpio: la red se alimenta exclusivamente de choferes y vehículos reales registrados
 const INITIAL_VEHICLES: VehicleUnit[] = [];
 
-const INITIAL_ROUTES: RouteCorridor[] = [
-  {
-    id: 'e0000000-0000-0000-0000-000000000001',
-    name: 'Ruta Troncal 1: Barranca Centro — Campus UNAB',
-    origin_name: 'Paradero Base Central Barranca',
-    destination_name: 'Punto UNAB (Av. Toribio de Luzuriaga)',
-    distance_km: 3.8,
-    estimated_duration_min: 10,
-    geojson: {
-      type: 'LineString',
-      coordinates: [
-        [-77.76150, -10.75120], // Base Central Gálvez
-        [-77.76020, -10.75160], // Cruce Jr. Lima
-        [-77.75920, -10.75100], // Av. Pampa de Lara
-        [-77.75780, -10.75040], // Jr. Bolognesi / Primavera
-        [-77.75650, -10.74980], // Prolongación Primavera
-        [-77.75540, -10.74920], // Entrada Av. Luzuriaga
-        [-77.75500, -10.74850]  // Puerta Principal Campus UNAB
-      ]
-    }
-  },
-  {
-    id: 'e0000000-0000-0000-0000-000000000002',
-    name: 'Ruta Interdistrital 2: Barranca — Supe Pueblo',
-    origin_name: 'Paradero Base Central Barranca',
-    destination_name: 'Paradero Supe Pueblo',
-    distance_km: 9.2,
-    estimated_duration_min: 18,
-    geojson: {
-      type: 'LineString',
-      coordinates: [
-        [-77.7615, -10.7512],
-        [-77.7580, -10.7580],
-        [-77.7520, -10.7680],
-        [-77.7420, -10.7800],
-        [-77.7310, -10.7900],
-        [-77.7125, -10.7980]
-      ]
-    }
-  },
-  {
-    id: 'e0000000-0000-0000-0000-000000000003',
-    name: 'Ruta Norte 3: Barranca — Pativilca — Paramonga',
-    origin_name: 'Paradero Base Central Barranca',
-    destination_name: 'Entrada Paramonga (Fortaleza)',
-    distance_km: 14.5,
-    estimated_duration_min: 25,
-    geojson: {
-      type: 'LineString',
-      coordinates: [
-        [-77.7615, -10.7512],
-        [-77.7660, -10.7380],
-        [-77.7720, -10.7200],
-        [-77.7845, -10.6970],
-        [-77.8010, -10.6800],
-        [-77.8150, -10.6720]
-      ]
-    }
-  }
-];
+const INITIAL_ROUTES: RouteCorridor[] = [];
 
 export default function HomePage() {
   const { user, profile, updateProfile, isGuest, isLoading: isAuthLoading } = useAuth();
@@ -180,6 +68,12 @@ export default function HomePage() {
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [profileModalOpen, setProfileModalOpen] = useState<boolean>(false);
   const [tripHistoryOpen, setTripHistoryOpen] = useState<boolean>(false);
+  const [activeRidesModalOpen, setActiveRidesModalOpen] = useState<boolean>(false);
+
+  // Estados de Gesto Táctil Pull-to-refresh
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [isPullRefreshing, setIsPullRefreshing] = useState<boolean>(false);
+  const [pullDistance, setPullDistance] = useState<number>(0);
   const [vehicleDesignerOpen, setVehicleDesignerOpen] = useState<boolean>(false);
   const [dispatcherPanelOpen, setDispatcherPanelOpen] = useState<boolean>(false);
   const [groupManagementOpen, setGroupManagementOpen] = useState<boolean>(false);
@@ -522,6 +416,55 @@ export default function HomePage() {
   }, []);
 
   // Función: Activar mi Ubicación GPS del Teléfono (Alta Precisión de Hardware en Tiempo Real)
+  
+  // Manejadores de Gesto Táctil Pull-To-Refresh Nativo
+  const handleTouchPullStart = (e: React.TouchEvent) => {
+    if (typeof window !== 'undefined' && window.scrollY <= 5) {
+      setTouchStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchPullMove = (e: React.TouchEvent) => {
+    if (touchStartY !== null) {
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - touchStartY;
+      if (diff > 0 && diff < 160) {
+        setPullDistance(diff);
+      }
+    }
+  };
+
+  const handleTouchPullEnd = async () => {
+    if (pullDistance > 75) {
+      setIsPullRefreshing(true);
+      setNotificationToast({
+        title: '🔄 Actualizando en Vivo',
+        message: 'Recargando satélite, choferes y paraderos...',
+        type: 'info'
+      });
+      try {
+        await loadData();
+        setNotificationToast({
+          title: '✓ Red Actualizada',
+          message: 'Datos y unidades en tiempo real sincronizados.',
+          type: 'success'
+        });
+        setTimeout(() => setNotificationToast(null), 3000);
+      } catch (e) {
+        console.warn('Error en pull-to-refresh:', e);
+      } finally {
+        setTimeout(() => {
+          setIsPullRefreshing(false);
+          setPullDistance(0);
+          setTouchStartY(null);
+        }, 600);
+      }
+    } else {
+      setPullDistance(0);
+      setTouchStartY(null);
+    }
+  };
+
   const handleLocateUser = () => {
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       setNotificationToast({
@@ -764,7 +707,23 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden flex flex-col bg-slate-50 dark:bg-[#0c0d0f]">
+    <main 
+      onTouchStart={handleTouchPullStart}
+      onTouchMove={handleTouchPullMove}
+      onTouchEnd={handleTouchPullEnd}
+      className="relative w-screen h-screen overflow-hidden flex flex-col bg-slate-50 dark:bg-[#0c0d0f]"
+    >
+      {/* Indicador Visual Táctil de Pull-To-Refresh */}
+      {(pullDistance > 20 || isPullRefreshing) && (
+        <div 
+          style={{ transform: `translate(-50%, ${Math.min(pullDistance, 70)}px)` }}
+          className="fixed top-2 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 transition-transform duration-100"
+        >
+          <span className={isPullRefreshing ? "animate-spin" : ""}>🔄</span>
+          <span>{isPullRefreshing ? "Actualizando red en vivo..." : pullDistance > 75 ? "¡Suelta para actualizar!" : "Desliza hacia abajo..."}</span>
+        </div>
+      )}
+
       {/* Splash de Carga Fluida Sin Restructuración del Árbol */}
       {(isInitialAppLoading || isAuthLoading) && (
         <LoadingSplashScreen
@@ -1102,6 +1061,14 @@ export default function HomePage() {
             activeLiveUsers={activeLiveUsers}
             currentUserId={user?.id}
             onPactWithDriver={(d) => {
+              if (d && (d.id === user?.id || d.owner_id === user?.id || (myVehicle && d.plate === myVehicle.plate))) {
+                setNotificationToast({
+                  title: '⚠️ Acción No Permitida',
+                  message: 'No puedes pactar una carrera contigo mismo.',
+                  type: 'info'
+                });
+                return;
+              }
               setSelectedDriverForAgreement(d);
               setAgreementModalOpen(true);
             }}
@@ -1126,6 +1093,14 @@ export default function HomePage() {
               type: 'info'
             });
             setAuthModalOpen(true);
+            return;
+          }
+          if (d && (d.id === user?.id || d.owner_id === user?.id || (myVehicle && d.plate === myVehicle.plate))) {
+            setNotificationToast({
+              title: '⚠️ Acción No Permitida',
+              message: 'No puedes pactar una carrera contigo mismo.',
+              type: 'info'
+            });
             return;
           }
           setSelectedDriverForAgreement(d);
@@ -1201,6 +1176,14 @@ export default function HomePage() {
               type: 'info'
             });
             setAuthModalOpen(true);
+            return;
+          }
+          if (driverData && (driverData.id === user?.id || driverData.owner_id === user?.id || (myVehicle && driverData.plate === myVehicle.plate))) {
+            setNotificationToast({
+              title: '⚠️ Acción No Permitida',
+              message: 'No puedes pactar una carrera contigo mismo.',
+              type: 'info'
+            });
             return;
           }
           setSelectedDriverForAgreement(driverData);
@@ -1363,6 +1346,11 @@ export default function HomePage() {
       />
 
       {/* 10. Modal Guía Interactiva Paso a Paso */}
+      <ActiveRidesModal
+        isOpen={activeRidesModalOpen}
+        onClose={() => setActiveRidesModalOpen(false)}
+      />
+
       <InteractiveGuideModal
         isOpen={guideModalOpen}
         onClose={() => setGuideModalOpen(false)}

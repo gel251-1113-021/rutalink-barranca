@@ -440,26 +440,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('[Delete Backend Exception, fallback to Supabase direct]:', beErr);
       }
 
-      // 2. Si el backend falló de red, borrar perfil directamente en Supabase
-      if (!backendSuccess) {
-        try {
-          await supabase.from('groups').update({ created_by: null } as any).eq('created_by', user.id);
-          await supabase.from('chat_messages').delete().eq('sender_id', user.id);
-          await supabase.from('group_chat_messages').delete().eq('sender_id', user.id);
-          await supabase.from('passenger_dropoffs').delete().eq('passenger_id', user.id);
-          await supabase.from('group_members').delete().eq('user_id', user.id);
-          await supabase.from('profiles').delete().eq('id', user.id);
-        } catch {
-          // Continuar con limpieza local y logout
-        }
+      // 2. Ejecutar borrado permanente irrevocable en base de datos y auth.users
+      try {
+        await supabase.rpc('delete_user_account', { target_user_id: user.id });
+      } catch (rpcErr) {
+        console.warn('[Direct RPC delete_user_account exception]:', rpcErr);
       }
 
-      // 3. Cerrar sesión y limpiar almacenamiento local
+      // 3. Cerrar sesión y purgar almacenamiento local completo
       await logout();
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
       return {};
     } catch (err: any) {
       console.error('[Delete Account Fallback]:', err);
       await logout();
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
       return {};
     }
   };

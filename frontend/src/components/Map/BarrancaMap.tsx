@@ -162,63 +162,16 @@ function analyzeGeographicLocation(lat: number, lng: number): GeoLocationAnalysi
   // 1. Detección estricta de Océano Pacífico (Zona Marítima no transitable)
   if (isPacificOcean(lat, lng)) {
     return {
-      address: `Océano Pacífico (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+      address: `Zona Marítima (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
       isWithinProvince: false,
       isOcean: true,
-      zoneTag: '🌊 Océano Pacífico · Zona Marítima (No transitable)'
+      zoneTag: '🌊 Zona Marítima / Océano (No transitable)'
     };
   }
 
-  // 2. Fronteras Internacionales con Países Vecinos
-  if (lat > 0.0 || (lat > -3.5 && lng < -75.5) || (lat > -4.5 && lng < -79.0) || (lat > -5.2 && lng < -80.4)) {
-    return {
-      address: `Ecuador (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-      isWithinProvince: false,
-      isOcean: false,
-      zoneTag: 'Territorio Internacional (Ecuador · Sin Cobertura)'
-    };
-  }
-
-  if ((lat > -2.0 && lng >= -75.5 && lng <= -69.8) || (lat > -4.2 && lng >= -73.0 && lng <= -69.8)) {
-    return {
-      address: `Colombia (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-      isWithinProvince: false,
-      isOcean: false,
-      zoneTag: 'Territorio Internacional (Colombia · Sin Cobertura)'
-    };
-  }
-
-  if ((lng > -69.5 && lat > -11.0) || (lng > -70.5 && lat > -7.5)) {
-    return {
-      address: `Brasil (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-      isWithinProvince: false,
-      isOcean: false,
-      zoneTag: 'Territorio Internacional (Brasil · Sin Cobertura)'
-    };
-  }
-
-  if (lng > -69.0 && lat <= -11.0 && lat >= -17.5) {
-    return {
-      address: `Bolivia (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-      isWithinProvince: false,
-      isOcean: false,
-      zoneTag: 'Territorio Internacional (Bolivia · Sin Cobertura)'
-    };
-  }
-
-  if (lat < -18.35) {
-    return {
-      address: `Chile (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-      isWithinProvince: false,
-      isOcean: false,
-      zoneTag: 'Territorio Internacional (Chile · Sin Cobertura)'
-    };
-  }
-
-  // 3. Cuadrante oficial de la Provincia de Barranca en Tierra:
-  // Sur: -10.95 (límite Huaura/Medio Mundo), Norte: -10.58 (Río Fortaleza / límite Huarmey)
-  // Este: -77.40 (Caral / Valle Supe Alto)
-  const isWithinProvince = lat >= -10.95 && lat <= -10.58 && lng <= -77.40;
+  // 2. Cuadrante oficial de la Provincia de Barranca en Tierra:
+  // Sur: -10.95 (límite Huaura), Norte: -10.58 (Río Fortaleza), Este: -77.40 (Caral)
+  const isWithinProvince = lat >= -10.95 && lat <= -10.58 && lng <= -77.40 && lng >= -77.90;
 
   if (isWithinProvince) {
     let closest = BARRANCA_STREET_REFERENCES[0];
@@ -258,7 +211,69 @@ function analyzeGeographicLocation(lat: number, lng: number): GeoLocationAnalysi
     };
   }
 
-  // 4. Reconocimiento de Otras Provincias (Fuera de Provincia)
+  // 3. Delimitación de Territorio Internacional (Cualquier punto fuera del territorio soberano peruano)
+  const isInsidePeru = lat <= -0.03 && lat >= -18.35 && lng >= -81.33 && lng <= -68.65;
+  if (!isInsidePeru) {
+    // Países vecinos estrictos en Sudamérica
+    const isEcuador = lat >= -5.0 && lat <= 1.5 && lng >= -81.2 && lng <= -75.1;
+    if (isEcuador) {
+      return {
+        address: `Ecuador (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        isWithinProvince: false,
+        isOcean: false,
+        zoneTag: 'Territorio Internacional (Ecuador · Sin Cobertura)'
+      };
+    }
+
+    const isColombia = lat >= -4.2 && lat <= 12.5 && lng >= -79.0 && lng <= -66.8;
+    if (isColombia) {
+      return {
+        address: `Colombia (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        isWithinProvince: false,
+        isOcean: false,
+        zoneTag: 'Territorio Internacional (Colombia · Sin Cobertura)'
+      };
+    }
+
+    const isBrasil = lat >= -33.7 && lat <= 5.3 && lng >= -73.9 && lng <= -34.8;
+    if (isBrasil) {
+      return {
+        address: `Brasil (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        isWithinProvince: false,
+        isOcean: false,
+        zoneTag: 'Territorio Internacional (Brasil · Sin Cobertura)'
+      };
+    }
+
+    const isBolivia = lat >= -22.9 && lat <= -9.6 && lng >= -69.6 && lng <= -57.4;
+    if (isBolivia) {
+      return {
+        address: `Bolivia (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        isWithinProvince: false,
+        isOcean: false,
+        zoneTag: 'Territorio Internacional (Bolivia · Sin Cobertura)'
+      };
+    }
+
+    const isChile = lat >= -56.0 && lat <= -17.5 && lng >= -75.6 && lng <= -66.0;
+    if (isChile) {
+      return {
+        address: `Chile (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        isWithinProvince: false,
+        isOcean: false,
+        zoneTag: 'Territorio Internacional (Chile · Sin Cobertura)'
+      };
+    }
+
+    return {
+      address: `Territorio Internacional (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      isWithinProvince: false,
+      isOcean: false,
+      zoneTag: '🌍 Fuera del Ámbito Nacional (Sin Cobertura Operativa)'
+    };
+  }
+
+  // 4. Reconocimiento de Otras Provincias dentro del Perú
   if (lat < -10.95 && lat >= -11.45) {
     return {
       address: `Provincia de Huaura (Huacho / Végueta / Sayán)`,
@@ -304,22 +319,11 @@ function analyzeGeographicLocation(lat: number, lng: number): GeoLocationAnalysi
     };
   }
 
-  // Validación estricta de Límites Generales del Perú
-  const isInsidePeru = lat <= 0.2 && lat >= -18.5 && lng >= -81.5 && lng <= -68.5;
-  if (!isInsidePeru) {
-    return {
-      address: `Ubicación fuera del Perú (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-      isWithinProvince: false,
-      isOcean: false,
-      zoneTag: 'Territorio Internacional (Sin cobertura)'
-    };
-  }
-
   return {
-    address: `Punto fuera de provincia (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+    address: `Red Vial Nacional (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
     isWithinProvince: false,
     isOcean: false,
-    zoneTag: 'Fuera de Provincia'
+    zoneTag: '🇵🇪 Territorio Nacional (Fuera de la Provincia de Barranca)'
   };
 }
 
@@ -794,8 +798,8 @@ export default function BarrancaMap({
     lng: number;
     address: string;
     isWithinProvince?: boolean;
-    isOcean?: boolean;
     zoneTag?: string;
+    isOcean?: boolean;
   } | null>(null);
 
   // Estado para confirmación táctil de "Me bajo aquí" (Timbre de parada)
@@ -824,18 +828,43 @@ export default function BarrancaMap({
 
     setSearchResults(localMatches);
 
-    // 2. Si la consulta tiene 3 o más letras, complementar con OpenStreetMap Nominatim en Perú
-    if (q.length >= 3) {
+    // 2. Si la consulta tiene 2 o más letras, complementar con OpenStreetMap Nominatim en Perú / Barranca
+    if (q.length >= 2) {
       setIsSearching(true);
       const timer = setTimeout(async () => {
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ' Peru')}&format=json&addressdetails=1&limit=5&countrycodes=pe`,
-            { headers: { 'Accept-Language': 'es' } }
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ' Barranca Peru')}&format=json&addressdetails=1&limit=5&countrycodes=pe`,
+            {
+              headers: {
+                'Accept-Language': 'es',
+                'User-Agent': 'RutaLink-Barranca/2.0'
+              }
+            }
           );
+          let apiData: any[] = [];
           if (res.ok) {
-            const data = await res.json();
-            const apiResults: PlacePOI[] = data.map((item: any) => ({
+            apiData = await res.json();
+          }
+
+          // Si no hubo resultados con "Barranca", buscar a nivel nacional
+          if (!apiData || apiData.length === 0) {
+            const fallbackRes = await fetch(
+              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ' Peru')}&format=json&addressdetails=1&limit=5&countrycodes=pe`,
+              {
+                headers: {
+                  'Accept-Language': 'es',
+                  'User-Agent': 'RutaLink-Barranca/2.0'
+                }
+              }
+            );
+            if (fallbackRes.ok) {
+              apiData = await fallbackRes.json();
+            }
+          }
+
+          if (Array.isArray(apiData) && apiData.length > 0) {
+            const apiResults: PlacePOI[] = apiData.map((item: any) => ({
               name: item.display_name.split(',')[0],
               category: 'address' as const,
               address: item.display_name,
@@ -846,7 +875,7 @@ export default function BarrancaMap({
             setSearchResults(prev => {
               const names = new Set(prev.map(p => p.name.toLowerCase()));
               const filteredApi = apiResults.filter(a => !names.has(a.name.toLowerCase()));
-              return [...prev, ...filteredApi].slice(0, 6);
+              return [...prev, ...filteredApi].slice(0, 8);
             });
           }
         } catch (err) {
@@ -854,7 +883,7 @@ export default function BarrancaMap({
         } finally {
           setIsSearching(false);
         }
-      }, 350);
+      }, 300);
 
       return () => clearTimeout(timer);
     }
@@ -1106,12 +1135,12 @@ export default function BarrancaMap({
                 >
                   <span className="text-base shrink-0">
                     {place.category === 'supermarket' ? '🛒' :
-                     place.category === 'university' ? '🎓' :
-                     place.category === 'hospital' ? '🏥' :
-                     place.category === 'market' ? '🏪' :
-                     place.category === 'beach' ? '🏖️' :
-                     place.category === 'transit' ? '🚌' :
-                     place.category === 'plaza' ? '🏛️' : '📍'}
+                      place.category === 'university' ? '🎓' :
+                        place.category === 'hospital' ? '🏥' :
+                          place.category === 'market' ? '🏪' :
+                            place.category === 'beach' ? '🏖️' :
+                              place.category === 'transit' ? '🚌' :
+                                place.category === 'plaza' ? '🏛️' : '📍'}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
@@ -1133,28 +1162,26 @@ export default function BarrancaMap({
         <div className="absolute bottom-28 left-4 right-4 sm:left-auto sm:right-20 sm:w-96 z-30 bg-white/98 dark:bg-[#121417]/98 backdrop-blur-md p-4 rounded-3xl shadow-2xl border border-slate-200/90 dark:border-slate-800 animate-in slide-in-from-bottom duration-200 pointer-events-auto">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold shrink-0 ${
-                pinnedPoint.isOcean
-                  ? 'bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400'
-                  : pinnedPoint.isWithinProvince
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold shrink-0 ${pinnedPoint.isOcean
+                ? 'bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400'
+                : pinnedPoint.isWithinProvince
                   ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
                   : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
                 }`}>
                 {pinnedPoint.isOcean ? <span className="text-sm">🌊</span> : <MapPin className="w-4 h-4" />}
               </div>
               <div className="min-w-0">
-                <span className={`text-[9.5px] uppercase font-black px-1.5 py-0.5 rounded-md ${
-                  pinnedPoint.isOcean
-                    ? 'bg-sky-50 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300'
-                    : pinnedPoint.isWithinProvince
+                <span className={`text-[9.5px] uppercase font-black px-1.5 py-0.5 rounded-md ${pinnedPoint.isOcean
+                  ? 'bg-sky-50 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300'
+                  : pinnedPoint.isWithinProvince
                     ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
                     : 'bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300'
                   }`}>
                   {pinnedPoint.isOcean
                     ? '🌊 Océano Pacífico (Zona Marítima)'
                     : pinnedPoint.isWithinProvince
-                    ? '📍 Cobertura Provincial Activa'
-                    : '🚫 Fuera de Provincia'}
+                      ? '📍 Cobertura Provincial Activa'
+                      : '🚫 Fuera de Provincia'}
                 </span>
                 <strong className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight block mt-0.5 truncate">
                   {pinnedPoint.address}
@@ -1178,7 +1205,7 @@ export default function BarrancaMap({
 
           <div className="grid grid-cols-2 gap-2">
             {pinnedPoint.isOcean ? (
-              <div 
+              <div
                 title="Punto marcado en el Océano Pacífico (Zona marítima no transitable)"
                 className="py-2 px-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900 text-sky-700 dark:text-sky-300 font-bold text-[10.5px] flex items-center justify-center gap-1 cursor-not-allowed select-none text-center leading-tight"
               >
@@ -1364,9 +1391,9 @@ export default function BarrancaMap({
           maxZoom={20}
           className={isDarkMap ? 'dark-navigation-tiles' : ''}
         />
-        <MapController 
-          selectedItem={selectedItem} 
-          userLocation={userLocation} 
+        <MapController
+          selectedItem={selectedItem}
+          userLocation={userLocation}
           centerTrigger={centerTrigger}
           searchTargetLocation={searchTargetLocation}
         />

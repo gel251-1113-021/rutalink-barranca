@@ -110,6 +110,7 @@ export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: Vehic
   const [roofRack, setRoofRack] = useState(true);
   const [maxCargoKg, setMaxCargoKg] = useState(40);
   const [cargoStatus, setCargoStatus] = useState<'VACIO' | 'MEDIO' | 'LLENO'>('VACIO');
+  const [currentStatus, setCurrentStatus] = useState<string>('DISPONIBLE');
 
   const [isSaving, setIsSaving] = useState(false);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -136,6 +137,7 @@ export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: Vehic
             setRoofRack(data.vehicle.roof_rack);
             setMaxCargoKg(data.vehicle.max_cargo_kg);
             setCargoStatus(data.vehicle.cargo_status || 'VACIO');
+            setCurrentStatus(data.vehicle.status || 'DISPONIBLE');
           }
         }
       } catch (e) {
@@ -308,6 +310,31 @@ export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: Vehic
             </div>
           )}
 
+                    {/* Bloqueo Operativo si está en Ruta Activa */}
+          {currentStatus === 'EN_RUTA' && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in">
+              <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <div>
+                  <strong className="block text-xs">Unidad Actualmente en Ruta de Servicio</strong>
+                  <span className="text-[11px] text-amber-700 dark:text-amber-300">
+                    Por seguridad de pasajeros, debes finalizar tu recorrido antes de cambiar de auto o placa.
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentStatus('DISPONIBLE');
+                  setMsg({ text: '✓ Estado cambiado a Disponible fuera de servicio. Ya puedes modificar tu unidad.', type: 'success' });
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 transition shadow-xs"
+              >
+                Liberar y Modificar
+              </button>
+            </div>
+          )}
+
           {/* Selector de Plantilla Visual */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -446,7 +473,7 @@ export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: Vehic
 
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || currentStatus === "EN_RUTA"}
               className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />

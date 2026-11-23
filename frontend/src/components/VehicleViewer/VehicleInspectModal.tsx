@@ -17,6 +17,7 @@ interface VehicleInspectModalProps {
   vehicle: {
     id: string;
     plate: string;
+    owner_id?: string;
     brand_model: string;
     vehicle_type?: string;
     driver_name?: string;
@@ -34,6 +35,9 @@ interface VehicleInspectModalProps {
   onOpenReview?: (target: { id: string; name: string; type: 'CONDUCTOR' | 'EMPRESA' }) => void;
   onOpenPhotoUpload?: (title: string, category: 'VEHICULO' | 'PARADERO' | 'LLEGADA') => void;
   userRole?: string;
+  currentUserId?: string;
+  myVehiclePlate?: string;
+  onOpenCockpit?: () => void;
 }
 
 export default function VehicleInspectModal({
@@ -44,7 +48,10 @@ export default function VehicleInspectModal({
   onOpenAgreement,
   onOpenReview,
   onOpenPhotoUpload,
-  userRole = 'PASAJERO'
+  userRole = 'PASAJERO',
+  currentUserId,
+  myVehiclePlate,
+  onOpenCockpit
 }: VehicleInspectModalProps) {
   if (!isOpen || !vehicle) return null;
 
@@ -70,6 +77,10 @@ export default function VehicleInspectModal({
   const cleanPlate = rawPlate.replace(/\s+/g, '').toUpperCase();
   const phone = vehicle.driver_phone ? vehicle.driver_phone.trim() : '';
   const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+  const isMyOwnVehicle = Boolean(
+    (vehicle.owner_id && currentUserId && vehicle.owner_id === currentUserId) ||
+    (myVehiclePlate && cleanPlate === myVehiclePlate.replace(/\s+/g, '').toUpperCase())
+  );
   const waLink = cleanPhone
     ? `https://wa.me/${cleanPhone.startsWith('51') ? cleanPhone : '51' + cleanPhone}?text=${encodeURIComponent(`Hola, veo tu vehículo ${vehicle.brand_model} (${cleanPlate}) en RutaLink Barranca.`)}`
     : null;

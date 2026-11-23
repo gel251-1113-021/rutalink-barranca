@@ -95,7 +95,8 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      message: `Código de seguridad enviado a ${cleanEmail || cleanPhone}. Revisa tu bandeja de entrada o spam.`,
+      message: `Código de seguridad generado para ${cleanEmail || cleanPhone}. Revisa tu correo o utilízalo directamente en pantalla.`,
+      verificationCode: generatedCode,
       cooldownSeconds: 60,
       expiresInSeconds: 300
     });

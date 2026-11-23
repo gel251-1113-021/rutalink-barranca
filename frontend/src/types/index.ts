@@ -25,6 +25,7 @@ export interface UserProfile {
   total_trips: number;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  license_number?: string;
   created_at: string;
 }
 
