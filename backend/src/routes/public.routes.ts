@@ -74,71 +74,8 @@ router.get('/stops', async (_req: Request, res: Response): Promise<void> => {
       res.json({ stops: mapped });
       return;
     } catch (sbErr) {
-      console.warn('[Public Stops Supabase fallback error]:', sbErr);
-      res.json({
-        stops: [
-          {
-            id: 'c0000000-0000-0000-0000-000000000001',
-            name: 'Paradero Base Central Barranca',
-            type: 'BASE',
-            address_reference: 'Av. José Gálvez 450 (Cerca a Plaza Vea)',
-            latitude: -10.7512,
-            longitude: -77.7615,
-            group_name: 'Empresa de Transportes Barranca Express',
-            queued_vehicles_count: 3,
-            status_note: 'Operativo con despacho continuo',
-            last_status_update: new Date().toISOString()
-          },
-          {
-            id: 'c0000000-0000-0000-0000-000000000002',
-            name: 'Punto de Parada UNAB - Campus Universitario',
-            type: 'TRANQUILO',
-            address_reference: 'Av. Toribio de Luzuriaga (Puerta Principal UNAB)',
-            latitude: -10.7485,
-            longitude: -77.7550,
-            group_name: 'Línea Universitaria UNAB Directo',
-            queued_vehicles_count: 1,
-            status_note: 'Afluencia universitaria normal',
-            last_status_update: new Date().toISOString()
-          },
-          {
-            id: 'c0000000-0000-0000-0000-000000000003',
-            name: 'Paradero Supe Pueblo',
-            type: 'BASE',
-            address_reference: 'Calle Francisco Vidal con Jr. Bolívar',
-            latitude: -10.7980,
-            longitude: -77.7125,
-            group_name: 'Comité Interdistrital Barranca - Supe',
-            queued_vehicles_count: 2,
-            status_note: 'Salidas cada 5 minutos',
-            last_status_update: new Date().toISOString()
-          },
-          {
-            id: 'c0000000-0000-0000-0000-000000000004',
-            name: 'Punto Tranquilo Óvalo Pativilca',
-            type: 'TRANQUILO',
-            address_reference: 'Cruce Panamericana Norte con Av. Principal',
-            latitude: -10.6970,
-            longitude: -77.7830,
-            group_name: 'Asociación de Colectivos Pativilca - Paramonga',
-            queued_vehicles_count: 1,
-            status_note: 'Zona segura y alumbrada',
-            last_status_update: new Date().toISOString()
-          },
-          {
-            id: 'c0000000-0000-0000-0000-000000000005',
-            name: 'Punto de Abordaje Paramonga',
-            type: 'TRANQUILO',
-            address_reference: 'Plaza de Armas Paramonga (Frente a Municipalidad)',
-            latitude: -10.6720,
-            longitude: -77.8180,
-            group_name: 'Línea de Movilidad Valle Fortaleza',
-            queued_vehicles_count: 2,
-            status_note: 'Unidades disponibles hacia Barranca',
-            last_status_update: new Date().toISOString()
-          }
-        ]
-      });
+      console.warn('[Public Stops fallback]: Sin paraderos registrados', sbErr);
+      res.json({ stops: [] });
     }
   }
 });

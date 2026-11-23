@@ -565,25 +565,28 @@ router.delete('/account', requireAuth, async (req: AuthenticatedRequest, res: Re
       client.release();
     }
   } catch (err: any) {
-    console.warn('[Pool Account Deletion, switching to Supabase client]:', err.message);
+    console.warn('[Pool Account Deletion, switching to Supabase RPC/REST]:', err.message);
     try {
-      // Fallback a Supabase REST
-      await supabase.from('groups').update({ created_by: null } as any).eq('created_by', userId);
-      await supabase.from('chat_messages').delete().eq('sender_id', userId);
-      await supabase.from('group_chat_messages').delete().eq('sender_id', userId);
-      await supabase.from('passenger_dropoffs').delete().eq('passenger_id', userId);
-      await supabase.from('waiting_passengers').delete().eq('user_id', userId);
-      await supabase.from('vehicles').delete().or(`owner_id.eq.${userId},driver_id.eq.${userId}`);
-      await supabase.from('dispatcher_shifts').delete().eq('dispatcher_id', userId);
-      await supabase.from('trips_and_agreements').delete().or(`passenger_id.eq.${userId},driver_id.eq.${userId}`);
-      await supabase.from('group_members').delete().eq('user_id', userId);
-
-      const { error } = await supabase.from('profiles').delete().eq('id', userId);
-      if (error) {
-        console.warn('[Supabase profile delete warning]:', error.message);
+      // 1. Ejecutar función almacenada con permisos superuser SECURITY DEFINER para borrado total en auth.users
+      const { error: rpcError } = await supabase.rpc('delete_user_account', { target_user_id: userId });
+      
+      if (rpcError) {
+        console.warn('[Supabase RPC delete_user_account warning]:', rpcError.message);
+        // Fallback a Supabase REST tabla por tabla
+        await supabase.from('groups').update({ created_by: null } as any).eq('created_by', userId);
+        await supabase.from('chat_messages').delete().eq('sender_id', userId);
+        await supabase.from('group_chat_messages').delete().eq('sender_id', userId);
+        await supabase.from('passenger_dropoffs').delete().eq('passenger_id', userId);
+        await supabase.from('waiting_passengers').delete().eq('user_id', userId);
+        await supabase.from('vehicles').delete().or(`owner_id.eq.${userId},driver_id.eq.${userId}`);
+        await supabase.from('dispatcher_shifts').delete().eq('dispatcher_id', userId);
+        await supabase.from('trips_and_agreements').delete().or(`passenger_id.eq.${userId},driver_id.eq.${userId}`);
+        await supabase.from('group_members').delete().eq('user_id', userId);
+        await supabase.from('profiles').delete().eq('id', userId);
       }
 
-      res.json({ success: true, message: 'Cuenta y datos personales eliminados permanentemente' });
+      res.json({ success: true, message: 'Cuenta y credenciales eliminadas permanentemente del sistema' });
+      return;
     } catch (sbErr: any) {
       console.error('[Supabase Account Deletion Error]:', sbErr);
       res.status(500).json({ error: 'Error durante la eliminación de cuenta en base de datos: ' + (sbErr?.message || 'Error de integridad') });

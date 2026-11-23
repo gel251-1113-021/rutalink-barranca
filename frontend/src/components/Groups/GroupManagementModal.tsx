@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { 
   X, 
   Building2, 
@@ -38,13 +39,23 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
   const [isLoading, setIsLoading] = useState(false);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  const getAuthToken = async (): Promise<string | null> => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) return data.session.access_token;
+    } catch (e) {
+      console.warn('Error obteniendo sesión de Supabase:', e);
+    }
+    const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
+    return session.access_token || null;
+  };
+
   useEffect(() => {
     async function loadGroups() {
       if (!user) return;
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
-        const token = session.access_token;
+        const token = await getAuthToken();
         if (!token) return;
 
         const res = await fetch(`${apiUrl}/api/groups/my-groups`, {
@@ -70,8 +81,8 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
       if (!selectedGroupId) return;
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
-        const token = session.access_token;
+        const token = await getAuthToken();
+        if (!token) return;
 
         const res = await fetch(`${apiUrl}/api/groups/${selectedGroupId}/pending-drivers`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -93,8 +104,7 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
   const handleApproveDriver = async (driverUserId: string) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
-      const token = session.access_token;
+      const token = await getAuthToken();
 
       const res = await fetch(`${apiUrl}/api/groups/${selectedGroupId}/approve-driver`, {
         method: 'POST',
@@ -130,8 +140,7 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
-      const token = session.access_token;
+      const token = await getAuthToken();
 
       const res = await fetch(`${apiUrl}/api/groups/${selectedGroupId}/assign-dispatcher`, {
         method: 'POST',
@@ -164,8 +173,7 @@ export default function GroupManagementModal({ isOpen, onClose }: GroupManagemen
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
-      const token = session.access_token;
+      const token = await getAuthToken();
 
       const res = await fetch(`${apiUrl}/api/groups`, {
         method: 'POST',

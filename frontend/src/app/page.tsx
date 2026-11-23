@@ -361,7 +361,7 @@ export default function HomePage() {
   const [passengerContextState, setPassengerContextState] = useState<'CAMINO' | 'ESPERANDO' | 'A_BORDO'>('CAMINO');
 
   // Estados de Datos Cartográficos
-  const [stops, setStops] = useState<StopPoint[]>(INITIAL_STOPS);
+  const [stops, setStops] = useState<StopPoint[]>([]);
   const [vehicles, setVehicles] = useState<VehicleUnit[]>([]);
   const [routes, setRoutes] = useState<RouteCorridor[]>(INITIAL_ROUTES);
   const [selectedItem, setSelectedItem] = useState<{ type: 'stop' | 'vehicle' | 'route'; data: any } | null>(null);
@@ -434,10 +434,8 @@ export default function HomePage() {
           longitude: Number(s.longitude),
           queued_vehicles_count: Number(s.queued_vehicles_count || 0)
         }));
-        if (loadedStops.length > 0) {
-          setStops(loadedStops);
-          offlineStore.saveStops(loadedStops);
-        }
+        setStops(loadedStops);
+        offlineStore.saveStops(loadedStops);
       }
 
       // 2. Vehículos en Vivo

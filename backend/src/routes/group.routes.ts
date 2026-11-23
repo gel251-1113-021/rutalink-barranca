@@ -32,31 +32,60 @@ const CreateGroupSchema = z.object({
 router.get('/my-groups', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const client = await pool.connect();
     try {
-      const query = `
-        SELECT 
-          g.id,
-          g.name,
-          g.type,
-          g.description,
-          g.base_address,
-          ST_Y(g.base_location)::float AS base_latitude,
-          ST_X(g.base_location)::float AS base_longitude,
-          g.contact_phone,
-          g.fare_range,
-          gm.role_in_group,
-          gm.status AS member_status,
-          (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id) AS total_members
-        FROM public.groups g
-        JOIN public.group_members gm ON g.id = gm.group_id
-        WHERE gm.user_id = $1 AND g.is_active = TRUE
-        ORDER BY g.created_at DESC;
-      `;
-      const result = await client.query(query, [userId]);
-      res.json({ groups: result.rows });
-    } finally {
-      client.release();
+      const client = await pool.connect();
+      try {
+        const query = `
+          SELECT 
+            g.id,
+            g.name,
+            g.type,
+            g.description,
+            g.base_address,
+            ST_Y(g.base_location)::float AS base_latitude,
+            ST_X(g.base_location)::float AS base_longitude,
+            g.contact_phone,
+            g.fare_range,
+            gm.role_in_group,
+            gm.status AS member_status,
+            (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id) AS total_members
+          FROM public.groups g
+          JOIN public.group_members gm ON g.id = gm.group_id
+          WHERE gm.user_id = $1 AND g.is_active = TRUE
+          ORDER BY g.created_at DESC;
+        `;
+        const result = await client.query(query, [userId]);
+        res.json({ groups: result.rows });
+        return;
+      } finally {
+        client.release();
+      }
+    } catch (poolErr) {
+      console.warn('[My Groups Pool, fallback to Supabase client]:', poolErr);
+      const { data: memberships, error } = await supabase
+        .from('group_members')
+        .select(`
+          role_in_group,
+          status,
+          groups (
+            id, name, type, description, base_address, contact_phone, fare_range, is_active, created_at
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'ACTIVO');
+
+      if (error) throw error;
+      const mapped = (memberships || [])
+        .filter((m: any) => m.groups && m.groups.is_active !== false)
+        .map((m: any) => ({
+          ...m.groups,
+          role_in_group: m.role_in_group,
+          member_status: m.status,
+          total_members: 1
+        }));
+
+      res.json({ groups: mapped });
+      return;
     }
   } catch (err) {
     console.error('[My Groups Error]:', err);
@@ -77,60 +106,94 @@ router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): 
 
     const { name, type, description, baseAddress, baseLatitude, baseLongitude, contactPhone, fareRange } = parseResult.data;
 
-    const client = await pool.connect();
     try {
-      await client.query('BEGIN');
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
 
-      const locSql = (baseLatitude && baseLongitude)
-        ? `ST_SetSRID(ST_MakePoint(${baseLongitude}, ${baseLatitude}), 4326)`
-        : 'NULL';
+        const locSql = (baseLatitude && baseLongitude)
+          ? `ST_SetSRID(ST_MakePoint(${baseLongitude}, ${baseLatitude}), 4326)`
+          : 'NULL';
 
-      const insertGroupSql = `
-        INSERT INTO public.groups (
-          name, type, description, base_address, base_location, contact_phone, fare_range, created_by
-        ) VALUES (
-          $1, $2, $3, $4, ${locSql}, $5, $6, $7
-        ) RETURNING *;
-      `;
-      const groupRes = await client.query(insertGroupSql, [
-        name, type, description || null, baseAddress || null, contactPhone || null, fareRange || null, userId
-      ]);
+        const insertGroupSql = `
+          INSERT INTO public.groups (
+            name, type, description, base_address, base_location, contact_phone, fare_range, created_by
+          ) VALUES (
+            $1, $2, $3, $4, ${locSql}, $5, $6, $7
+          ) RETURNING *;
+        `;
+        const groupRes = await client.query(insertGroupSql, [
+          name, type, description || null, baseAddress || null, contactPhone || null, fareRange || null, userId
+        ]);
 
-      const newGroup = groupRes.rows[0];
+        const newGroup = groupRes.rows[0];
+        const adminRole = type === 'COMUNITARIO' ? 'ADMIN_GRUPO_PASAJEROS' : 'ADMIN_EMPRESA';
 
-      // Afiliar al creador como Administrador según el tipo de grupo:
-      // Si es COMUNITARIO (Pasajeros) -> ADMIN_GRUPO_PASAJEROS
-      // Si es EMPRESARIAL (Transporte) -> ADMIN_EMPRESA
+        await client.query(`
+          INSERT INTO public.group_members (group_id, user_id, role_in_group, status)
+          VALUES ($1, $2, $3, 'ACTIVO');
+        `, [newGroup.id, userId, adminRole]);
+
+        await client.query(`
+          UPDATE public.profiles
+          SET active_role = $1
+          WHERE id = $2 AND active_role = 'PASAJERO';
+        `, [adminRole, userId]);
+
+        await client.query('COMMIT');
+
+        res.status(201).json({ 
+          message: 'Grupo creado exitosamente. Has sido asignado como Administrador.', 
+          group: newGroup,
+          adminRole
+        });
+        return;
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
+      }
+    } catch (poolErr) {
+      console.warn('[Create Group Pool, fallback to Supabase client]:', poolErr);
       const adminRole = type === 'COMUNITARIO' ? 'ADMIN_GRUPO_PASAJEROS' : 'ADMIN_EMPRESA';
 
-      await client.query(`
-        INSERT INTO public.group_members (group_id, user_id, role_in_group, status)
-        VALUES ($1, $2, $3, 'ACTIVO');
-      `, [newGroup.id, userId, adminRole]);
+      const { data: newGroup, error: groupErr } = await supabase
+        .from('groups')
+        .insert({
+          name,
+          type,
+          description: description || null,
+          base_address: baseAddress || null,
+          contact_phone: contactPhone || null,
+          fare_range: fareRange || null,
+          created_by: userId,
+          is_active: true
+        })
+        .select()
+        .single();
 
-      // Si el creador no tenía rol admin en su perfil, actualizarlo
-      await client.query(`
-        UPDATE public.profiles
-        SET active_role = $1
-        WHERE id = $2 AND active_role = 'PASAJERO';
-      `, [adminRole, userId]);
+      if (groupErr) throw groupErr;
 
-      await client.query('COMMIT');
+      await supabase.from('group_members').insert({
+        group_id: newGroup.id,
+        user_id: userId,
+        role_in_group: adminRole,
+        status: 'ACTIVO'
+      });
 
-      res.status(201).json({ 
-        message: 'Grupo creado exitosamente. Has sido asignado como Administrador.', 
+      await supabase.from('profiles').update({ active_role: adminRole }).eq('id', userId);
+
+      res.status(201).json({
+        message: 'Grupo creado exitosamente (Supabase). Has sido asignado como Administrador.',
         group: newGroup,
         adminRole
       });
-    } catch (e) {
-      await client.query('ROLLBACK');
-      throw e;
-    } finally {
-      client.release();
+      return;
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Create Group Error]:', err);
-    res.status(500).json({ error: 'Error al registrar grupo' });
+    res.status(500).json({ error: err?.message || 'Error al registrar grupo' });
   }
 });
 
