@@ -31,6 +31,7 @@ import ActiveRidesModal from '../components/Trips/ActiveRidesModal';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { offlineStore } from '../lib/offlineStore';
 import { BellRing, Car, Check, MapPin, Navigation, X, Radio } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
