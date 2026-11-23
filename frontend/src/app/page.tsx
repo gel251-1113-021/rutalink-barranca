@@ -373,7 +373,7 @@ export default function HomePage() {
   const watchIdRef = useRef<number | null>(null);
 
   const currentRole = profile?.active_role || 'PASAJERO';
-  const isDriver = currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE';
+  const isDriver = currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE' || currentRole === 'CHOFER' || currentRole === 'CONDUCTOR';
 
   // Splash de carga inicial con identidad visual oficial de Barranca
   const [isInitialAppLoading, setIsInitialAppLoading] = useState<boolean>(true);
@@ -841,6 +841,7 @@ export default function HomePage() {
       <Header
         onOpenAuth={() => setAuthModalOpen(true)}
         onOpenProfile={() => setProfileModalOpen(true)}
+        onOpenCockpit={() => setDriverCockpitOpen(true)}
         onOpenHistory={() => setTripHistoryOpen(true)}
         onOpenVehicleDesigner={() => setVehicleDesignerOpen(true)}
         onOpenDispatcherPanel={() => setDispatcherPanelOpen(true)}
@@ -1202,12 +1203,21 @@ export default function HomePage() {
       <DriverCockpitModal
         isOpen={driverCockpitOpen}
         onClose={() => setDriverCockpitOpen(false)}
-        driverName={profile?.full_name || myVehicle?.driver_name || 'Jorge Huamán Castillo'}
-        vehiclePlate={myVehicle?.plate || 'B1A-789'}
-        vehicleModel={myVehicle?.brand_model || 'Toyota Yaris Sedán 2023'}
+        driverName={profile?.full_name || myVehicle?.driver_name || 'Conductor Autorizado'}
+        vehiclePlate={myVehicle?.plate || 'SIN-PLACA'}
+        vehicleModel={myVehicle?.brand_model || 'Unidad en Ruta'}
         vehicleType={myVehicle?.vehicle_type || 'SEDAN'}
         vehicleId={myVehicle?.id}
+        initialSeats={myVehicle?.seat_layout}
+        hasRegisteredVehicle={!!myVehicle}
+        onOpenDesigner={() => setVehicleDesignerOpen(true)}
+        onUpdateSeats={(newSeats) => {
+          if (myVehicle) {
+            setVehicles(prev => prev.map(v => v.id === myVehicle.id ? { ...v, seat_layout: newSeats } : v));
+          }
+        }}
         onUpdateStatus={(st, note) => {
+          setDriverWorkStatus(st === 'FUERA_SERVICIO' ? 'PAUSA' : 'DISPONIBLE');
           setNotificationToast({
             title: 'Estado Actualizado',
             message: note,

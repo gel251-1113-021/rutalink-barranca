@@ -32,6 +32,7 @@ import RutaLinkLogo from './Branding/RutaLinkLogo';
 interface HeaderProps {
   onOpenAuth: () => void;
   onOpenProfile: () => void;
+  onOpenCockpit?: () => void;
   onOpenHistory?: () => void;
   onOpenVehicleDesigner?: () => void;
   onOpenDispatcherPanel?: () => void;
@@ -62,6 +63,16 @@ const ROLE_LABELS: Record<UserRole, { label: string; badgeClass: string; icon: a
     badgeClass: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200/60',
     icon: Car
   },
+  CHOFER: {
+    label: 'Chofer',
+    badgeClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200/60',
+    icon: Car
+  },
+  CONDUCTOR: {
+    label: 'Conductor',
+    badgeClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200/60',
+    icon: Car
+  },
   ADMIN_EMPRESA: {
     label: 'Admin Empresa',
     badgeClass: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200/60',
@@ -87,6 +98,7 @@ const ROLE_LABELS: Record<UserRole, { label: string; badgeClass: string; icon: a
 export default function Header({ 
   onOpenAuth, 
   onOpenProfile, 
+  onOpenCockpit,
   onOpenHistory,
   onOpenVehicleDesigner,
   onOpenDispatcherPanel,
@@ -117,6 +129,8 @@ export default function Header({
     'PASAJERO',
     'CONDUCTOR_AFILIADO',
     'CONDUCTOR_INDEPENDIENTE',
+    'CHOFER',
+    'CONDUCTOR',
     'ADMIN_GRUPO_PASAJEROS',
     'ADMIN_EMPRESA',
     'ENCARGADO_PARADERO'
@@ -220,14 +234,27 @@ export default function Header({
             /* Usuario Autenticado con Selector Dinámico de Rol */
             <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Botones de Acción Especializados por Rol */}
-              {(currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE') && onOpenVehicleDesigner && (
-                <button
-                  onClick={onOpenVehicleDesigner}
-                  className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 hover:bg-emerald-100 transition"
-                >
-                  <Car className="w-3.5 h-3.5" />
-                  <span>Diseñar Unidad</span>
-                </button>
+              {(currentRole === 'CONDUCTOR_AFILIADO' || currentRole === 'CONDUCTOR_INDEPENDIENTE' || currentRole === 'CHOFER' || currentRole === 'CONDUCTOR') && (
+                <>
+                  {onOpenCockpit && (
+                    <button
+                      onClick={onOpenCockpit}
+                      className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition active:scale-95"
+                    >
+                      <Car className="w-3.5 h-3.5" />
+                      <span>Mi Cabina</span>
+                    </button>
+                  )}
+                  {onOpenVehicleDesigner && (
+                    <button
+                      onClick={onOpenVehicleDesigner}
+                      className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 hover:bg-emerald-100 transition"
+                    >
+                      <Car className="w-3.5 h-3.5" />
+                      <span>Diseñar Unidad</span>
+                    </button>
+                  )}
+                </>
               )}
 
               {currentRole === 'ENCARGADO_PARADERO' && onOpenDispatcherPanel && (

@@ -16,7 +16,7 @@ export default function BottomNavBar({
   userRole = 'PASAJERO',
   unreadChatCount = 0
 }: BottomNavBarProps) {
-  const isDriver = userRole === 'CONDUCTOR_AFILIADO' || userRole === 'CONDUCTOR_INDEPENDIENTE';
+  const isDriver = userRole === 'CONDUCTOR_AFILIADO' || userRole === 'CONDUCTOR_INDEPENDIENTE' || userRole === 'CHOFER' || userRole === 'CONDUCTOR';
   const isAdmin = userRole === 'ADMIN_EMPRESA' || userRole === 'SUPERADMIN';
 
   return (

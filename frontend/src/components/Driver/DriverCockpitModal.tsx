@@ -22,6 +22,9 @@ interface DriverCockpitModalProps {
   vehicleModel?: string;
   vehicleType?: string;
   vehicleId?: string;
+  initialSeats?: Seat[];
+  hasRegisteredVehicle?: boolean;
+  onOpenDesigner?: () => void;
   onUpdateStatus?: (status: string, note: string) => void;
   onUpdateSeats?: (layout: Seat[]) => void;
   onSendMessage?: (msg: string) => void;
@@ -80,11 +83,14 @@ const getCategorySeats = (type?: string): Seat[] => {
 export default function DriverCockpitModal({
   isOpen,
   onClose,
-  driverName = 'Jorge Huamán Castillo',
-  vehiclePlate = 'B1A-789',
-  vehicleModel = 'Toyota Yaris Sedán 2023',
+  driverName = 'Conductor Autorizado',
+  vehiclePlate = 'SIN-PLACA',
+  vehicleModel = 'Unidad en Ruta',
   vehicleType = 'SEDAN',
-  vehicleId = 'd0000000-0000-0000-0000-000000000001',
+  vehicleId,
+  initialSeats,
+  hasRegisteredVehicle = true,
+  onOpenDesigner,
   onUpdateStatus,
   onUpdateSeats,
   onSendMessage
@@ -93,12 +99,16 @@ export default function DriverCockpitModal({
   const [currentStatus, setCurrentStatus] = useState<'DISPONIBLE' | 'EN_RUTA' | 'LLENO' | 'FUERA_SERVICIO'>('EN_RUTA');
   const [statusNote, setStatusNote] = useState('Conduciendo ahora');
 
-  // Disposición 2D de asientos adaptada por tipo de vehículo
-  const [seats, setSeats] = useState<Seat[]>(() => getCategorySeats(vehicleType));
+  // Disposición 2D de asientos adaptada por tipo de vehículo o cargada de la BD
+  const [seats, setSeats] = useState<Seat[]>(() => (initialSeats && initialSeats.length > 0) ? initialSeats : getCategorySeats(vehicleType));
 
   React.useEffect(() => {
-    setSeats(getCategorySeats(vehicleType));
-  }, [vehicleType]);
+    if (initialSeats && initialSeats.length > 0) {
+      setSeats(initialSeats);
+    } else {
+      setSeats(getCategorySeats(vehicleType));
+    }
+  }, [vehicleType, initialSeats]);
 
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -134,10 +144,11 @@ export default function DriverCockpitModal({
     }
 
     try {
-      await fetch('/api/driver/seats', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+      await fetch(`${apiUrl}/api/driver/seats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vehicleId, seatLayout: newSeats })
+        body: JSON.stringify({ vehicleId, plate: vehiclePlate, seatLayout: newSeats })
       });
     } catch (e) {
       // Offline fallback
@@ -155,10 +166,11 @@ export default function DriverCockpitModal({
     }
 
     try {
-      await fetch('/api/driver/status', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+      await fetch(`${apiUrl}/api/driver/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vehicleId, status, contextualNote: note })
+        body: JSON.stringify({ vehicleId, plate: vehiclePlate, status, contextualNote: note })
       });
     } catch (e) {
       // Offline fallback
@@ -184,12 +196,12 @@ export default function DriverCockpitModal({
         fetch(`${apiUrl}/api/driver/seats`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vehicleId, seatLayout: seats })
+          body: JSON.stringify({ vehicleId, plate: vehiclePlate, seatLayout: seats })
         }).catch(() => null),
         fetch(`${apiUrl}/api/driver/status`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vehicleId, status: currentStatus, contextualNote: statusNote })
+          body: JSON.stringify({ vehicleId, plate: vehiclePlate, status: currentStatus, contextualNote: statusNote })
         }).catch(() => null)
       ]);
 
@@ -233,6 +245,31 @@ export default function DriverCockpitModal({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Banner de alerta si aún no tiene vehículo registrado en la base de datos */}
+        {!hasRegisteredVehicle && (
+          <div className="bg-amber-500/10 dark:bg-amber-950/40 border-b border-amber-500/30 px-4 py-3 flex items-center justify-between text-xs text-amber-800 dark:text-amber-200">
+            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+              <span className="text-lg shrink-0">🛠️</span>
+              <div className="min-w-0">
+                <strong className="block font-bold">Sin Unidad Vinculada</strong>
+                <span className="text-[11px] opacity-80 block truncate">Registra tu placa y modelo para transmitir asientos en vivo.</span>
+              </div>
+            </div>
+            {onOpenDesigner && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenDesigner();
+                }}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl text-xs shrink-0 shadow-xs transition"
+              >
+                Diseñar Auto
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Notificación Toast flotante */}
         {notification && (
