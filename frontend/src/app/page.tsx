@@ -827,18 +827,17 @@ export default function HomePage() {
     if (tab === 'builder') setRouteBuilderOpen(true);
   };
 
-  if (isInitialAppLoading || isAuthLoading) {
-    return (
-      <LoadingSplashScreen
-        message="Sincronizando satélite y terminales de Barranca..."
-        subMessage="Red Provincial: UNAB · Supe · Pativilca · Paramonga"
-        fullScreen={true}
-      />
-    );
-  }
-
   return (
     <main className="relative w-screen h-screen overflow-hidden flex flex-col bg-slate-50 dark:bg-[#0c0d0f]">
+      {/* Splash de Carga Fluida Sin Restructuración del Árbol */}
+      {(isInitialAppLoading || isAuthLoading) && (
+        <LoadingSplashScreen
+          message="Sincronizando satélite y terminales de Barranca..."
+          subMessage="Red Provincial: UNAB · Supe · Pativilca · Paramonga"
+          fullScreen={true}
+        />
+      )}
+
       {/* Barra de Navegación Superior */}
       <Header
         onOpenAuth={() => setAuthModalOpen(true)}

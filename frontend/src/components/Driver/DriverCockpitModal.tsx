@@ -130,6 +130,7 @@ export default function DriverCockpitModal({
   }, [vehicleType, initialSeats]);
 
   const [notification, setNotification] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   if (!isOpen) return null;
 
@@ -203,8 +204,6 @@ export default function DriverCockpitModal({
       onSendMessage(msg);
     }
   };
-
-  const [isPublishing, setIsPublishing] = useState(false);
 
   // Guardar y Publicar en Tiempo Real hacia todos los pasajeros y la BD
   const handlePublishAll = async () => {
