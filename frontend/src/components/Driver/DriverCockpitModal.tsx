@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Check, AlertCircle, Send, CheckCircle2, Car, Users, Volume2 } from 'lucide-react';
+import { X, Check, AlertCircle, Send, CheckCircle2, Car, Users, Volume2, Save, Radio } from 'lucide-react';
 import RealisticVehicleSVG from '../Branding/RealisticVehicleSVG';
+import { notificationService } from '../../lib/notifications';
 
 interface Seat {
   id: string;
@@ -172,6 +173,38 @@ export default function DriverCockpitModal({
     }
   };
 
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  // Guardar y Publicar en Tiempo Real hacia todos los pasajeros y la BD
+  const handlePublishAll = async () => {
+    setIsPublishing(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+      await Promise.all([
+        fetch(`${apiUrl}/api/driver/seats`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vehicleId, seatLayout: seats })
+        }).catch(() => null),
+        fetch(`${apiUrl}/api/driver/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vehicleId, status: currentStatus, contextualNote: statusNote })
+        }).catch(() => null)
+      ]);
+
+      if (onUpdateSeats) onUpdateSeats(seats);
+      if (onUpdateStatus) onUpdateStatus(currentStatus, statusNote);
+
+      notificationService.playChime('message');
+      showToast('✓ ¡Asientos y estado publicados en vivo a los pasajeros!');
+    } catch {
+      showToast('Actualizado localmente en cabina.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   const showToast = (text: string) => {
     setNotification(text);
     setTimeout(() => setNotification(null), 2500);
@@ -322,6 +355,19 @@ export default function DriverCockpitModal({
                 className="w-full"
               />
             </div>
+
+            {/* Botón táctil para publicar asientos al instante */}
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={handlePublishAll}
+                disabled={isPublishing}
+                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5"
+              >
+                <Radio className={`w-3.5 h-3.5 ${isPublishing ? 'animate-spin' : 'animate-pulse'}`} />
+                <span>{isPublishing ? 'Emitiendo...' : `Emitir ${freeCount} Asientos Libres en Vivo`}</span>
+              </button>
+            </div>
           </div>
 
           {/* 3. Mensajería Rápida para Pasajeros y Despachador (1 toque) */}
@@ -370,14 +416,23 @@ export default function DriverCockpitModal({
 
         </div>
 
-        {/* Pie del modal con botón de cierre grande */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111317] flex justify-end">
+        {/* Pie del modal con botón de Guardar y Publicar en Tiempo Real */}
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111317] flex flex-col sm:flex-row items-center gap-2.5">
+          <button
+            type="button"
+            onClick={handlePublishAll}
+            disabled={isPublishing}
+            className="w-full sm:flex-1 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2"
+          >
+            <Radio className={`w-4 h-4 ${isPublishing ? 'animate-spin' : 'animate-pulse'}`} />
+            <span>{isPublishing ? 'Publicando en Vivo...' : '💾 Guardar y Publicar en Tiempo Real'}</span>
+          </button>
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm sm:text-base rounded-2xl shadow-md transition active:scale-95"
+            className="w-full sm:w-auto px-6 py-3.5 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm rounded-2xl transition active:scale-95"
           >
-            Listo, volver al mapa
+            Volver al mapa
           </button>
         </div>
 

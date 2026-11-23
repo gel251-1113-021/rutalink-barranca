@@ -30,6 +30,8 @@ import {
   LogOut
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { io, Socket } from 'socket.io-client';
+import { notificationService } from '../../lib/notifications';
 
 interface ChatMessage {
   id: string;
@@ -66,100 +68,17 @@ interface GroupOption {
   members: GroupMember[];
 }
 
-const INITIAL_GROUPS: GroupOption[] = [
+const DEFAULT_SYSTEM_GROUPS: GroupOption[] = [
   {
     id: 'b0000000-0000-0000-0000-000000000001',
-    name: 'Comité 1: Barranca - Supe - UNAB',
-    type: 'EMPRESARIAL',
-    description: 'Colectivos y Minivans autorizados con base física en Av. Gálvez',
-    badge: 'Comité 1 (Privado)',
-    isPrivate: true,
-    accessCode: 'COMITE1',
-    phone: '+51 987654321',
-    createdBy: 'a0000000-0000-0000-0000-000000000001',
-    members: [
-      { userId: 'a0000000-0000-0000-0000-000000000001', name: 'Carlos Mendoza (Gerente Comité)', phone: '+51 987654321', role: 'CREADOR', userType: 'CHOFER' },
-      { userId: 'a0000000-0000-0000-0000-000000000002', name: 'Raúl Medina (Despachador Gálvez)', phone: '+51 987654322', role: 'CO_ADMIN', userType: 'DESPACHADOR' },
-      { userId: 'a0000000-0000-0000-0000-000000000003', name: 'Jorge Huamán (Chofer Yaris)', phone: '+51 987654323', role: 'MIEMBRO', userType: 'CHOFER' },
-      { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'MIEMBRO', userType: 'PASAJERO' }
-    ]
-  },
-  {
-    id: 'b0000000-0000-0000-0000-000000000002',
-    name: 'Comunidad UNAB - Viajes Compartidos',
+    name: 'Red Provincial Barranca - Movilidad',
     type: 'COMUNITARIO',
-    description: 'Estudiantes y docentes de la UNAB organizando carpooling seguro',
-    badge: 'UNAB Estudiantes (Público)',
+    description: 'Canal oficial abierto para coordinación ciudadana y rutas en toda la provincia',
+    badge: 'Provincial (Público)',
     isPrivate: false,
-    phone: '+51 987654325',
-    createdBy: 'a0000000-0000-0000-0000-000000000005',
-    members: [
-      { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'CREADOR', userType: 'PASAJERO' },
-      { userId: 'a0000000-0000-0000-0000-000000000006', name: 'Marcos Rivas (UNAB Ing)', phone: '+51 987654326', role: 'CO_ADMIN', userType: 'PASAJERO' },
-      { userId: 'a0000000-0000-0000-0000-000000000007', name: 'Andrea Torres (UNAB Enfermería)', phone: '+51 987654327', role: 'MIEMBRO', userType: 'PASAJERO' }
-    ]
-  },
-  {
-    id: 'b0000000-0000-0000-0000-000000000003',
-    name: 'Expreso Pativilca - Paramonga',
-    type: 'EMPRESARIAL',
-    description: 'Corredor Norte Panamericana y ruta Fortaleza',
-    badge: 'Ruta Norte (Privado)',
-    isPrivate: true,
-    accessCode: 'NORTE2026',
-    phone: '+51 987654328',
-    createdBy: 'a0000000-0000-0000-0000-000000000008',
-    members: [
-      { userId: 'a0000000-0000-0000-0000-000000000008', name: 'Alberto Salas (Admin Norte)', phone: '+51 987654328', role: 'CREADOR', userType: 'CHOFER' },
-      { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'MIEMBRO', userType: 'PASAJERO' }
-    ]
-  },
-  {
-    id: 'b0000000-0000-0000-0000-000000000004',
-    name: 'Mototaxis y Colectivos Barranca Centro',
-    type: 'COMUNITARIO',
-    description: 'Rutas urbanas, Mercado Modelo, Hospital y Playa Chorrillos',
-    badge: 'Urbano (Público)',
-    isPrivate: false,
-    phone: '+51 987654329',
-    createdBy: 'a0000000-0000-0000-0000-000000000009',
-    members: [
-      { userId: 'a0000000-0000-0000-0000-000000000009', name: 'Luis Morales (Asoc. Mototaxis)', phone: '+51 987654329', role: 'CREADOR', userType: 'CHOFER' },
-      { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'MIEMBRO', userType: 'PASAJERO' }
-    ]
-  },
-  // CHATS DIRECTOS 1 A 1 (NEGOCIACIONES Y CARRERAS)
-  {
-    id: 'direct-01',
-    name: 'Jorge Huamán · Toyota Yaris (B1A-789)',
-    type: 'DIRECTO_1A1',
-    description: 'Coordinación directa de viaje ruta Barranca Centro - UNAB',
-    badge: 'Yaris B1A-789',
-    isPrivate: false,
-    phone: '+51 987654323',
-    vehiclePlate: 'B1A-789',
-    driverName: 'Jorge Huamán Castillo',
-    vehicleModel: 'Toyota Yaris Sedán 2023',
-    members: [
-      { userId: 'a0000000-0000-0000-0000-000000000003', name: 'Jorge Huamán', phone: '+51 987654323', role: 'CREADOR', userType: 'CHOFER' },
-      { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'MIEMBRO', userType: 'PASAJERO' }
-    ]
-  },
-  {
-    id: 'direct-02',
-    name: 'Pedro Chumpitaz · Combi HiAce (Z9P-140)',
-    type: 'DIRECTO_1A1',
-    description: 'Línea Interdistrital Barranca - Supe - Puerto Supe',
-    badge: 'Combi Z9P-140',
-    isPrivate: false,
-    phone: '+51 987654330',
-    vehiclePlate: 'Z9P-140',
-    driverName: 'Pedro Chumpitaz Solís',
-    vehicleModel: 'Toyota HiAce Combi 2024',
-    members: [
-      { userId: 'd-driver-02', name: 'Pedro Chumpitaz', phone: '+51 987654330', role: 'CREADOR', userType: 'CHOFER' },
-      { userId: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', phone: '+51 987654325', role: 'MIEMBRO', userType: 'PASAJERO' }
-    ]
+    phone: '',
+    createdBy: 'system',
+    members: []
   }
 ];
 
@@ -194,12 +113,87 @@ export default function GroupChatModal({
   currentUser = { id: 'a0000000-0000-0000-0000-000000000005', name: 'Lucía Fernández (UNAB)', role: 'PASAJERO' }
 }: GroupChatModalProps) {
   const [activeTabMode, setActiveTabMode] = useState<'CORREDORES' | 'DIRECTOS'>('CORREDORES');
-  const [groups, setGroups] = useState<GroupOption[]>(INITIAL_GROUPS);
-  const [selectedGroup, setSelectedGroup] = useState<GroupOption>(INITIAL_GROUPS[0]);
+  const [groups, setGroups] = useState<GroupOption[]>(DEFAULT_SYSTEM_GROUPS);
+  const [selectedGroup, setSelectedGroup] = useState<GroupOption>(DEFAULT_SYSTEM_GROUPS[0]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
+
+  // Cargar grupos reales creados en el backend/Supabase
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadRealGroups = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+        const res = await fetch(`${apiUrl}/api/groups`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.groups) && data.groups.length > 0) {
+            const mapped: GroupOption[] = data.groups.map((g: any) => ({
+              id: g.id,
+              name: g.name,
+              type: g.type === 'EMPRESA_FORMAL' ? 'EMPRESARIAL' : (g.type || 'COMUNITARIO'),
+              description: g.description || 'Canal de movilidad y coordinación de transporte',
+              badge: `${g.name.slice(0, 15)} (${g.type === 'EMPRESA_FORMAL' ? 'Empresarial' : 'Público'})`,
+              isPrivate: Boolean(g.is_private),
+              phone: g.contact_phone || '',
+              createdBy: g.created_by || 'system',
+              members: [
+                {
+                  userId: currentUser.id,
+                  name: currentUser.name,
+                  phone: '',
+                  role: 'CREADOR',
+                  userType: currentUser.role.includes('CONDUCTOR') ? 'CHOFER' : 'PASAJERO'
+                }
+              ]
+            }));
+            setGroups(mapped);
+            setSelectedGroup(mapped[0]);
+          }
+        }
+      } catch (e) {
+        console.warn('Error sincronizando canales de chat:', e);
+      }
+    };
+
+    loadRealGroups();
+  }, [isOpen]);
+
+  // Conexión Socket.IO para mensajería en vivo y notificaciones activas
+  useEffect(() => {
+    if (!isOpen || !selectedGroup?.id) return;
+
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 4
+    });
+    socketRef.current = socket;
+
+    socket.emit('join_group', selectedGroup.id);
+
+    socket.on('new_group_message', (incomingMsg: any) => {
+      if (incomingMsg.sender_id !== currentUser.id) {
+        notificationService.notify({
+          title: `💬 ${selectedGroup.name}`,
+          body: `${incomingMsg.sender_name}: ${incomingMsg.message}`,
+          type: 'message'
+        });
+        setMessages(prev => {
+          if (prev.some(m => m.id === incomingMsg.id)) return prev;
+          return [...prev, incomingMsg];
+        });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isOpen, selectedGroup?.id, currentUser.id]);
 
   // Control de grupos privados vs públicos
   const [unlockedGroupIds, setUnlockedGroupIds] = useState<string[]>([
@@ -420,6 +414,14 @@ export default function GroupChatModal({
     setMessages(prev => [...prev, tempMsg]);
     if (!customText) setInputText('');
 
+    // Emitir mensaje por WebSockets a todos los miembros de la sala
+    if (socketRef.current) {
+      socketRef.current.emit('send_group_message', {
+        groupId: selectedGroup.id,
+        message: tempMsg
+      });
+    }
+
     try {
       const res = await fetch(`/api/chat/groups/${selectedGroup.id}`, {
         method: 'POST',
@@ -442,8 +444,8 @@ export default function GroupChatModal({
     }
   };
 
-  // Crear Nuevo Grupo (Pasajeros o Empresa)
-  const handleCreateNewGroupSubmit = (e: React.FormEvent) => {
+  // Crear Nuevo Grupo (Pasajeros o Empresa) y persistirlo
+  const handleCreateNewGroupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName.trim()) return;
 
@@ -482,6 +484,26 @@ export default function GroupChatModal({
     setNewGroupAccessCode('');
     setNewGroupPhone('');
 
+    // Persistir en backend
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+      await fetch(`${apiUrl}/api/groups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newGroup.name,
+          type: newGroup.type,
+          description: newGroup.description,
+          contactPhone: newGroup.phone,
+          isPrivate: newGroup.isPrivate,
+          accessCode: newGroup.accessCode
+        })
+      });
+    } catch (e) {
+      console.warn('Grupo persistido localmente:', e);
+    }
+
+    notificationService.playChime('message');
     showToast(`¡Canal "${newGroup.name}" creado con éxito! Eres el Administrador.`);
   };
 

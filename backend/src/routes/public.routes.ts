@@ -177,8 +177,13 @@ router.get('/groups', async (_req: Request, res: Response): Promise<void> => {
         .select('*')
         .eq('is_active', true);
 
-      if (error || !data || data.length === 0) {
-        throw error || new Error('No groups in Supabase REST');
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        res.json({ groups: [] });
+        return;
       }
 
       const mapped = data.map((g: any) => ({
@@ -195,22 +200,8 @@ router.get('/groups', async (_req: Request, res: Response): Promise<void> => {
       res.json({ groups: mapped });
       return;
     } catch (sbErr) {
-      console.warn('[Public Groups Supabase fallback error]:', sbErr);
-      res.json({
-        groups: [
-          {
-            id: 'b0000000-0000-0000-0000-000000000001',
-            name: 'Empresa de Transportes Barranca Express',
-            type: 'EMPRESA_FORMAL',
-            description: 'Línea de transporte interdistrital con cobertura en toda la provincia',
-            base_address: 'Av. José Gálvez 450, Barranca',
-            base_latitude: -10.7512,
-            base_longitude: -77.7615,
-            contact_phone: '+51 987654321',
-            fare_range: 'S/ 2.50 - S/ 5.00'
-          }
-        ]
-      });
+      console.warn('[Public Groups fallback]: No hay grupos adicionales o fallo de red', sbErr);
+      res.json({ groups: [] });
     }
   }
 });
@@ -263,8 +254,13 @@ router.get('/vehicles', async (_req: Request, res: Response): Promise<void> => {
         `)
         .neq('status', 'FUERA_SERVICIO');
 
-      if (error || !data || data.length === 0) {
-        throw error || new Error('No vehicles in Supabase REST');
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        res.json({ vehicles: [] });
+        return;
       }
 
       const mapped = data.map((v: any) => ({
@@ -289,89 +285,8 @@ router.get('/vehicles', async (_req: Request, res: Response): Promise<void> => {
       res.json({ vehicles: mapped });
       return;
     } catch (sbErr) {
-      console.warn('[Public Vehicles Supabase fallback error]:', sbErr);
-      res.json({
-        vehicles: [
-          {
-            id: 'd0000000-0000-0000-0000-000000000006',
-            plate: 'Z9P-140',
-            brand_model: 'Toyota HiAce Combi 2024',
-            vehicle_type: 'COMBI',
-            seat_layout: [
-              { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
-              { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto', status: 'free' },
-              { x: 1, y: 2, id: 's2', type: 'passenger', label: 'F1 Izq', status: 'occupied' },
-              { x: 1.5, y: 2, id: 's3', type: 'passenger', label: 'F1 Centro', status: 'occupied' },
-              { x: 2, y: 2, id: 's4', type: 'passenger', label: 'F1 Der', status: 'free' }
-            ],
-            capacity: 14,
-            roof_rack: false,
-            max_cargo_kg: 300,
-            cargo_status: 'MEDIO',
-            status: 'DISPONIBLE',
-            latitude: -10.7512,
-            longitude: -77.7615,
-            current_heading: 45,
-            driver_name: 'Pedro Chumpitaz Solís',
-            driver_phone: '+51 987654330',
-            driver_rating: 4.9,
-            group_name: 'Empresa de Transportes Barranca Express',
-            last_location_update: new Date().toISOString()
-          },
-          {
-            id: 'd0000000-0000-0000-0000-000000000003',
-            plate: 'A7U-102',
-            brand_model: 'Toyota Avanza Miniván 2024',
-            vehicle_type: 'MINIVAN',
-            seat_layout: [
-              { x: 1, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
-              { x: 2, y: 1, id: 's1', type: 'passenger', label: 'Copiloto', status: 'free' },
-              { x: 1, y: 2, id: 's2', type: 'passenger', label: 'F2 Izq', status: 'occupied' },
-              { x: 2, y: 2, id: 's3', type: 'passenger', label: 'F2 Der', status: 'free' },
-              { x: 1, y: 3, id: 's4', type: 'passenger', label: 'F3 Izq', status: 'free' },
-              { x: 2, y: 3, id: 's5', type: 'passenger', label: 'F3 Der', status: 'occupied' }
-            ],
-            capacity: 6,
-            roof_rack: false,
-            max_cargo_kg: 80,
-            cargo_status: 'DISPONIBLE',
-            status: 'DISPONIBLE',
-            latitude: -10.7495,
-            longitude: -77.7570,
-            current_heading: 90,
-            driver_name: 'Carlos Morales Echevarría',
-            driver_phone: '+51 987654313',
-            driver_rating: 4.8,
-            group_name: 'Línea Universitaria UNAB Directo',
-            last_location_update: new Date().toISOString()
-          },
-          {
-            id: 'd0000000-0000-0000-0000-000000000007',
-            plate: 'MT-4021',
-            brand_model: 'Bajaj Torito 4T Mototaxi Barranca',
-            vehicle_type: 'MOTOTAXI',
-            seat_layout: [
-              { x: 1.5, y: 1, id: 'c1', type: 'driver', label: 'Chofer', status: 'occupied' },
-              { x: 1, y: 2, id: 's1', type: 'passenger', label: 'P1 Izq', status: 'free' },
-              { x: 1.5, y: 2, id: 's2', type: 'passenger', label: 'P2 Centro', status: 'occupied' },
-              { x: 2, y: 2, id: 's3', type: 'passenger', label: 'P3 Der', status: 'free' }
-            ],
-            capacity: 3,
-            roof_rack: false,
-            max_cargo_kg: 20,
-            cargo_status: 'DISPONIBLE',
-            status: 'DISPONIBLE',
-            latitude: -10.7505,
-            longitude: -77.7635,
-            current_heading: 270,
-            driver_name: 'Luis Morales Pajuelo',
-            driver_phone: '+51 987654329',
-            driver_rating: 4.85,
-            group_name: 'Asociación de Mototaxis y Colectivos Rápidos Barranca',
-            last_location_update: new Date().toISOString()
-          }
-        ]
-      });
+      console.warn('[Public Vehicles fallback]: Sin unidades registradas activas', sbErr);
+      res.json({ vehicles: [] });
     }
   }
 });

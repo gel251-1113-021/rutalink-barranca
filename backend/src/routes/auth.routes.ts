@@ -30,7 +30,7 @@ const rateLimitStore = new Map<string, number>(); // identifier -> timestamp úl
 router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
   try {
     const { phone, email, purpose = 'register' } = req.body;
-    
+
     // Normalizar teléfono peruano a formato E.164 (+519XXXXXXXX)
     let cleanPhone = phone ? String(phone).replace(/[\s\-\(\)]/g, '') : undefined;
     if (cleanPhone) {
@@ -249,6 +249,25 @@ router.post('/register-direct', async (req: Request, res: Response): Promise<voi
     }
 
     res.status(500).json({ error: 'No se pudo registrar la cuenta en este momento. Inténtalo directamente desde la interfaz.' });
+  }
+});
+
+// POST /api/auth/welcome - Dispara correo oficial de bienvenida al nuevo usuario registrado
+router.post('/welcome', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, fullName, role } = req.body;
+    if (!email) {
+      res.status(400).json({ error: 'Email requerido' });
+      return;
+    }
+    const ok = await EmailService.sendWelcomeEmail(
+      String(email).trim().toLowerCase(),
+      fullName || 'Usuario RutaLink',
+      role || 'PASAJERO'
+    );
+    res.json({ success: ok, message: 'Correo de bienvenida enviado' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Error al enviar correo de bienvenida' });
   }
 });
 
@@ -474,15 +493,15 @@ router.delete('/account', requireAuth, async (req: AuthenticatedRequest, res: Re
 
   // Verificación estricta de código OTP de 6 dígitos para eliminación definitiva
   if (!code || typeof code !== 'string' || code.trim().length !== 6) {
-    res.status(400).json({ 
-      error: 'Debes ingresar el código de seguridad de 6 dígitos enviado a tu correo o celular para autorizar la eliminación de tu cuenta.' 
+    res.status(400).json({
+      error: 'Debes ingresar el código de seguridad de 6 dígitos enviado a tu correo o celular para autorizar la eliminación de tu cuenta.'
     });
     return;
   }
 
   const cleanCode = code.trim();
   const isDemo = cleanCode === '123456';
-  
+
   // Normalizar teléfono si fue enviado
   let cleanPhone = phone ? String(phone).replace(/[\s\-\(\)]/g, '') : undefined;
   if (cleanPhone) {
@@ -498,8 +517,8 @@ router.delete('/account', requireAuth, async (req: AuthenticatedRequest, res: Re
   const isValidOtp = isDemo || isEmailOtpValid || isPhoneOtpValid;
 
   if (!isValidOtp) {
-    res.status(400).json({ 
-      error: 'Código de seguridad incorrecto o expirado. Solicita un nuevo código de confirmación.' 
+    res.status(400).json({
+      error: 'Código de seguridad incorrecto o expirado. Solicita un nuevo código de confirmación.'
     });
     return;
   }
@@ -558,7 +577,7 @@ router.delete('/account', requireAuth, async (req: AuthenticatedRequest, res: Re
       await supabase.from('dispatcher_shifts').delete().eq('dispatcher_id', userId);
       await supabase.from('trips_and_agreements').delete().or(`passenger_id.eq.${userId},driver_id.eq.${userId}`);
       await supabase.from('group_members').delete().eq('user_id', userId);
-      
+
       const { error } = await supabase.from('profiles').delete().eq('id', userId);
       if (error) {
         console.warn('[Supabase profile delete warning]:', error.message);

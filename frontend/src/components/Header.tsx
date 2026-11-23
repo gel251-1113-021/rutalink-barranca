@@ -314,7 +314,7 @@ export default function Header({
               >
                 <User className="w-3.5 h-3.5" />
                 <span className="hidden md:inline font-semibold truncate max-w-[120px]">
-                  {profile?.full_name?.split(' ')[0] || 'Mi Perfil'}
+                  {profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Mi Perfil'}
                 </span>
               </button>
 
@@ -380,8 +380,8 @@ export default function Header({
                       <User className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{profile?.full_name}</p>
-                      <p className="text-xs text-slate-500 truncate">{profile?.email || profile?.phone || 'Usuario RutaLink'}</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{profile?.full_name || user?.user_metadata?.full_name || 'Usuario RutaLink'}</p>
+                      <p className="text-xs text-slate-500 truncate">{user?.email || profile?.email || profile?.phone || 'Usuario RutaLink'}</p>
                     </div>
                   </div>
                   <button

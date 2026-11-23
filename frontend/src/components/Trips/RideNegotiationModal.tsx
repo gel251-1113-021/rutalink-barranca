@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { io, Socket } from 'socket.io-client';
+import { notificationService } from '../../lib/notifications';
 import { 
   X, 
   Send, 
@@ -72,6 +74,40 @@ export default function RideNegotiationModal({
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 4
+    });
+    socketRef.current = socket;
+
+    // Escuchar respuesta de choferes en tiempo real
+    socket.on('ride_response_received', (driverResp: any) => {
+      notificationService.notify({
+        title: '🚗 Chofer Disponible en Barranca',
+        body: `${driverResp.driverName} (${driverResp.plate}) acepta tu viaje por S/ ${driverResp.offeredFare}`,
+        type: 'ride_request'
+      });
+
+      setBroadcastResponses(prev => {
+        const exists = prev.some(d => d.driverId === driverResp.driverId || d.plate === driverResp.plate);
+        if (exists) {
+          return prev.map(d => d.driverId === driverResp.driverId ? driverResp : d);
+        }
+        return [driverResp, ...prev];
+      });
+      setIsBroadcasting(false);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (initialDriver) {
@@ -86,46 +122,33 @@ export default function RideNegotiationModal({
 
   if (!isOpen) return null;
 
-  // Iniciar consulta de difusión al grupo de choferes
+  // Iniciar consulta de difusión al grupo de choferes en vivo
   const handleStartBroadcast = () => {
     setIsBroadcasting(true);
     setRideState('WAITING_ACCEPTANCE');
     setBroadcastResponses([]);
 
-    // Simular recepción en tiempo real de choferes libres del comité
-    setTimeout(() => {
-      setBroadcastResponses([
-        {
-          id: 'd1',
-          name: 'Jorge Huamán Castillo',
-          plate: 'B1A-789',
-          brandModel: 'Toyota Yaris Sedán 2023',
-          rating: 4.8,
-          distanceMin: 3,
-          offeredFare: proposedFare,
-          status: 'VACIO_DISPONIBLE',
-          phone: '+51 987654323'
-        }
-      ]);
-    }, 1800);
+    // Emisión real vía WebSockets hacia la red de conductores
+    if (socketRef.current) {
+      socketRef.current.emit('ride_request_broadcast', {
+        passengerId: user?.id,
+        passengerName: profile?.full_name || user?.email?.split('@')[0] || 'Pasajero',
+        passengerPhone: profile?.phone || '',
+        origin,
+        destination,
+        proposedFare,
+        passengerCount,
+        hasLuggage,
+        userCoords,
+        driverId: initialDriver?.id
+      });
+    }
 
-    setTimeout(() => {
-      setBroadcastResponses(prev => [
-        ...prev,
-        {
-          id: 'd2',
-          name: 'Walter Rosales Díaz',
-          plate: 'C3M-456',
-          brandModel: 'Chevrolet Sail Sedán',
-          rating: 4.6,
-          distanceMin: 5,
-          offeredFare: (parseFloat(proposedFare) + 1.0).toFixed(2),
-          status: 'VACIO_DISPONIBLE',
-          phone: '+51 987654324'
-        }
-      ]);
-      setIsBroadcasting(false);
-    }, 3200);
+    notificationService.notify({
+      title: '📡 Búsqueda en Curso',
+      body: `Buscando choferes en la red de Barranca para carrera hacia ${destination}`,
+      type: 'message'
+    });
   };
 
   // Aceptar chofer y pactar la carrera con PIN de seguridad
@@ -137,12 +160,31 @@ export default function RideNegotiationModal({
     setSecurityPin(pin);
     setRideState('AGREED');
 
+    // Emitir confirmación en tiempo real al chofer
+    if (socketRef.current) {
+      socketRef.current.emit('ride_agreement_finalized', {
+        requestId: `ride_${Date.now()}`,
+        passengerId: user?.id,
+        driverId: driver.driverId || driver.id,
+        finalFare,
+        securityPin: pin,
+        pickupLocation: origin,
+        destination
+      });
+    }
+
+    notificationService.notify({
+      title: '🤝 ¡Carrera Pactada con Éxito!',
+      body: `Vehículo ${driver.brandModel || ''} (${driver.plate}). Código PIN de abordaje: ${pin}`,
+      type: 'ride_request'
+    });
+
     // Mensaje inicial en sala de seguridad
     setChatMessages([
       {
         id: 'sys-1',
         sender: 'Sistema RutaLink Seguridad',
-        text: `✓ Carrera pactada por S/. ${finalFare} con ${driver.name}. Muestra tu PIN ${pin} al subir al vehículo (${driver.plate}).`,
+        text: `✓ Carrera pactada por S/. ${finalFare} con ${driver.driverName || driver.name}. Muestra tu PIN ${pin} al abordar el vehículo (${driver.plate}).`,
         isSystem: true,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }

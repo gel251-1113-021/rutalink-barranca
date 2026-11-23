@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { Pool } from 'pg';
+import { supabase } from '../config/supabase.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -16,7 +17,7 @@ const router = Router();
 const VehicleDesignSchema = z.object({
   plate: z.string().min(6).max(10),
   brandModel: z.string().min(3).max(50),
-  vehicleType: z.enum(['SEDAN', 'SUV', 'MINIVAN', 'COMBI']),
+  vehicleType: z.enum(['SEDAN', 'SUV', 'MINIVAN', 'COMBI', 'MOTOTAXI', 'STATION_WAGON', 'AUTO']),
   seatLayout: z.array(z.any()),
   capacity: z.number().int().min(2).max(20),
   roofRack: z.boolean().default(false),
@@ -82,50 +83,82 @@ router.post('/save-design', requireAuth, async (req: AuthenticatedRequest, res: 
 
     const { plate, brandModel, vehicleType, seatLayout, capacity, roofRack, maxCargoKg, cargoStatus } = parseResult.data;
 
-    const client = await pool.connect();
     try {
-      const query = `
-        INSERT INTO public.vehicles (
-          owner_id, plate, brand_model, vehicle_type, seat_layout, capacity,
-          roof_rack, max_cargo_kg, cargo_status, status, current_location, last_location_update
-        ) VALUES (
-          $1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, 'DISPONIBLE',
-          ST_SetSRID(ST_MakePoint(-77.7580, -10.7500), 4326), NOW()
-        )
-        ON CONFLICT (plate) DO UPDATE SET
-          brand_model = EXCLUDED.brand_model,
-          vehicle_type = EXCLUDED.vehicle_type,
-          seat_layout = EXCLUDED.seat_layout,
-          capacity = EXCLUDED.capacity,
-          roof_rack = EXCLUDED.roof_rack,
-          max_cargo_kg = EXCLUDED.max_cargo_kg,
-          cargo_status = EXCLUDED.cargo_status,
-          updated_at = NOW()
-        RETURNING *;
-      `;
+      const client = await pool.connect();
+      try {
+        const query = `
+          INSERT INTO public.vehicles (
+            owner_id, plate, brand_model, vehicle_type, seat_layout, capacity,
+            roof_rack, max_cargo_kg, cargo_status, status, current_location, last_location_update
+          ) VALUES (
+            $1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, 'DISPONIBLE',
+            ST_SetSRID(ST_MakePoint(-77.7580, -10.7500), 4326), NOW()
+          )
+          ON CONFLICT (plate) DO UPDATE SET
+            brand_model = EXCLUDED.brand_model,
+            vehicle_type = EXCLUDED.vehicle_type,
+            seat_layout = EXCLUDED.seat_layout,
+            capacity = EXCLUDED.capacity,
+            roof_rack = EXCLUDED.roof_rack,
+            max_cargo_kg = EXCLUDED.max_cargo_kg,
+            cargo_status = EXCLUDED.cargo_status,
+            updated_at = NOW()
+          RETURNING *;
+        `;
 
-      const result = await client.query(query, [
-        userId,
-        plate.toUpperCase().trim(),
-        brandModel,
-        vehicleType,
-        JSON.stringify(seatLayout),
-        capacity,
-        roofRack,
-        maxCargoKg,
-        cargoStatus
-      ]);
+        const result = await client.query(query, [
+          userId,
+          plate.toUpperCase().trim(),
+          brandModel,
+          vehicleType,
+          JSON.stringify(seatLayout),
+          capacity,
+          roofRack,
+          maxCargoKg,
+          cargoStatus
+        ]);
+
+        res.json({
+          message: 'Diseño vehicular 2D guardado satisfactoriamente',
+          vehicle: result.rows[0]
+        });
+        return;
+      } finally {
+        client.release();
+      }
+    } catch (poolErr) {
+      console.warn('[Save Vehicle Pool error, using Supabase client]:', poolErr);
+      const cleanPlate = plate.toUpperCase().trim();
+      const { data: upserted, error: sbError } = await supabase
+        .from('vehicles')
+        .upsert({
+          owner_id: userId,
+          plate: cleanPlate,
+          brand_model: brandModel,
+          vehicle_type: vehicleType,
+          seat_layout: seatLayout,
+          capacity,
+          roof_rack: roofRack,
+          max_cargo_kg: maxCargoKg,
+          cargo_status: cargoStatus,
+          status: 'DISPONIBLE',
+          last_location_update: new Date().toISOString()
+        }, { onConflict: 'plate' })
+        .select()
+        .single();
+
+      if (sbError) {
+        throw sbError;
+      }
 
       res.json({
-        message: 'Diseño vehicular 2D guardado satisfactoriamente',
-        vehicle: result.rows[0]
+        message: 'Diseño vehicular 2D guardado satisfactoriamente (Supabase)',
+        vehicle: upserted
       });
-    } finally {
-      client.release();
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Save Vehicle Design Error]:', err);
-    res.status(500).json({ error: 'Error al persistir diseño de unidad' });
+    res.status(500).json({ error: err.message || 'Error al persistir diseño de unidad' });
   }
 });
 

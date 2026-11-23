@@ -143,52 +143,98 @@ export function initializeSockets(io: SocketIOServer): void {
       });
     });
 
+    // 5. Flujo Bidireccional en Tiempo Real de Negociación y Pactación de Carreras
+    socket.on('ride_request_broadcast', (data: {
+      passengerId: string;
+      passengerName: string;
+      origin: string;
+      destination: string;
+      proposedFare: string;
+      passengerCount: number;
+      hasLuggage: boolean;
+      userCoords?: { lat: number; lng: number } | null;
+      driverId?: string; // Si es carrera directa
+    }) => {
+      const payload = {
+        ...data,
+        requestId: `ride_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        createdAt: new Date().toISOString()
+      };
+
+      if (data.driverId) {
+        // Enviar a la sala privada del chofer específico
+        io.to(`user_${data.driverId}`).emit('ride_request_incoming', payload);
+      } else {
+        // Enviar a todos los conductores activos en el mapa provincial
+        io.to('barranca_live_map').emit('ride_request_incoming', payload);
+      }
+    });
+
+    // Chofer Acepta o Contraoferta una Carrera
+    socket.on('ride_response_from_driver', (data: {
+      requestId: string;
+      passengerId: string;
+      driverId: string;
+      driverName: string;
+      plate: string;
+      brandModel: string;
+      driverPhone?: string;
+      status: 'ACCEPTED' | 'COUNTER_OFFER' | 'REJECTED';
+      offeredFare: string;
+      distanceMin?: number;
+    }) => {
+      // Notificar al pasajero en su sala privada de forma inmediata
+      io.to(`user_${data.passengerId}`).emit('ride_response_received', {
+        ...data,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    // Pasajero confirma y pacta con el chofer (Genera PIN de seguridad)
+    socket.on('ride_agreement_finalized', (data: {
+      requestId: string;
+      passengerId: string;
+      driverId: string;
+      finalFare: string;
+      securityPin: string;
+      pickupLocation: string;
+      destination: string;
+    }) => {
+      const room = `trip_${data.requestId}`;
+      socket.join(room);
+
+      // Notificar a ambas partes
+      io.to(`user_${data.driverId}`).emit('ride_confirmed_driver', data);
+      io.to(`user_${data.passengerId}`).emit('ride_confirmed_passenger', data);
+    });
+
+    // 6. Publicación y Sincronización Inmediata de Estado de Conducción del Chofer
+    socket.on('driver_publish_status', (data: {
+      vehicleId: string;
+      status: string;
+      note: string;
+      driverName?: string;
+    }) => {
+      io.to('barranca_live_map').emit('vehicle_status_changed', {
+        vehicleId: data.vehicleId,
+        status: data.status,
+        note: data.note,
+        updatedAt: new Date().toISOString()
+      });
+    });
+
+    // 7. Mensajería Instantánea de Grupos en Vivo
+    socket.on('send_group_message', (data: {
+      groupId: string;
+      message: any;
+    }) => {
+      if (data.groupId && data.message) {
+        io.to(`group_${data.groupId}`).emit('new_group_message', data.message);
+      }
+    });
+
     socket.on('disconnect', () => {
-      // Limpieza
+      // Limpieza de socket
     });
   });
-
-  // 5. Simulador automático de tráfico GPS en vivo para la Provincia de Barranca y UNAB
-  let simStep = 0;
-  const SIM_TRONCAL_UNAB = [
-    [-10.7512, -77.7615], // Paradero Central
-    [-10.7505, -77.7590], // Av. Primavera
-    [-10.7495, -77.7565], // Óvalo UNAB
-    [-10.7485, -77.7550], // Campus Universitario UNAB
-    [-10.7495, -77.7565],
-    [-10.7505, -77.7590]
-  ];
-
-  const SIM_SUPE_ROUTE = [
-    [-10.7512, -77.7615], // Central Barranca
-    [-10.7650, -77.7530], // Salida Sur
-    [-10.7820, -77.7380], // Panamericana Sur
-    [-10.7980, -77.7125], // Supe Pueblo (Plaza Bolognesi)
-    [-10.7820, -77.7380],
-    [-10.7650, -77.7530]
-  ];
-
-  setInterval(() => {
-    simStep++;
-    const pt1 = SIM_TRONCAL_UNAB[simStep % SIM_TRONCAL_UNAB.length];
-    const pt2 = SIM_SUPE_ROUTE[simStep % SIM_SUPE_ROUTE.length];
-
-    // Mover unidad 1 (Toyota Yaris - B1A-789)
-    io.to('barranca_live_map').emit('vehicle_moved', {
-      vehicleId: 'd0000000-0000-0000-0000-000000000001',
-      latitude: pt1[0] + (Math.random() - 0.5) * 0.0003,
-      longitude: pt1[1] + (Math.random() - 0.5) * 0.0003,
-      heading: 85,
-      updatedAt: new Date().toISOString()
-    });
-
-    // Mover unidad 2 (Chevrolet Sail - C3M-456)
-    io.to('barranca_live_map').emit('vehicle_moved', {
-      vehicleId: 'd0000000-0000-0000-0000-000000000002',
-      latitude: pt2[0] + (Math.random() - 0.5) * 0.0003,
-      longitude: pt2[1] + (Math.random() - 0.5) * 0.0003,
-      heading: 175,
-      updatedAt: new Date().toISOString()
-    });
-  }, 3500);
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { 
   X, 
   Car, 
@@ -172,19 +173,30 @@ export default function VehicleDesignerModal({ isOpen, onClose, onSaved }: Vehic
     setMsg(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
-      const token = session.access_token;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+      let token = '';
+      try {
+        const { data } = await supabase.auth.getSession();
+        token = data.session?.access_token || '';
+      } catch {
+        // Fallback
+      }
+
+      if (!token) {
+        const session = JSON.parse(localStorage.getItem('sb-rnrstlizbgmxkjsekodl-auth-token') || '{}');
+        token = session.access_token || '';
+      }
 
       const payload = {
-        plate,
+        plate: plate.toUpperCase().trim(),
         brandModel,
         vehicleType: selectedTemplate,
         seatLayout: seats,
         capacity: seats.filter(s => s.type === 'passenger').length,
         roofRack,
         maxCargoKg,
-        cargoStatus
+        cargoStatus,
+        owner_id: user?.id
       };
 
       const res = await fetch(`${apiUrl}/api/vehicles/save-design`, {

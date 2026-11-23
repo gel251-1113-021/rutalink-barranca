@@ -3,18 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { 
-  X, 
-  Mail, 
-  Lock, 
-  User, 
-  Phone, 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowLeft, 
-  Smartphone, 
-  KeyRound, 
-  ShieldCheck, 
+import {
+  X,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+  Smartphone,
+  KeyRound,
+  ShieldCheck,
   Sparkles,
   MapPin,
   HeartHandshake
@@ -327,10 +327,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white dark:bg-[#15171c] w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150">
-        
+
         {/* Cabecera del Modal con Botón Cancelar/Cerrar */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-          <div 
+          <div
             onClick={() => {
               setLogoClicks(prev => {
                 const next = prev + 1;
@@ -370,22 +370,20 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
             <button
               type="button"
               onClick={() => handleSwitchTab('login')}
-              className={`py-3 transition border-b-2 text-center ${
-                tab === 'login'
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
+              className={`py-3 transition border-b-2 text-center ${tab === 'login'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
             >
               Iniciar Sesión
             </button>
             <button
               type="button"
               onClick={() => handleSwitchTab('register')}
-              className={`py-3 transition border-b-2 text-center ${
-                tab === 'register'
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
+              className={`py-3 transition border-b-2 text-center ${tab === 'register'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
             >
               Crear Cuenta
             </button>
@@ -393,7 +391,7 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
         )}
 
         <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain touch-scroll space-y-4">
-          
+
           {/* Mensajes de Alerta y Notificación */}
           {errorMsg && (
             <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2 animate-in fade-in">
@@ -509,7 +507,7 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
           {/* ======================================================== */}
           {tab === 'register' && (
             <div className="space-y-4">
-              
+
               {/* ETAPA 1: Credenciales y Seguridad Base */}
               {onboardingStage === 1 && (
                 <div className="space-y-3 pt-1">
@@ -771,11 +769,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                 <button
                   type="button"
                   onClick={() => { setRecoveryMethod('EMAIL'); setErrorMsg(''); }}
-                  className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                    recoveryMethod === 'EMAIL'
-                      ? 'bg-white dark:bg-[#16181d] text-blue-600 dark:text-blue-400 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${recoveryMethod === 'EMAIL'
+                    ? 'bg-white dark:bg-[#16181d] text-blue-600 dark:text-blue-400 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                    }`}
                 >
                   <Mail className="w-3.5 h-3.5" />
                   <span>Por Correo</span>
@@ -783,11 +780,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                 <button
                   type="button"
                   onClick={() => { setRecoveryMethod('PHONE'); setErrorMsg(''); }}
-                  className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                    recoveryMethod === 'PHONE'
-                      ? 'bg-white dark:bg-[#16181d] text-blue-600 dark:text-blue-400 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${recoveryMethod === 'PHONE'
+                    ? 'bg-white dark:bg-[#16181d] text-blue-600 dark:text-blue-400 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                    }`}
                 >
                   <Smartphone className="w-3.5 h-3.5" />
                   <span>Por Celular (+51)</span>

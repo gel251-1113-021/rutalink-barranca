@@ -126,14 +126,14 @@ export default function PhotoUploadModal({
   };
 
   return (
-    <div 
+    <div
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
     >
       <div className="bg-white dark:bg-[#14161a] w-full max-w-sm rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
-        
+
         {/* Cabecera Adaptada con Botón Cancelar/Cerrar */}
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">

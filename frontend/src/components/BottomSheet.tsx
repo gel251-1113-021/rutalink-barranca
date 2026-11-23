@@ -200,7 +200,9 @@ export default function BottomSheet({
             </div>
             <div className="text-left">
               <span className="block text-xs font-bold leading-tight text-slate-900 dark:text-slate-100">
-                {vehicles.length} vehículos · {stops.length} paraderos
+                {vehicles.length > 0
+                  ? `${vehicles.length} ${vehicles.length === 1 ? 'vehículo en ruta' : 'vehículos en ruta'} · ${stops.length} paraderos`
+                  : `0 vehículos en vivo · ${stops.length} paraderos oficiales`}
               </span>
               <span className="block text-[11px] font-medium text-slate-500">
                 Desliza con el dedo hacia arriba ▲ o toca aquí

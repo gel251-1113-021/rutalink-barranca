@@ -236,6 +236,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: UserRole
   ) => {
     try {
+      // 0. Limpiar cualquier sesión anterior del navegador para evitar mezcla de cuentas
+      await supabase.auth.signOut().catch(() => null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('rutalink_user_session');
+        localStorage.removeItem('rutalink_session');
+      }
+      setUser(null);
+      setProfile(null);
+
       const normalizedEmail = email.trim().toLowerCase();
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
 
@@ -301,7 +310,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (loginRes.data.user) {
+        const freshProfile: UserProfile = {
+          id: loginRes.data.user.id,
+          email: normalizedEmail,
+          full_name: fullName,
+          phone,
+          active_role: role,
+          rating: 5.0,
+          account_status: 'ACTIVO',
+          created_at: new Date().toISOString()
+        } as UserProfile;
+
         setUser(loginRes.data.user);
+        setProfile(freshProfile);
+
         if (typeof window !== 'undefined') {
           localStorage.setItem('rutalink_user_session', JSON.stringify({
             id: loginRes.data.user.id,
@@ -311,7 +333,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             active_role: role
           }));
         }
-        await upsertAndFetchProfile(loginRes.data.user.id, fullName, phone, role, normalizedEmail);
+
+        // Sincronizar en base de datos en segundo plano
+        upsertAndFetchProfile(loginRes.data.user.id, fullName, phone, role, normalizedEmail).catch(() => null);
+
+        // Disparar correo de bienvenida automático oficial
+        fetch(`${apiUrl}/api/auth/welcome`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: normalizedEmail, fullName, role })
+        }).catch(() => null);
       }
 
       return {};
@@ -392,7 +423,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             'Authorization': `Bearer ${session?.access_token || ''}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             code: code.trim(),
             phone: phone || profile?.phone
           })

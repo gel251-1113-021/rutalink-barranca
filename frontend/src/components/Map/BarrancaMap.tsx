@@ -4,19 +4,19 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { StopPoint, VehicleUnit, RouteCorridor } from '../../types';
-import { 
-  Layers, 
-  Locate, 
-  Flag, 
-  Navigation, 
-  MapPin, 
-  Compass, 
-  Check, 
-  ChevronDown, 
-  X, 
-  Eye, 
-  Car, 
-  Clock, 
+import {
+  Layers,
+  Locate,
+  Flag,
+  Navigation,
+  MapPin,
+  Compass,
+  Check,
+  ChevronDown,
+  X,
+  Eye,
+  Car,
+  Clock,
   Sparkles,
   MessageSquare
 } from 'lucide-react';
@@ -138,11 +138,57 @@ function analyzeGeographicLocation(lat: number, lng: number): GeoLocationAnalysi
     };
   }
 
-  // Exploración fuera de la Provincia de Barranca (Red Nacional / Limítrofes)
-  // 1. Mar Peruano
-  if (lng < -77.85 && lat >= -12.5 && lat <= -10.0) {
+  // Exploración fuera de la Provincia de Barranca (Red Nacional e Internacional)
+  // 1. Fronteras Internacionales con Países Vecinos
+  // Ecuador (Norte / Noroeste)
+  if (lat > 0.0 || (lat > -3.5 && lng < -75.5) || (lat > -4.5 && lng < -79.0) || (lat > -5.2 && lng < -80.4)) {
     return {
-      address: `Litoral Marítimo Peruano (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+      address: `Ecuador (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      isWithinProvince: false,
+      zoneTag: 'Territorio Internacional (Ecuador · Sin Cobertura)'
+    };
+  }
+
+  // Colombia (Norte / Nororiente)
+  if ((lat > -2.0 && lng >= -75.5 && lng <= -69.8) || (lat > -4.2 && lng >= -73.0 && lng <= -69.8)) {
+    return {
+      address: `Colombia (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      isWithinProvince: false,
+      zoneTag: 'Territorio Internacional (Colombia · Sin Cobertura)'
+    };
+  }
+
+  // Brasil (Oriente)
+  if ((lng > -69.5 && lat > -11.0) || (lng > -70.5 && lat > -7.5)) {
+    return {
+      address: `Brasil (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      isWithinProvince: false,
+      zoneTag: 'Territorio Internacional (Brasil · Sin Cobertura)'
+    };
+  }
+
+  // Bolivia (Suroriente)
+  if (lng > -69.0 && lat <= -11.0 && lat >= -17.5) {
+    return {
+      address: `Bolivia (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      isWithinProvince: false,
+      zoneTag: 'Territorio Internacional (Bolivia · Sin Cobertura)'
+    };
+  }
+
+  // Chile (Extremo Sur)
+  if (lat < -18.35) {
+    return {
+      address: `Chile (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      isWithinProvince: false,
+      zoneTag: 'Territorio Internacional (Chile · Sin Cobertura)'
+    };
+  }
+
+  // Océano Pacífico y Litoral Marítimo
+  if (lng < -81.4 || (lng < -77.85 && lat >= -12.5 && lat <= -10.0)) {
+    return {
+      address: `Litoral Marítimo / Océano Pacífico (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
       isWithinProvince: false,
       zoneTag: 'Océano Pacífico (Zona Marítima)'
     };
@@ -193,7 +239,7 @@ function analyzeGeographicLocation(lat: number, lng: number): GeoLocationAnalysi
     };
   }
 
-  // Validación estricta de Límites de la República del Perú
+  // Validación estricta de Límites Generales del Perú
   const isInsidePeru = lat <= 0.2 && lat >= -18.5 && lng >= -81.5 && lng <= -68.5;
   if (!isInsidePeru) {
     return {
@@ -224,10 +270,10 @@ const getVehicleCategoryEmoji = (type?: string) => {
 
 // Icono de Vehículo con orientación de rumbo real (heading 0-360°)
 const createVehicleIcon = (
-  status: string, 
-  plate: string, 
-  darkMode: boolean, 
-  vehicleType?: string, 
+  status: string,
+  plate: string,
+  darkMode: boolean,
+  vehicleType?: string,
   heading?: number
 ) => {
   const isAvailable = status === 'DISPONIBLE';
@@ -596,9 +642,9 @@ export default function BarrancaMap({
   // Manejar clic en el mapa para fijar punto real y analizar cobertura provincial/nacional
   const handleMapClick = (lat: number, lng: number) => {
     const analysis = analyzeGeographicLocation(lat, lng);
-    const newPin = { 
-      lat, 
-      lng, 
+    const newPin = {
+      lat,
+      lng,
       address: analysis.address,
       isWithinProvince: analysis.isWithinProvince,
       zoneTag: analysis.zoneTag
@@ -612,9 +658,9 @@ export default function BarrancaMap({
     const marker = e.target;
     const position = marker.getLatLng();
     const analysis = analyzeGeographicLocation(position.lat, position.lng);
-    const updated = { 
-      lat: position.lat, 
-      lng: position.lng, 
+    const updated = {
+      lat: position.lat,
+      lng: position.lng,
       address: analysis.address,
       isWithinProvince: analysis.isWithinProvince,
       zoneTag: analysis.zoneTag
@@ -658,11 +704,10 @@ export default function BarrancaMap({
           <button
             type="button"
             onClick={() => setRouteDisplayMode('POINTS')}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-              routeDisplayMode === 'POINTS'
-                ? 'bg-emerald-600 text-white font-extrabold shadow-2xs'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${routeDisplayMode === 'POINTS'
+              ? 'bg-emerald-600 text-white font-extrabold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
             title="Modo Puntos: Paraderos limpios sin cruce de manzanas"
           >
             <span>📍</span>
@@ -671,11 +716,10 @@ export default function BarrancaMap({
           <button
             type="button"
             onClick={() => setRouteDisplayMode('ROADS')}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-              routeDisplayMode === 'ROADS'
-                ? 'bg-blue-600 text-white font-extrabold shadow-2xs'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${routeDisplayMode === 'ROADS'
+              ? 'bg-blue-600 text-white font-extrabold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
             title="Modo Pistas: Rutas continuas por avenidas de Barranca"
           >
             <span>🛣️</span>
@@ -688,11 +732,10 @@ export default function BarrancaMap({
           <button
             type="button"
             onClick={() => setDriverFilterMode(driverFilterMode === 'ALL' ? 'NEAR' : 'ALL')}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-              driverFilterMode === 'NEAR'
-                ? 'bg-amber-600 text-white font-extrabold shadow-2xs'
-                : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${driverFilterMode === 'NEAR'
+              ? 'bg-amber-600 text-white font-extrabold shadow-2xs'
+              : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
             title={driverFilterMode === 'NEAR' ? "Mostrando autos a menos de 3 km" : "Mostrando toda la flota provincial"}
           >
             <span>{driverFilterMode === 'NEAR' ? '🎯' : '🌐'}</span>
@@ -721,13 +764,12 @@ export default function BarrancaMap({
             <div className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 mb-1">
               Capas Cartográficas
             </div>
-            
+
             <button
               type="button"
               onClick={() => { setMapLayer('google-streets'); setLayerDropdownOpen(false); }}
-              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${
-                mapLayer === 'google-streets' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
+              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${mapLayer === 'google-streets' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
             >
               <span>🗺️ Mapa Vial Google</span>
               {mapLayer === 'google-streets' && <Check className="w-4 h-4 text-blue-600" />}
@@ -736,9 +778,8 @@ export default function BarrancaMap({
             <button
               type="button"
               onClick={() => { setMapLayer('google-hybrid'); setLayerDropdownOpen(false); }}
-              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${
-                mapLayer === 'google-hybrid' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
+              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${mapLayer === 'google-hybrid' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
             >
               <span>🏙️ Vista Híbrida</span>
               {mapLayer === 'google-hybrid' && <Check className="w-4 h-4 text-blue-600" />}
@@ -747,9 +788,8 @@ export default function BarrancaMap({
             <button
               type="button"
               onClick={() => { setMapLayer('google-satellite'); setLayerDropdownOpen(false); }}
-              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${
-                mapLayer === 'google-satellite' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
+              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${mapLayer === 'google-satellite' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
             >
               <span>🛰️ Satélite Rural / Valle</span>
               {mapLayer === 'google-satellite' && <Check className="w-4 h-4 text-blue-600" />}
@@ -758,9 +798,8 @@ export default function BarrancaMap({
             <button
               type="button"
               onClick={() => { setMapLayer('google-traffic'); setLayerDropdownOpen(false); }}
-              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${
-                mapLayer === 'google-traffic' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
+              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${mapLayer === 'google-traffic' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
             >
               <span>🚦 Tráfico en Tiempo Real</span>
               {mapLayer === 'google-traffic' && <Check className="w-4 h-4 text-blue-600" />}
@@ -769,9 +808,8 @@ export default function BarrancaMap({
             <button
               type="button"
               onClick={() => { setMapLayer('night-mode'); setLayerDropdownOpen(false); }}
-              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${
-                mapLayer === 'night-mode' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
+              className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition ${mapLayer === 'night-mode' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
             >
               <span>🌙 Modo Nocturno (Conducción)</span>
               {mapLayer === 'night-mode' && <Check className="w-4 h-4 text-blue-600" />}
@@ -785,20 +823,18 @@ export default function BarrancaMap({
         <div className="absolute bottom-28 left-4 right-4 sm:left-auto sm:right-20 sm:w-96 z-30 bg-white/98 dark:bg-[#121417]/98 backdrop-blur-md p-4 rounded-3xl shadow-2xl border border-slate-200/90 dark:border-slate-800 animate-in slide-in-from-bottom duration-200 pointer-events-auto">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold shrink-0 ${
-                pinnedPoint.isWithinProvince 
-                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400' 
-                  : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
-              }`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold shrink-0 ${pinnedPoint.isWithinProvince
+                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                }`}>
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <span className={`text-[9.5px] uppercase font-black px-1.5 py-0.2 rounded-md ${
-                  pinnedPoint.isWithinProvince 
-                    ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300' 
-                    : 'bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300'
-                }`}>
-                  {pinnedPoint.isWithinProvince ? '📍 Nodo Barranca Activo' : '🌐 Exploración Nacional'}
+                <span className={`text-[9.5px] uppercase font-black px-1.5 py-0.5 rounded-md ${pinnedPoint.isWithinProvince
+                  ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300'
+                  }`}>
+                  {pinnedPoint.isWithinProvince ? '📍 Cobertura Barranca Activa' : '🚫 Fuera de Cobertura Operativa'}
                 </span>
                 <strong className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight block mt-0.5 truncate">
                   {pinnedPoint.address}
@@ -821,17 +857,26 @@ export default function BarrancaMap({
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (onRequestDropoff) onRequestDropoff();
-                setPinnedPoint(null);
-              }}
-              className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95"
-            >
-              <Car className="w-3.5 h-3.5" />
-              <span>Pedir Recojo Aquí</span>
-            </button>
+            {pinnedPoint.isWithinProvince ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onRequestDropoff) onRequestDropoff();
+                  setPinnedPoint(null);
+                }}
+                className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95"
+              >
+                <Car className="w-3.5 h-3.5" />
+                <span>Pedir Recojo Aquí</span>
+              </button>
+            ) : (
+              <div 
+                title="El servicio de recojo solo opera dentro de la Provincia de Barranca"
+                className="py-2 px-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 font-bold text-[10.5px] flex items-center justify-center gap-1 cursor-not-allowed select-none text-center leading-tight"
+              >
+                <span>🚫 Sin Recojo Aquí</span>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -839,7 +884,7 @@ export default function BarrancaMap({
               }}
               className="py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-200 transition active:scale-95"
             >
-              <span>Aceptar Punto</span>
+              <span>{pinnedPoint.isWithinProvince ? 'Aceptar Punto' : 'Cerrar'}</span>
             </button>
           </div>
         </div>
@@ -847,7 +892,7 @@ export default function BarrancaMap({
 
       {/* Radar de Proximidad en Vivo: Vehículo más cercano */}
       {closestVehicle && (
-        <div 
+        <div
           onClick={() => {
             if (onVehicleTap) onVehicleTap(closestVehicle.vehicle);
           }}
@@ -960,11 +1005,10 @@ export default function BarrancaMap({
               }
               setDropoffPromptOpen(true);
             }}
-            className={`px-3.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 border ${
-              passengerState === 'A_BORDO'
-                ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-500 shadow-rose-500/30'
-                : 'bg-rose-500/25 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 border-rose-300/40 dark:border-rose-800/40'
-            }`}
+            className={`px-3.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 border ${passengerState === 'A_BORDO'
+              ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-500 shadow-rose-500/30'
+              : 'bg-rose-500/25 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 border-rose-300/40 dark:border-rose-800/40'
+              }`}
             title={passengerState === 'A_BORDO' ? "Avisar al chofer para bajar" : "Toca para saber cuándo se activa"}
           >
             <span className="text-sm">🛑</span>
@@ -987,10 +1031,10 @@ export default function BarrancaMap({
         className="w-full h-full z-10"
         attributionControl={false}
       >
-        <TileLayer 
+        <TileLayer
           key={`${mapLayer}-${darkMode}`}
-          url={currentTileUrl} 
-          maxZoom={20} 
+          url={currentTileUrl}
+          maxZoom={20}
           className={isDarkMap ? 'dark-navigation-tiles' : ''}
         />
         <MapController selectedItem={selectedItem} userLocation={userLocation} centerTrigger={centerTrigger} />
