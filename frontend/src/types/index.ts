@@ -60,6 +60,7 @@ export interface VehicleUnit {
   driver_name: string;
   driver_phone?: string;
   driver_rating: number;
+  owner_id?: string;
   group_name?: string;
   route_name?: string;
   last_location_update: string;

@@ -110,25 +110,11 @@ export default function PhotoUploadModal({
     }
   };
 
-  // Apertura de cámara con verificación de permisos en dispositivos móviles y escritorio
-  const handleOpenCamera = async () => {
+  // Apertura directa y limpia de cámara móvil / web
+  const handleOpenCamera = () => {
     setPermissionError(null);
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        // Permiso concedido: liberamos la cámara y disparamos el input de captura nativa
-        stream.getTracks().forEach(track => track.stop());
-        cameraInputRef.current?.click();
-      } catch (err: any) {
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          setPermissionError('Permiso de cámara bloqueado en el navegador. Por favor toca el candado junto a la URL y permite el acceso a la cámara.');
-        } else {
-          // Si el navegador no permite preview directo pero soporta captura vía input:
-          cameraInputRef.current?.click();
-        }
-      }
-    } else {
-      cameraInputRef.current?.click();
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
     }
   };
 
@@ -171,13 +157,13 @@ export default function PhotoUploadModal({
 
         {/* Controles de Entrada */}
         <div className="p-5 space-y-4 text-center">
-          {/* Input 1: Cámara Directa con Capture Environment */}
+          {/* Input 1: Cámara Directa con Capture Environment o Frontal */}
           <input
             type="file"
             ref={cameraInputRef}
             onChange={handleFileChange}
             accept="image/*"
-            capture="environment"
+            capture={category === 'PERFIL' ? 'user' : 'environment'}
             className="hidden"
           />
 

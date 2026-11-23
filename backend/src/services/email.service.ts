@@ -35,8 +35,8 @@ export class EmailService {
 
   public static isConfigured(): boolean {
     return Boolean(
-      (process.env.SMTP_USER && process.env.SMTP_PASS) ||
       process.env.RESEND_API_KEY ||
+      (process.env.SMTP_USER && process.env.SMTP_PASS) ||
       process.env.BREVO_API_KEY ||
       process.env.SENDGRID_API_KEY
     );
@@ -46,27 +46,33 @@ export class EmailService {
    * Envía un correo electrónico a través del proveedor disponible (SMTP / Resend / Brevo).
    */
   public static async sendEmail({ to, subject, html, text }: SendEmailParams): Promise<boolean> {
+    const resendApiKey = process.env.RESEND_API_KEY;
+
     try {
-      // 1. Resend API
-      if (process.env.RESEND_API_KEY) {
+      // 1. Resend API (Oficial y Activo)
+      if (resendApiKey) {
         try {
           const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
+              'Authorization': `Bearer ${resendApiKey}`
             },
             body: JSON.stringify({
-              from: process.env.SMTP_FROM || 'RutaLink Barranca <onboarding@resend.dev>',
+              from: 'RutaLink Barranca <onboarding@resend.dev>',
               to: [to],
               subject,
               html,
               text: text || subject
             })
           });
+
+          const data = await res.json().catch(() => ({}));
           if (res.ok) {
-            console.log(`[EmailService/Resend] Correo enviado exitosamente a ${to}`);
+            console.log(`[EmailService/Resend] Correo enviado exitosamente a ${to}. ID: ${data?.id}`);
             return true;
+          } else {
+            console.warn(`[EmailService/Resend Error ${res.status}]:`, data);
           }
         } catch (resendErr) {
           console.warn('[EmailService/Resend Error]:', resendErr);
@@ -183,37 +189,57 @@ export class EmailService {
    */
   public static async sendOtpEmail(to: string, code: string, purpose: string): Promise<boolean> {
     const isDeletion = purpose === 'delete_account';
-    const purposeTitle = isDeletion ? 'Autorización de Eliminación de Cuenta' : 'Código de Verificación de Seguridad';
-    const warningText = isDeletion 
-      ? 'Has solicitado eliminar permanentemente tu cuenta de RutaLink Barranca. Todos tus registros de viajes, chats y datos se borrarán de forma irrevocable.' 
-      : 'Usa el siguiente código de 6 dígitos para verificar tu identidad en la plataforma.';
+    const isRecovery = purpose === 'recovery';
+
+    let purposeTitle = 'Código de Verificación de Seguridad';
+    let warningText = 'Usa el siguiente código de 6 dígitos para verificar tu identidad en la plataforma.';
+    let subject = `[RutaLink] Código de Seguridad: ${code}`;
+    let primaryColor = '#1e3a8a';
+    let boxBg = '#eff6ff';
+    let boxBorder = '#bfdbfe';
+
+    if (isDeletion) {
+      purposeTitle = 'Autorización de Eliminación de Cuenta';
+      warningText = 'Has solicitado eliminar permanentemente tu cuenta de RutaLink Barranca. Todos tus registros de viajes, chats y datos se borrarán de forma irrevocable.';
+      subject = `[RutaLink] Código para ELIMINAR tu cuenta: ${code}`;
+      primaryColor = '#e11d48';
+      boxBg = '#fff1f2';
+      boxBorder = '#fda4af';
+    } else if (isRecovery) {
+      purposeTitle = 'Restablecimiento de Contraseña';
+      warningText = 'Has solicitado restablecer el acceso a tu cuenta de RutaLink Barranca. Ingresa este código de 6 dígitos para registrar tu nueva clave.';
+      subject = `[RutaLink] Código para Cambiar Contraseña: ${code}`;
+      primaryColor = '#2563eb';
+      boxBg = '#f0fdf4';
+      boxBorder = '#bbf7d0';
+    }
 
     const html = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #fecdd3; border-radius: 20px; background-color: #ffffff;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 20px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: ${isDeletion ? '#e11d48' : '#1e3a8a'}; margin: 0; font-size: 22px; font-weight: 900;">RutaLink · ${purposeTitle}</h1>
-          <p style="color: #64748b; font-size: 12px; margin-top: 4px;">Código de seguridad de un solo uso</p>
+          <h1 style="color: ${primaryColor}; margin: 0; font-size: 22px; font-weight: 900;">RutaLink · ${purposeTitle}</h1>
+          <p style="color: #64748b; font-size: 12px; margin-top: 4px;">Código de seguridad exclusivo de un solo uso</p>
         </div>
 
         <p style="color: #334155; font-size: 14px; line-height: 1.5; text-align: center;">${warningText}</p>
 
-        <div style="background-color: #fff1f2; border: 2px dashed #fda4af; border-radius: 16px; padding: 20px; text-align: center; margin: 24px 0;">
-          <span style="font-size: 12px; font-weight: 800; color: #9f1239; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px;">Tu Código de Verificación OTP:</span>
-          <span style="font-size: 34px; font-weight: 900; color: #e11d48; letter-spacing: 8px; font-family: monospace; display: block;">${code}</span>
-          <span style="font-size: 11px; color: #9f1239; margin-top: 8px; display: block;">Válido durante los próximos 5 minutos</span>
+        <div style="background-color: ${boxBg}; border: 2px dashed ${boxBorder}; border-radius: 16px; padding: 20px; text-align: center; margin: 24px 0;">
+          <span style="font-size: 12px; font-weight: 800; color: ${primaryColor}; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px;">Tu Código de Verificación OTP:</span>
+          <span style="font-size: 34px; font-weight: 900; color: ${primaryColor}; letter-spacing: 8px; font-family: monospace; display: block;">${code}</span>
+          <span style="font-size: 11px; color: #64748b; margin-top: 8px; display: block;">Válido durante los próximos 5 minutos</span>
         </div>
 
-        <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0 0 16px 0;">Si no solicitaste este código, ignora este mensaje. Nadie del equipo de RutaLink te pedirá este código por teléfono.</p>
+        <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0 0 16px 0;">Si no solicitaste esta acción, ignora este mensaje. Ningún miembro de RutaLink te solicitará este código.</p>
 
         <div style="border-top: 1px solid #f1f5f9; padding-top: 14px; text-align: center; color: #94a3b8; font-size: 11px;">
-          RutaLink Barranca · Seguridad y Privacidad Ciudadana
+          RutaLink Barranca · Seguridad y Privacidad en el Transporte Provincial
         </div>
       </div>
     `;
 
     return this.sendEmail({
       to,
-      subject: `[RutaLink] Código de Seguridad: ${code}`,
+      subject,
       html
     });
   }

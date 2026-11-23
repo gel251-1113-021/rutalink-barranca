@@ -301,7 +301,7 @@ const INITIAL_ROUTES: RouteCorridor[] = [
 ];
 
 export default function HomePage() {
-  const { user, profile, isGuest, isLoading: isAuthLoading } = useAuth();
+  const { user, profile, updateProfile, isGuest, isLoading: isAuthLoading } = useAuth();
 
   // Estados de Tema y Navegación Móvil
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -338,6 +338,20 @@ export default function HomePage() {
   const [reviewTarget, setReviewTarget] = useState<{ id?: string; name?: string; type?: 'CONDUCTOR' | 'EMPRESA' } | null>(null);
   const [photoModalOpen, setPhotoModalOpen] = useState<boolean>(false);
   const [photoModalTarget, setPhotoModalTarget] = useState<{ title?: string; category?: 'PERFIL' | 'VEHICULO' | 'PARADERO' | 'LLEGADA' } | null>(null);
+
+  // Estados de Geolocalización Dual en Vivo
+  const [driverWorkStatus, setDriverWorkStatus] = useState<'DISPONIBLE' | 'PAUSA'>('DISPONIBLE');
+  const [isLiveBroadcasting, setIsLiveBroadcasting] = useState<boolean>(false);
+  const isLiveBroadcastingRef = useRef(false);
+  const driverWorkStatusRef = useRef<'DISPONIBLE' | 'PAUSA'>('DISPONIBLE');
+
+  useEffect(() => {
+    isLiveBroadcastingRef.current = isLiveBroadcasting;
+  }, [isLiveBroadcasting]);
+
+  useEffect(() => {
+    driverWorkStatusRef.current = driverWorkStatus;
+  }, [driverWorkStatus]);
   const [guideModalOpen, setGuideModalOpen] = useState<boolean>(false);
 
   // Estados de Usuario y Ubicación
@@ -501,7 +515,7 @@ export default function HomePage() {
 
   // Sockets en tiempo real
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
@@ -621,9 +635,31 @@ export default function HomePage() {
       }
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
-          // Filtrar lecturas de baja precisión (>40m) para evitar jitter
-          if (!pos.coords.accuracy || pos.coords.accuracy <= 40) {
-            setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          if (!pos.coords.accuracy || pos.coords.accuracy <= 50) {
+            const newCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setUserLocation(newCoords);
+
+            // Transmitir en tiempo real a la red comunitaria si está activado
+            if (isLiveBroadcastingRef.current) {
+              if (isDriver && driverWorkStatusRef.current === 'DISPONIBLE') {
+                const targetVeh = vehicles.find(v => v.owner_id === user?.id) || myVehicle;
+                if (targetVeh && socketRef.current) {
+                  socketRef.current.emit('driver_gps_update', {
+                    vehicleId: targetVeh.id,
+                    lat: newCoords.lat,
+                    lng: newCoords.lng,
+                    heading: pos.coords.heading || 0
+                  });
+                }
+              } else if (!isDriver && socketRef.current) {
+                socketRef.current.emit('passenger_waiting_alert', {
+                  stopName: 'Esperando transporte en ruta',
+                  lat: newCoords.lat,
+                  lng: newCoords.lng,
+                  passengerName: profile?.full_name || 'Pasajero'
+                });
+              }
+            }
           }
         },
         (err) => console.warn('watchPosition aviso:', err.message),
@@ -636,6 +672,41 @@ export default function HomePage() {
         type: 'info'
       });
       setTimeout(() => setNotificationToast(null), 3000);
+    }
+  };
+
+  // Función: Conmutar Transmisión en Tiempo Real (GPS Broadcast en Red)
+  const handleToggleLiveBroadcast = () => {
+    if (!userLocation) {
+      handleLocateUser();
+    }
+    const nextState = !isLiveBroadcasting;
+    setIsLiveBroadcasting(nextState);
+    if (nextState) {
+      setNotificationToast({
+        title: '📡 Transmisión en Tiempo Real Activada',
+        message: isDriver
+          ? 'Tu vehículo ahora es visible en vivo para los pasajeros y otros choferes en el mapa.'
+          : 'Tu posición se transmite en tiempo real a los conductores cercanos.',
+        type: 'success'
+      });
+      if (userLocation && socketRef.current && isDriver) {
+        const targetVeh = vehicles.find(v => v.owner_id === user?.id) || myVehicle;
+        if (targetVeh) {
+          socketRef.current.emit('driver_gps_update', {
+            vehicleId: targetVeh.id,
+            lat: userLocation.lat,
+            lng: userLocation.lng,
+            heading: 0
+          });
+        }
+      }
+    } else {
+      setNotificationToast({
+        title: '🛑 Transmisión Pausada',
+        message: 'Tu ubicación ya no se comparte en la red comunitaria (Modo Privado).',
+        type: 'info'
+      });
     }
   };
 
@@ -767,22 +838,81 @@ export default function HomePage() {
       {/* Barra de Estado Contextual Superior para Pasajeros y Choferes */}
       <div className="z-20 w-full bg-white/95 dark:bg-[#121417]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 flex items-center justify-between text-xs sm:text-sm">
         {isDriver ? (
-          /* Conductor: Acceso rápido a su cabina */
-          <div className="w-full flex items-center justify-between">
+          /* Conductor: Controles operativos de ruta, pausa y transmisión en vivo */
+          <div className="w-full flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className={`w-2.5 h-2.5 rounded-full ${driverWorkStatus === 'DISPONIBLE' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
               <span className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
-                Chofer en Servicio · {myVehicle.brand_model} ({myVehicle.plate})
+                {myVehicle.brand_model} ({myVehicle.plate})
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setDriverCockpitOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-2xs flex items-center gap-1.5 transition active:scale-95"
-            >
-              <Car className="w-4 h-4" />
-              <span>Abrir Mi Cabina</span>
-            </button>
+
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Conmutador Disponible vs Pausa/Refrigerio */}
+              <div className="flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDriverWorkStatus('DISPONIBLE');
+                    setNotificationToast({
+                      title: '🟢 Chofer en Ruta',
+                      message: 'Tu vehículo está activo y en servicio.',
+                      type: 'success'
+                    });
+                    setTimeout(() => setNotificationToast(null), 3000);
+                  }}
+                  className={`py-1 px-2.5 rounded-lg text-xs font-bold transition ${
+                    driverWorkStatus === 'DISPONIBLE'
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  🟢 En Ruta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDriverWorkStatus('PAUSA');
+                    setNotificationToast({
+                      title: '⏸️ En Pausa',
+                      message: 'Ubicación oculta temporalmente por refrigerio.',
+                      type: 'info'
+                    });
+                    setTimeout(() => setNotificationToast(null), 3000);
+                  }}
+                  className={`py-1 px-2.5 rounded-lg text-xs font-bold transition ${
+                    driverWorkStatus === 'PAUSA'
+                      ? 'bg-amber-600 text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  ⏸️ Pausa
+                </button>
+              </div>
+
+              {/* Botón Transmitir en Vivo */}
+              <button
+                type="button"
+                onClick={handleToggleLiveBroadcast}
+                className={`py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-2xs ${
+                  isLiveBroadcasting
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+                title={isLiveBroadcasting ? 'Toca para dejar de transmitir tu ubicación' : 'Compartir tu auto en vivo con pasajeros'}
+              >
+                <span>{isLiveBroadcasting ? '📡 Transmitiendo' : '🛰️ Compartir GPS'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDriverCockpitOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs flex items-center gap-1 transition active:scale-95"
+              >
+                <Car className="w-3.5 h-3.5" />
+                <span>Mi Cabina</span>
+              </button>
+            </div>
           </div>
         ) : (
           /* Pasajero: Selector de estado contextual adaptativo (4 columnas en móvil, barra completa en PC) */
@@ -837,6 +967,20 @@ export default function HomePage() {
                 <span>🚗</span>
                 <span className="hidden sm:inline">A bordo</span>
                 <span className="sm:hidden text-[11px]">A bordo</span>
+              </button>
+
+              {/* Botón Transmisión en Vivo Pasajero */}
+              <button
+                type="button"
+                onClick={handleToggleLiveBroadcast}
+                className={`py-1.5 px-2 sm:px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow-2xs ${
+                  isLiveBroadcasting
+                    ? 'bg-rose-600 text-white animate-pulse'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60'
+                }`}
+                title={isLiveBroadcasting ? 'Dejar de compartir ubicación con choferes' : 'Compartir ubicación en vivo con choferes en ruta'}
+              >
+                <span>{isLiveBroadcasting ? '📡 En Vivo' : '🛰️ Compartir'}</span>
               </button>
             </div>
 
@@ -1072,6 +1216,10 @@ export default function HomePage() {
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
+        onOpenPhotoUpload={(title, category) => {
+          setPhotoModalTarget({ title, category });
+          setPhotoModalOpen(true);
+        }}
       />
 
       <ProfileModal
@@ -1144,10 +1292,13 @@ export default function HomePage() {
         onClose={() => setPhotoModalOpen(false)}
         title={photoModalTarget?.title}
         category={photoModalTarget?.category}
-        onPhotoUploaded={(dataUrl) => {
+        onPhotoUploaded={async (dataUrl) => {
+          if (user) {
+            await updateProfile({ avatar_url: dataUrl });
+          }
           setNotificationToast({
             title: 'Fotografía Guardada',
-            message: 'La imagen se ha optimizado y guardado con éxito.',
+            message: 'La imagen se ha optimizado y guardado en tu perfil.',
             type: 'success'
           });
           setTimeout(() => setNotificationToast(null), 3000);

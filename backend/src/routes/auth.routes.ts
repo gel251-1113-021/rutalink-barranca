@@ -70,15 +70,12 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Generar código OTP criptográficamente seguro de 6 dígitos (o 123456 en entorno prueba/feria)
-    const demoCode = '123456';
-    const generatedCode = process.env.NODE_ENV === 'production' && process.env.SMS_API_KEY
-      ? Math.floor(100000 + Math.random() * 900000).toString()
-      : demoCode;
+    // Generar código OTP criptográficamente seguro de 6 dígitos
+    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     const otpData: OtpEntry = {
       code: generatedCode,
-      expiresAt: now + 5 * 60 * 1000, // 5 minutos de vigencia amplia para evitar expiraciones rápidas
+      expiresAt: now + 5 * 60 * 1000, // 5 minutos de vigencia
       attempts: 0,
       purpose
     };
@@ -89,7 +86,7 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
 
     rateLimitStore.set(identifier, now);
 
-    // Disparar correo real de autorización OTP en segundo plano
+    // Disparar correo real de autorización OTP con Resend
     if (cleanEmail) {
       EmailService.sendOtpEmail(cleanEmail, generatedCode, purpose).catch(err => {
         console.warn('[OTP Email dispatch warning]:', err);
@@ -98,10 +95,9 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      message: `Código de verificación enviado a ${cleanPhone || cleanEmail}.`,
+      message: `Código de seguridad enviado a ${cleanEmail || cleanPhone}. Revisa tu bandeja de entrada o spam.`,
       cooldownSeconds: 60,
-      expiresInSeconds: 300,
-      demoCode: generatedCode
+      expiresInSeconds: 300
     });
   } catch (err) {
     console.error('[OTP Send Error]:', err);
@@ -244,12 +240,15 @@ router.post('/register-direct', async (req: Request, res: Response): Promise<voi
           user: { id: sbData.user.id, email: normalizedEmail, fullName, phone: cleanPhone, role }
         });
         return;
+      } else if (sbErr) {
+        res.status(400).json({ error: sbErr.message });
+        return;
       }
-    } catch (sbCatchErr) {
+    } catch (sbCatchErr: any) {
       console.warn('[Supabase REST fallback error]:', sbCatchErr);
     }
 
-    res.status(500).json({ error: 'Error al registrar la cuenta: ' + (err.message || 'Error interno') });
+    res.status(500).json({ error: 'No se pudo registrar la cuenta en este momento. Inténtalo directamente desde la interfaz.' });
   }
 });
 
@@ -328,10 +327,26 @@ router.post('/recover/reset', async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // En producción con Supabase Auth se actualiza el password del usuario
+    // Actualizar contraseña en base de datos auth.users
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(`
+          UPDATE auth.users
+          SET encrypted_password = crypt($1, gen_salt('bf')),
+              updated_at = NOW()
+          WHERE LOWER(email) = LOWER($2) OR phone = $2;
+        `, [newPassword, identifier]);
+      } finally {
+        client.release();
+      }
+    } catch (dbErr) {
+      console.warn('[Recover Reset DB Warning]:', dbErr);
+    }
+
     res.json({
       success: true,
-      message: `Contraseña restablecida exitosamente para ${identifier}. Por favor inicia sesión con tu nueva credencial.`
+      message: `Contraseña restablecida exitosamente para ${identifier}. Inicia sesión con tu nueva credencial.`
     });
   } catch (err) {
     console.error('[Recover Reset Error]:', err);

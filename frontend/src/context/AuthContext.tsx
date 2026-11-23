@@ -32,36 +32,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
-        } else {
-          // Respaldo de hidratación anti-recarga (F5) para producción
+          // Verificar si el caché local coincide con el usuario actual de Supabase
           if (typeof window !== 'undefined') {
             const cached = localStorage.getItem('rutalink_user_session');
             if (cached) {
               try {
                 const parsed = JSON.parse(cached);
-                if (parsed?.id) {
-                  setUser({ id: parsed.id, email: parsed.email, user_metadata: parsed });
-                  const cachedProfile: UserProfile = {
-                    id: parsed.id,
-                    email: parsed.email,
-                    full_name: parsed.full_name,
-                    phone: parsed.phone,
-                    active_role: parsed.active_role || 'PASAJERO',
-                    rating: 5.0,
-                    created_at: new Date().toISOString()
-                  } as UserProfile;
-                  setProfile(cachedProfile);
-                  // Intentar refrescar en segundo plano con Supabase
-                  fetchProfile(parsed.id);
+                if (parsed?.id && parsed.id !== session.user.id) {
+                  // Si el caché pertenece a otro usuario previo, limpiarlo de inmediato
+                  localStorage.removeItem('rutalink_user_session');
                 }
-              } catch (e) {
-                console.warn('[Cache parse error]:', e);
+              } catch {
+                localStorage.removeItem('rutalink_user_session');
               }
-            } else {
-              setUser(null);
-              setProfile(null);
             }
+          }
+          await fetchProfile(session.user.id);
+        } else {
+          setUser(null);
+          setProfile(null);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('rutalink_user_session');
           }
         }
       } catch (err) {
@@ -76,12 +67,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
+        // Descartar caché si pertenece a otro usuario
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('rutalink_user_session');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (parsed?.id && parsed.id !== session.user.id) {
+                localStorage.removeItem('rutalink_user_session');
+              }
+            } catch {
+              localStorage.removeItem('rutalink_user_session');
+            }
+          }
+        }
         await fetchProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         if (typeof window !== 'undefined') {
           localStorage.removeItem('rutalink_user_session');
+          localStorage.removeItem('rutalink_session');
         }
       }
       setIsLoading(false);
@@ -94,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function fetchProfile(userId: string) {
     try {
+      // 1. Intentar consultar tabla profiles
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -113,6 +120,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return data as UserProfile;
       }
+
+      // 2. Respaldo inmediato desde metadatos de Supabase Auth si la tabla aún no sincroniza
+      const currentUser = (await supabase.auth.getUser()).data?.user;
+      if (currentUser && currentUser.id === userId) {
+        const meta = currentUser.user_metadata || {};
+        const fallbackProf: UserProfile = {
+          id: userId,
+          email: currentUser.email || '',
+          full_name: meta.full_name || 'Usuario RutaLink',
+          phone: meta.phone || '',
+          active_role: meta.active_role || 'PASAJERO',
+          rating: 5.0,
+          created_at: new Date().toISOString()
+        } as UserProfile;
+
+        setProfile(fallbackProf);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('rutalink_user_session', JSON.stringify({
+            id: userId,
+            email: currentUser.email,
+            full_name: fallbackProf.full_name,
+            phone: fallbackProf.phone,
+            active_role: fallbackProf.active_role
+          }));
+        }
+
+        // Reintentar registrar el perfil en segundo plano
+        await upsertAndFetchProfile(userId, fallbackProf.full_name, fallbackProf.phone || '', fallbackProf.active_role, currentUser.email);
+        return fallbackProf;
+      }
     } catch (err) {
       console.error('[Auth Error] Error consultando perfil:', err);
     }
@@ -120,6 +157,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function upsertAndFetchProfile(userId: string, fullName: string, phone: string, role: UserRole, email?: string) {
+    // Actualizar estado en memoria de inmediato para que el dashboard nunca se vea en blanco
+    const immediateProf: UserProfile = {
+      id: userId,
+      full_name: fullName,
+      phone: phone,
+      active_role: role,
+      email: email,
+      rating: 5.0,
+      created_at: new Date().toISOString()
+    } as UserProfile;
+    setProfile(immediateProf);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rutalink_user_session', JSON.stringify({
+        id: userId,
+        email: email,
+        full_name: fullName,
+        phone: phone,
+        active_role: role
+      }));
+    }
+
     try {
       const newProf = {
         id: userId,
@@ -130,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updated_at: new Date().toISOString()
       };
 
-      const { data: inserted, error: upErr } = await supabase
+      const { data: inserted } = await supabase
         .from('profiles')
         .upsert(newProf, { onConflict: 'id' })
         .select()
@@ -140,17 +199,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(inserted as UserProfile);
         return inserted as UserProfile;
       }
-
-      // Si falla upsert atómico, consultar existente o crear local
-      const existing = await fetchProfile(userId);
-      if (existing) {
-        setProfile(existing);
-        return existing;
-      }
     } catch (err) {
-      console.error('[Profile Upsert Error]:', err);
+      console.warn('[Profile Upsert Warning]:', err);
     }
-    return null;
+    return immediateProf;
   }
 
   const login = async (email: string, password: string) => {
@@ -185,7 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ) => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
 
       // 1. Intentar registro profesional directo vía backend (Resiliente, sin bloqueo por límites SMTP de Supabase)
       let backendSuccess = false;
@@ -324,8 +376,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const deleteAccount = async (code?: string, phone?: string) => {
     if (!user) return { error: 'No autenticado' };
+    if (!code || code.trim().length !== 6) {
+      return { error: 'Debes ingresar el código de 6 dígitos enviado a tu correo.' };
+    }
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
       const session = (await supabase.auth.getSession()).data.session;
 
       // 1. Intentar borrado en backend con validación OTP
@@ -338,7 +393,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ 
-            code: code || '123456',
+            code: code.trim(),
             phone: phone || profile?.phone
           })
         });

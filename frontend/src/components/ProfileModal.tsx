@@ -14,11 +14,27 @@ interface ProfileModalProps {
 export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: ProfileModalProps) {
   const { user, profile, updateProfile, deleteAccount } = useAuth();
 
-  const [fullName, setFullName] = useState(profile?.full_name || '');
-  const [phone, setPhone] = useState(profile?.phone || '');
+  const [fullName, setFullName] = useState(profile?.full_name || user?.user_metadata?.full_name || '');
+  const [phone, setPhone] = useState(profile?.phone || user?.user_metadata?.phone || '');
   const [emergencyName, setEmergencyName] = useState(profile?.emergency_contact_name || '');
   const [emergencyPhone, setEmergencyPhone] = useState(profile?.emergency_contact_phone || '');
-  const [activeRole, setActiveRole] = useState<UserRole>(profile?.active_role || 'PASAJERO');
+  const [activeRole, setActiveRole] = useState<UserRole>(profile?.active_role || user?.user_metadata?.active_role || 'PASAJERO');
+
+  // Sincronizar automáticamente campos al abrir el modal o recibir perfil
+  React.useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setPhone(profile.phone || '');
+      setEmergencyName(profile.emergency_contact_name || '');
+      setEmergencyPhone(profile.emergency_contact_phone || '');
+      setActiveRole(profile.active_role || 'PASAJERO');
+    } else if (user) {
+      const meta = user.user_metadata || {};
+      setFullName(meta.full_name || '');
+      setPhone(meta.phone || '');
+      setActiveRole(meta.active_role || 'PASAJERO');
+    }
+  }, [profile, user, isOpen]);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -29,7 +45,6 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
   const [deleteOtpCode, setDeleteOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
-  const [otpDemoNotice, setOtpDemoNotice] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Temporizador de Cooldown para OTP
@@ -76,7 +91,7 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
       const res = await fetch(`${apiUrl}/api/auth/otp/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,22 +106,13 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
         const data = await res.json();
         setOtpSent(true);
         setOtpCooldown(data.cooldownSeconds || 60);
-        setMsg({ text: `Código de seguridad enviado a ${targetIdentifier}`, type: 'success' });
-        if (data.demoCode) {
-          setOtpDemoNotice(`(Código de seguridad: ${data.demoCode})`);
-        }
+        setMsg({ text: `Código de autorización enviado a ${targetIdentifier}. Revisa tu bandeja de entrada o spam.`, type: 'success' });
       } else {
-        // Modo contingencia
-        setOtpSent(true);
-        setOtpCooldown(60);
-        setOtpDemoNotice('(Código de seguridad: 123456)');
-        setMsg({ text: `Código de seguridad generado para ${targetIdentifier}`, type: 'success' });
+        const errData = await res.json().catch(() => ({}));
+        setMsg({ text: errData.error || `No se pudo enviar el código a ${targetIdentifier}. Intenta nuevamente.`, type: 'error' });
       }
     } catch {
-      setOtpSent(true);
-      setOtpCooldown(60);
-      setOtpDemoNotice('(Código de seguridad: 123456)');
-      setMsg({ text: `Código de seguridad generado para ${targetIdentifier}`, type: 'success' });
+      setMsg({ text: `Error de conexión al solicitar código. Verifica tu red.`, type: 'error' });
     }
   };
 
@@ -384,26 +390,11 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
                       <input
                         type="text"
                         maxLength={6}
-                        placeholder="123456"
+                        placeholder="Ingresa los 6 dígitos recibidos"
                         value={deleteOtpCode}
                         onChange={(e) => setDeleteOtpCode(e.target.value.replace(/\D/g, ''))}
                         className="w-full px-3 py-2 text-center tracking-widest font-mono font-bold text-sm rounded-xl border border-rose-300 dark:border-rose-700 bg-white dark:bg-[#181a20] text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500"
                       />
-
-                      {otpDemoNotice && (
-                        <div className="p-2 rounded-xl bg-blue-50/80 dark:bg-blue-950/50 border border-blue-200/70 dark:border-blue-900/50 text-center">
-                          <p className="text-[11px] font-bold text-blue-700 dark:text-blue-300">
-                            {otpDemoNotice}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteOtpCode('123456')}
-                            className="mt-1 text-[10.5px] text-blue-600 dark:text-blue-400 font-bold hover:underline"
-                          >
-                            ⚡ Autocompletar código de autorización
-                          </button>
-                        </div>
-                      )}
 
                       <div className="flex gap-2 pt-1">
                         <button
@@ -412,7 +403,6 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
                             setConfirmDelete(false);
                             setOtpSent(false);
                             setDeleteOtpCode('');
-                            setOtpDemoNotice(null);
                           }}
                           className="flex-1 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                         >

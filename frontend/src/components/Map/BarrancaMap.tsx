@@ -193,10 +193,20 @@ function analyzeGeographicLocation(lat: number, lng: number): GeoLocationAnalysi
     };
   }
 
+  // Validación estricta de Límites de la República del Perú
+  const isInsidePeru = lat <= 0.2 && lat >= -18.5 && lng >= -81.5 && lng <= -68.5;
+  if (!isInsidePeru) {
+    return {
+      address: `Ubicación fuera del Perú (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      isWithinProvince: false,
+      zoneTag: 'Territorio Internacional (Servicio no disponible fuera del país)'
+    };
+  }
+
   return {
-    address: `Zona Externa Nacional (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+    address: `Zona Externa a Barranca (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
     isWithinProvince: false,
-    zoneTag: 'Red Nacional RutaLink (Próxima Cobertura)'
+    zoneTag: 'Red Vial Nacional (Fuera del ámbito provincial de Barranca)'
   };
 }
 
@@ -463,21 +473,26 @@ const createWaitingPassengerIcon = () => {
   });
 };
 
-// Controlador de Cámara
+// Controlador de Cámara Desacoplado para Movimiento Libre
 function MapController({
   selectedItem,
-  userLocation
+  userLocation,
+  centerTrigger = 0
 }: {
   selectedItem: any;
   userLocation?: { lat: number; lng: number } | null;
+  centerTrigger?: number;
 }) {
   const map = useMap();
+  const hasCenteredRef = useRef(false);
 
+  // Solo centrar en la primera detección o cuando el usuario pulsa explícitamente "Mi Ubicación"
   useEffect(() => {
-    if (userLocation) {
+    if (userLocation && (!hasCenteredRef.current || centerTrigger > 0)) {
+      hasCenteredRef.current = true;
       map.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
     }
-  }, [userLocation, map]);
+  }, [centerTrigger, map]);
 
   useEffect(() => {
     if (!selectedItem) return;
@@ -534,6 +549,24 @@ export default function BarrancaMap({
   const [layerDropdownOpen, setLayerDropdownOpen] = useState(false);
   const [routeDisplayMode, setRouteDisplayMode] = useState<'POINTS' | 'ROADS'>('POINTS');
   const [trackingGps, setTrackingGps] = useState<boolean>(true);
+  const [centerTrigger, setCenterTrigger] = useState<number>(0);
+  const [driverFilterMode, setDriverFilterMode] = useState<'ALL' | 'NEAR'>('ALL');
+
+  // Filtro de Vehículos (Cerca de mí < 3 km vs Explorar toda la provincia)
+  const displayedVehicles = useMemo(() => {
+    if (driverFilterMode === 'ALL' || !userLocation) {
+      return vehicles;
+    }
+    return vehicles.filter(v => {
+      const vLat = Number(v.latitude);
+      const vLng = Number(v.longitude);
+      if (isNaN(vLat) || isNaN(vLng)) return false;
+      const dLat = (vLat - userLocation.lat) * 111.32;
+      const dLng = (vLng - userLocation.lng) * 111.32 * Math.cos((userLocation.lat * Math.PI) / 180);
+      const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+      return dist <= 3.0;
+    });
+  }, [vehicles, driverFilterMode, userLocation]);
 
   // Marcador de Posición Pin Personalizado en el Mapa (Estilo Google Maps)
   const [pinnedPoint, setPinnedPoint] = useState<{
@@ -619,36 +652,53 @@ export default function BarrancaMap({
 
   return (
     <div className="relative w-full h-full select-none">
-      {/* 1. Selector Superior Izquierdo: Modo de Rutas (Puntos vs Trazo Vial) */}
-      <div className="absolute top-3 left-3 z-20 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-xs font-bold pointer-events-auto">
-        <button
-          type="button"
-          onClick={() => setRouteDisplayMode('POINTS')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-            routeDisplayMode === 'POINTS'
-              ? 'bg-emerald-600 text-white font-extrabold shadow-2xs'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
-          title="Modo Puntos: Paraderos limpios sin cruce de manzanas"
-        >
-          <span>📍</span>
-          <span className="hidden sm:inline">Puntos Marcados</span>
-          <span className="sm:hidden">Puntos</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setRouteDisplayMode('ROADS')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-            routeDisplayMode === 'ROADS'
-              ? 'bg-blue-600 text-white font-extrabold shadow-2xs'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
-          title="Modo Pistas: Rutas continuas por avenidas de Barranca"
-        >
-          <span>🛣️</span>
-          <span className="hidden sm:inline">Trazo Vial</span>
-          <span className="sm:hidden">Pistas</span>
-        </button>
+      {/* 1. Selector Superior Izquierdo: Modo de Rutas y Filtro de Choferes */}
+      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 pointer-events-auto">
+        <div className="flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setRouteDisplayMode('POINTS')}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              routeDisplayMode === 'POINTS'
+                ? 'bg-emerald-600 text-white font-extrabold shadow-2xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="Modo Puntos: Paraderos limpios sin cruce de manzanas"
+          >
+            <span>📍</span>
+            <span className="hidden sm:inline">Puntos</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setRouteDisplayMode('ROADS')}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              routeDisplayMode === 'ROADS'
+                ? 'bg-blue-600 text-white font-extrabold shadow-2xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="Modo Pistas: Rutas continuas por avenidas de Barranca"
+          >
+            <span>🛣️</span>
+            <span className="hidden sm:inline">Trazo Vial</span>
+          </button>
+        </div>
+
+        {/* Filtro: Choferes Cerca de Mí vs Explorar Todo el Mapa */}
+        <div className="flex items-center gap-1 p-1 bg-white/95 dark:bg-[#16181d]/95 backdrop-blur-md rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setDriverFilterMode(driverFilterMode === 'ALL' ? 'NEAR' : 'ALL')}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              driverFilterMode === 'NEAR'
+                ? 'bg-amber-600 text-white font-extrabold shadow-2xs'
+                : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title={driverFilterMode === 'NEAR' ? "Mostrando autos a menos de 3 km" : "Mostrando toda la flota provincial"}
+          >
+            <span>{driverFilterMode === 'NEAR' ? '🎯' : '🌐'}</span>
+            <span>{driverFilterMode === 'NEAR' ? 'Cerca (<3 km)' : 'Todo el Mapa'}</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Selector Discreto de Capas (Calles, Satélite, Híbrido, Tráfico, Nocturno) */}
@@ -840,11 +890,14 @@ export default function BarrancaMap({
           </div>
         )}
 
-        {/* Botón: Centrar / Seguir ubicación GPS */}
+        {/* Botón: Centrar en mi ubicación GPS (Desbloqueado para movimiento libre) */}
         {onLocateUser && (
           <button
             type="button"
-            onClick={onLocateUser}
+            onClick={() => {
+              if (onLocateUser) onLocateUser();
+              setCenterTrigger(prev => prev + 1);
+            }}
             className="w-12 h-12 rounded-2xl bg-white dark:bg-[#1a1d24] text-blue-600 dark:text-blue-400 shadow-xl border border-slate-200/90 dark:border-slate-700 flex items-center justify-center hover:bg-blue-50 transition active:scale-90"
             title="Centrar en mi ubicación GPS exacta"
             aria-label="Ubicar mi posición GPS"
@@ -940,7 +993,7 @@ export default function BarrancaMap({
           maxZoom={20} 
           className={isDarkMap ? 'dark-navigation-tiles' : ''}
         />
-        <MapController selectedItem={selectedItem} userLocation={userLocation} />
+        <MapController selectedItem={selectedItem} userLocation={userLocation} centerTrigger={centerTrigger} />
         <MapClickHandler onMapClick={handleMapClick} />
 
         {/* Pin Magnético Arrastrable Colocado por el Usuario */}
@@ -1022,7 +1075,7 @@ export default function BarrancaMap({
         })}
 
         {/* Marcadores de Vehículos en Vivo con Orientación de Rumbo (Heading) */}
-        {vehicles.map((v, index) => {
+        {displayedVehicles.map((v, index) => {
           const lat = Number(v.latitude);
           const lng = Number(v.longitude);
           if (isNaN(lat) || isNaN(lng)) return null;

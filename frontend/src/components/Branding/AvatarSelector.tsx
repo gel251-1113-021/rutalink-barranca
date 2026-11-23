@@ -88,15 +88,58 @@ export default function AvatarSelector({
   photoUrl,
   onSelect,
   onOpenPhotoModal,
+  onPhotoSelected,
   onCancel
 }: {
   selectedId: string;
   photoUrl?: string;
   onSelect: (id: string) => void;
   onOpenPhotoModal?: () => void;
+  onPhotoSelected?: (base64: string) => void;
   onCancel?: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState<'presets' | 'photo'>('presets');
+  const [activeTab, setActiveTab] = useState<'presets' | 'photo'>(photoUrl ? 'photo' : 'presets');
+  const camInputRef = React.useRef<HTMLInputElement>(null);
+  const galInputRef = React.useRef<HTMLInputElement>(null);
+
+  const processFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 800;
+        let w = img.width;
+        let h = img.height;
+        if (w > h && w > MAX) {
+          h = (h * MAX) / w;
+          w = MAX;
+        } else if (h > MAX) {
+          w = (w * MAX) / h;
+          h = MAX;
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const base64 = canvas.toDataURL('image/jpeg', 0.82);
+          if (onPhotoSelected) {
+            onPhotoSelected(base64);
+          }
+        }
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -131,53 +174,128 @@ export default function AvatarSelector({
           <span>Iconos de Barranca ({PRESET_AVATARS.length})</span>
         </button>
 
-        {onOpenPhotoModal && (
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('photo');
-              onOpenPhotoModal();
-            }}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-              activeTab === 'photo' || photoUrl
-                ? 'bg-white dark:bg-[#16181d] text-blue-600 dark:text-blue-400 shadow-2xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <Camera className="w-3.5 h-3.5" />
-            <span>{photoUrl ? 'Foto Cargada' : 'Tomar / Subir Foto'}</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('photo');
+            if (onOpenPhotoModal) onOpenPhotoModal();
+          }}
+          className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            activeTab === 'photo' || photoUrl
+              ? 'bg-white dark:bg-[#16181d] text-blue-600 dark:text-blue-400 shadow-2xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+          }`}
+        >
+          <Camera className="w-3.5 h-3.5" />
+          <span>{photoUrl ? 'Foto Seleccionada' : 'Tomar / Subir Foto'}</span>
+        </button>
       </div>
 
-      {/* Grilla Expandida de Avatares (16 opciones responsivas) */}
-      <div className="grid grid-cols-4 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto overscroll-contain pr-1 touch-scroll">
-        {PRESET_AVATARS.map((av) => {
-          const isSelected = selectedId === av.id && !photoUrl;
-          return (
-            <button
-              key={av.id}
-              type="button"
-              onClick={() => {
-                onSelect(av.id);
-                setActiveTab('presets');
-              }}
-              className={`p-2 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1 active:scale-95 ${
-                isSelected
-                  ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/40 shadow-xs scale-102'
-                  : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/70 dark:bg-[#121417]'
-              }`}
-            >
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr ${av.bgGradient} flex items-center justify-center text-lg shadow-2xs shrink-0`}>
-                <span>{av.emoji}</span>
+      {/* Inputs nativos para soporte directo de cámara y galería */}
+      <input
+        type="file"
+        ref={camInputRef}
+        onChange={handleFileInput}
+        accept="image/*"
+        capture="user"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={galInputRef}
+        onChange={handleFileInput}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {activeTab === 'photo' && (
+        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#16181d] border border-slate-200 dark:border-slate-800 space-y-3 animate-in fade-in">
+          {photoUrl ? (
+            <div className="flex items-center gap-3">
+              <img
+                src={photoUrl}
+                alt="Foto de perfil"
+                className="w-14 h-14 rounded-2xl object-cover border-2 border-emerald-500 shadow-sm"
+              />
+              <div className="flex-1 space-y-1">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1 text-emerald-600">
+                  <Check className="w-3.5 h-3.5" /> Foto lista para perfil
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => camInputRef.current?.click()}
+                    className="text-[10.5px] text-blue-600 font-bold hover:underline"
+                  >
+                    Tomar otra
+                  </button>
+                  <span className="text-slate-300">·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onPhotoSelected) onPhotoSelected('');
+                    }}
+                    className="text-[10.5px] text-rose-500 font-bold hover:underline"
+                  >
+                    Quitar foto
+                  </button>
+                </div>
               </div>
-              <span className="text-[9px] font-semibold text-slate-700 dark:text-slate-300 text-center leading-tight truncate max-w-full">
-                {av.name.split(' ')[0]}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => camInputRef.current?.click()}
+                className="p-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition active:scale-95 shadow-xs"
+              >
+                <Camera className="w-5 h-5" />
+                <span>Tomar Foto</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => galInputRef.current?.click()}
+                className="p-3 rounded-xl bg-white dark:bg-[#1e2025] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition active:scale-95"
+              >
+                <ImageIcon className="w-5 h-5 text-slate-500" />
+                <span>De la Galería</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Grilla Expandida de Avatares (16 opciones responsivas) */}
+      {activeTab === 'presets' && (
+        <div className="grid grid-cols-4 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto overscroll-contain pr-1 touch-scroll">
+          {PRESET_AVATARS.map((av) => {
+            const isSelected = selectedId === av.id && !photoUrl;
+            return (
+              <button
+                key={av.id}
+                type="button"
+                onClick={() => {
+                  onSelect(av.id);
+                  if (onPhotoSelected) onPhotoSelected('');
+                  setActiveTab('presets');
+                }}
+                className={`p-2 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1 active:scale-95 ${
+                  isSelected
+                    ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/40 shadow-xs scale-102'
+                    : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/70 dark:bg-[#121417]'
+                }`}
+              >
+                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr ${av.bgGradient} flex items-center justify-center text-lg shadow-2xs shrink-0`}>
+                  <span>{av.emoji}</span>
+                </div>
+                <span className="text-[9px] font-semibold text-slate-700 dark:text-slate-300 text-center leading-tight truncate max-w-full">
+                  {av.name.split(' ')[0]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

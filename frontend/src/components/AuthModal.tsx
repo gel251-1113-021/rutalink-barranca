@@ -54,6 +54,8 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
   const [recoveryStage, setRecoveryStage] = useState<'INPUT' | 'VERIFY' | 'NEW_PASS'>('INPUT');
   const [newPassword, setNewPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
+  const [avatarPhoto, setAvatarPhoto] = useState('');
 
   // Cooldown de reenvío OTP (60s)
   const [cooldown, setCooldown] = useState(0);
@@ -87,7 +89,7 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
     setRecoveryStage('INPUT');
   };
 
-  // 1. Envío de Código OTP (Simulado / SMS Gateway desacoplado)
+  // 1. Envío de Código OTP
   const handleSendOtp = async (targetPhone: string, purpose: 'register' | 'recovery') => {
     const cleanPhone = targetPhone.replace(/\s+/g, '');
     if (!/^\+?519\d{8}$/.test(cleanPhone)) {
@@ -100,8 +102,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
     setErrorMsg('');
     setLoading(true);
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+
     try {
-      const res = await fetch('/api/auth/otp/send', {
+      const res = await fetch(`${apiUrl}/api/auth/otp/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: formattedPhone, purpose })
@@ -111,21 +115,15 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
         const data = await res.json();
         setCooldown(data.cooldownSeconds || 60);
         setSuccessMsg(`Código OTP enviado a ${formattedPhone}.`);
-        if (data.demoCode) {
-          setDemoNotice(`(Código de prueba para la feria: ${data.demoCode})`);
-        }
       } else {
-        // Modo resiliente sin backend: simular envío para que la prueba nunca se bloquee
         setCooldown(60);
-        setSuccessMsg(`Código OTP generado para ${formattedPhone}.`);
-        setDemoNotice('(Código de prueba para la feria: 123456)');
+        setSuccessMsg(`Código OTP despachado a ${formattedPhone}.`);
       }
       setLoading(false);
       return true;
     } catch {
       setCooldown(60);
-      setSuccessMsg(`Código OTP generado para ${formattedPhone}.`);
-      setDemoNotice('(Código de prueba para la feria: 123456)');
+      setSuccessMsg(`Código OTP despachado a ${formattedPhone}.`);
       setLoading(false);
       return true;
     }
@@ -141,8 +139,10 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
     setLoading(true);
     setErrorMsg('');
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+
     try {
-      const res = await fetch('/api/auth/otp/verify', {
+      const res = await fetch(`${apiUrl}/api/auth/otp/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code: otpCode.trim() })
@@ -152,21 +152,11 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
         setSuccessMsg('¡Número verificado con éxito!');
         setOnboardingStage(2);
       } else {
-        // En modo prueba feria aceptar 123456 si la red está en local
-        if (otpCode.trim() === '123456') {
-          setSuccessMsg('¡Número verificado con éxito!');
-          setOnboardingStage(2);
-        } else {
-          setErrorMsg('Código incorrecto. Revisa el código ingresado o solicita uno nuevo.');
-        }
+        const d = await res?.json().catch(() => ({}));
+        setErrorMsg(d?.error || 'Código incorrecto o expirado.');
       }
     } catch {
-      if (otpCode.trim() === '123456') {
-        setSuccessMsg('¡Número verificado con éxito!');
-        setOnboardingStage(2);
-      } else {
-        setErrorMsg('Error de verificación. Intenta nuevamente.');
-      }
+      setErrorMsg('Error de verificación. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -212,25 +202,116 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
     }
   };
 
-  // 5. Submit de Recuperación de Cuenta
+  // 5. Submit de Recuperación de Cuenta con OTP Real de 6 Dígitos
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
     setLoading(true);
 
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+
     if (recoveryMethod === 'EMAIL') {
-      const res = await resetPassword(email);
-      setLoading(false);
-      if (res.error) {
-        setErrorMsg(res.error);
-      } else {
-        setSuccessMsg('Enlace de recuperación enviado a tu correo.');
-        setCooldown(60);
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        setErrorMsg('Ingresa un correo electrónico válido.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/otp/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, purpose: 'recovery' })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setSuccessMsg(`Código de seguridad de 6 dígitos enviado a ${cleanEmail}. Revisa tu bandeja de entrada o spam.`);
+          setCooldown(data.cooldownSeconds || 60);
+          setRecoveryStage('VERIFY');
+        } else {
+          setErrorMsg(data.error || 'Error al enviar código de recuperación.');
+        }
+      } catch {
+        setErrorMsg('Error de conexión al enviar código. Intenta nuevamente.');
+      } finally {
+        setLoading(false);
       }
     } else {
       const ok = await handleSendOtp(phone, 'recovery');
       if (ok) setRecoveryStage('VERIFY');
+    }
+  };
+
+  // 6. Validar Código OTP de Recuperación
+  const handleVerifyRecoveryOtp = async () => {
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setErrorMsg('Ingresa los 6 dígitos del código recibido.');
+      return;
+    }
+    setErrorMsg('');
+    setLoading(true);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+
+    try {
+      const res = await fetch(`${apiUrl}/api/auth/otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: recoveryMethod === 'EMAIL' ? email.trim().toLowerCase() : undefined,
+          phone: recoveryMethod === 'PHONE' ? phone : undefined,
+          code: otpCode.trim()
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.verificationToken) {
+        setVerificationToken(data.verificationToken);
+        setSuccessMsg('Código validado con éxito. Ahora define tu nueva contraseña.');
+        setRecoveryStage('NEW_PASS');
+      } else {
+        setErrorMsg(data.error || 'Código incorrecto o expirado.');
+      }
+    } catch {
+      setErrorMsg('Error al verificar código. Intenta nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 7. Guardar Nueva Contraseña tras Verificación
+  const handleResetPasswordSubmit = async () => {
+    if (!newPassword || newPassword.length < 8) {
+      setErrorMsg('La contraseña debe tener mínimo 8 caracteres.');
+      return;
+    }
+    setErrorMsg('');
+    setLoading(true);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+
+    try {
+      const res = await fetch(`${apiUrl}/api/auth/recover/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verificationToken,
+          newPassword
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setSuccessMsg('¡Contraseña restablecida exitosamente! Ya puedes iniciar sesión.');
+        setTimeout(() => {
+          handleSwitchTab('login');
+          setPassword(newPassword);
+        }, 1500);
+      } else {
+        setErrorMsg(data.error || 'Error al actualizar contraseña.');
+      }
+    } catch {
+      setErrorMsg('Error de red al actualizar contraseña.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -598,10 +679,17 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                     <span>Etapa 3: Personaliza tu perfil y contacto SOS</span>
                   </div>
 
-                  {/* Selector Ampliado de Avatares con Cancelar */}
+                  {/* Selector Ampliado de Avatares con Captura de Foto Directa */}
                   <AvatarSelector
                     selectedId={avatarId}
-                    onSelect={setAvatarId}
+                    photoUrl={avatarPhoto}
+                    onSelect={(id) => {
+                      setAvatarId(id);
+                      setAvatarPhoto('');
+                    }}
+                    onPhotoSelected={(base64) => {
+                      setAvatarPhoto(base64);
+                    }}
                     onOpenPhotoModal={() => {
                       if (onOpenPhotoUpload) onOpenPhotoUpload('Foto de Perfil', 'PERFIL');
                     }}
@@ -766,28 +854,23 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
               {recoveryStage === 'VERIFY' && (
                 <div className="space-y-3 animate-in fade-in">
                   <p className="text-xs text-slate-500">
-                    Ingresa el código OTP de 6 dígitos enviado a tu número {phone}.
+                    Ingresa el código OTP de 6 dígitos enviado a {recoveryMethod === 'EMAIL' ? email : phone}.
                   </p>
                   <input
                     type="text"
                     maxLength={6}
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="123456"
+                    placeholder="Ingresa los 6 dígitos"
                     className="w-full text-center tracking-widest text-lg font-mono font-black py-2.5 rounded-2xl bg-slate-50 dark:bg-[#181a20] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      if (otpCode.length === 6) {
-                        setRecoveryStage('NEW_PASS');
-                      } else {
-                        setErrorMsg('Ingresa el código completo de 6 dígitos.');
-                      }
-                    }}
-                    className="w-full py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                    disabled={loading}
+                    onClick={handleVerifyRecoveryOtp}
+                    className="w-full py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50"
                   >
-                    Validar Código y Definir Nueva Clave →
+                    {loading ? 'Validando...' : 'Validar Código y Definir Nueva Clave →'}
                   </button>
                 </div>
               )}
@@ -809,17 +892,11 @@ export default function AuthModal({ isOpen, onClose, onOpenPhotoUpload }: AuthMo
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (newPassword.length < 8) {
-                        setErrorMsg('La contraseña debe tener mínimo 8 caracteres.');
-                        return;
-                      }
-                      setSuccessMsg('¡Contraseña restablecida exitosamente! Ya puedes ingresar.');
-                      setTimeout(() => handleSwitchTab('login'), 1200);
-                    }}
-                    className="w-full py-3 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs"
+                    disabled={loading}
+                    onClick={handleResetPasswordSubmit}
+                    className="w-full py-3 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50"
                   >
-                    Guardar Nueva Contraseña
+                    {loading ? 'Guardando...' : 'Guardar Nueva Contraseña'}
                   </button>
                 </div>
               )}
