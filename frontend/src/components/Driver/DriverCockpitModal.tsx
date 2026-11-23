@@ -123,7 +123,12 @@ export default function DriverCockpitModal({
   const [statusNote, setStatusNote] = useState('Conduciendo ahora');
 
   // Disposición 2D de asientos adaptada por tipo de vehículo o cargada de la BD
+  const [activeVehicleType, setActiveVehicleType] = useState<string>(vehicleType || 'SEDAN');
   const [seats, setSeats] = useState<Seat[]>(() => normalizeSeats(initialSeats, vehicleType));
+
+  React.useEffect(() => {
+    setActiveVehicleType(vehicleType || 'SEDAN');
+  }, [vehicleType]);
 
   React.useEffect(() => {
     setSeats(normalizeSeats(initialSeats, vehicleType));
@@ -131,6 +136,33 @@ export default function DriverCockpitModal({
 
   const [notification, setNotification] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+
+
+  // Función para cambiar el tipo de unidad en vivo durante el turno
+  const handleQuickChangeVehicle = async (newType: string) => {
+    setActiveVehicleType(newType);
+    const newSeats = getCategorySeats(newType);
+    setSeats(newSeats);
+    showToast(`✓ Unidad cambiada a ${newType}. Asientos actualizados.`);
+    if (onUpdateSeats) onUpdateSeats(newSeats);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rutalink-backend.onrender.com';
+      await fetch(`${apiUrl}/api/vehicles/save-design`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plate: vehiclePlate,
+          brandModel: `Unidad Oficial (${newType})`,
+          vehicleType: newType,
+          seatLayout: newSeats,
+          capacity: newSeats.filter(s => s.type === 'passenger').length
+        })
+      }).catch(() => null);
+    } catch {
+      // Offline fallback
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -399,10 +431,40 @@ export default function DriverCockpitModal({
               </div>
             </div>
 
+            
+            {/* Selector Rápido de Vehículo del Chofer */}
+            <div className="pt-2">
+              <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
+                Cambiar de Vehículo en Servicio:
+              </label>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 text-center">
+                {[
+                  { id: 'SEDAN', label: '🚗 Sedán' },
+                  { id: 'MOTOTAXI', label: '🛺 Mototaxi' },
+                  { id: 'MINIVAN', label: '🚐 Miniván' },
+                  { id: 'COMBI', label: '🚌 Combi' },
+                  { id: 'STATION_WAGON', label: '🚙 Station' }
+                ].map(v => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => handleQuickChangeVehicle(v.id)}
+                    className={`py-1.5 px-1 rounded-xl text-xs font-bold transition border ${
+                      activeVehicleType === v.id
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white dark:bg-[#15171c] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+                    }`}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Maqueta Fiel del Vehículo SVG Top-Down */}
             <div className="relative max-w-[280px] mx-auto bg-white dark:bg-[#111317] rounded-3xl p-3 border-2 border-slate-300 dark:border-slate-700 shadow-inner">
               <RealisticVehicleSVG
-                category={vehicleType || 'SEDAN'}
+                category={activeVehicleType || 'SEDAN'}
                 seats={seats}
                 onToggleSeat={(id) => toggleSeat(id)}
                 interactive={true}

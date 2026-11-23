@@ -62,6 +62,7 @@ export default function RideNegotiationModal({
   // Estados de la negociación por grupo (Broadcast)
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [broadcastResponses, setBroadcastResponses] = useState<any[]>([]);
+  const [waitingTimeoutReached, setWaitingTimeoutReached] = useState(false);
   const [selectedDriverForRide, setSelectedDriverForRide] = useState<any>(initialDriver || null);
 
   // Estados de seguridad y carrera pactada
@@ -146,6 +147,10 @@ export default function RideNegotiationModal({
     setIsBroadcasting(true);
     setRideState('WAITING_ACCEPTANCE');
     setBroadcastResponses([]);
+    setWaitingTimeoutReached(false);
+    setTimeout(() => {
+      setWaitingTimeoutReached(true);
+    }, 20000);
 
     // Emisión real vía WebSockets hacia la red de conductores
     if (socketRef.current) {

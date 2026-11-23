@@ -345,7 +345,7 @@ export default function Header({
               >
                 <User className="w-3.5 h-3.5" />
                 <span className="hidden md:inline font-semibold truncate max-w-[120px]">
-                  {profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Mi Perfil'}
+                  {profile?.full_name || user?.user_metadata?.full_name || 'Mi Perfil'}
                 </span>
               </button>
 

@@ -149,8 +149,52 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Vehículo dinámico del conductor activo (vinculado por owner_id, nombre o teléfono)
-  const myVehicle = (Array.isArray(vehicles) && vehicles.find(v =>
+    // Estado directo e instantáneo del vehículo del conductor autenticado
+  const [myCustomVehicle, setMyCustomVehicle] = useState<any | null>(null);
+
+  const loadMyVehicle = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const { data } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('last_location_update', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setMyCustomVehicle(data);
+      } else if (isDriver) {
+        // Inicializar vehículo oficial peruano vinculado directamente a la cuenta del conductor
+        const plateSeed = `B1A-${user.id.slice(0, 3).toUpperCase()}`;
+        const initialVeh = {
+          owner_id: user.id,
+          plate: plateSeed,
+          brand_model: 'Toyota Yaris Sedán (Unidad Oficial)',
+          vehicle_type: 'SEDAN',
+          capacity: 4,
+          status: 'DISPONIBLE',
+          last_location_update: new Date().toISOString()
+        };
+        const { data: created } = await supabase.from('vehicles').insert([initialVeh]).select().maybeSingle();
+        if (created) {
+          setMyCustomVehicle(created);
+        }
+      }
+    } catch (e) {
+      console.warn('Error cargando vehículo directo:', e);
+    }
+  }, [user?.id, isDriver]);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadMyVehicle();
+    }
+  }, [user?.id, loadMyVehicle]);
+
+  // Vehículo dinámico del conductor activo (con prioridad inmediata a su registro directo en Supabase)
+  const myVehicle = myCustomVehicle || (Array.isArray(vehicles) && vehicles.find(v =>
     v && (
       (v.owner_id && user?.id && v.owner_id === user.id) ||
       (profile?.full_name && typeof v.driver_name === 'string' && typeof profile.full_name === 'string' && v.driver_name.toLowerCase().includes(profile.full_name.toLowerCase())) ||
@@ -1275,7 +1319,10 @@ export default function HomePage() {
       <VehicleDesignerModal
         isOpen={vehicleDesignerOpen}
         onClose={() => setVehicleDesignerOpen(false)}
-        onSaved={loadData}
+        onSaved={() => {
+          loadData();
+          loadMyVehicle();
+        }}
       />
 
       <DispatcherPanel

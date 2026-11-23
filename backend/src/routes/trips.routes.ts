@@ -1,10 +1,11 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { Pool } from 'pg';
 import { io } from '../server.js';
 import dotenv from 'dotenv';
 import { supabase } from '../config/supabase.js';
+import { EmailService } from '../services/email.service.js';
 
 dotenv.config();
 
@@ -106,7 +107,7 @@ router.post('/agreements', requireAuth, async (req: AuthenticatedRequest, res: R
 
       res.status(201).json({ message: 'Acuerdo de viaje creado exitosamente', agreement: data });
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Create Agreement Error]:', err);
     res.status(500).json({ error: 'Error al generar acuerdo de viaje' });
   }
@@ -385,6 +386,42 @@ router.get('/history/:userId', async (req, res): Promise<void> => {
   } catch (err) {
     console.error('[Trip History Error]:', err);
     res.status(500).json({ error: 'Error al consultar historial de viajes' });
+  }
+});
+
+
+// POST /api/trips/notify-agreement (Notificación oficial por correo de carrera pactada)
+router.post('/notify-agreement', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { passengerEmail, passengerName, driverName, driverPlate, origin, destination, fare, securityPin } = req.body;
+    if (passengerEmail) {
+      await EmailService.sendEmail({
+        to: passengerEmail,
+        subject: `[RutaLink Barranca] Carrera Confirmada - PIN: ${securityPin}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px;">
+            <h2 style="color: #2563eb; margin-bottom: 8px;">RutaLink Barranca - Comprobante de Viaje</h2>
+            <p style="color: #334155;">Estimado/a <strong>${passengerName || 'Pasajero de Barranca'}</strong>,</p>
+            <p style="color: #334155;">Tu solicitud de carrera ha sido pactada exitosamente:</p>
+            <div style="background-color: #f8fafc; padding: 15px; border-radius: 12px; margin: 15px 0; border: 1px solid #cbd5e1;">
+              <p style="margin: 4px 0;"><strong>Conductor:</strong> ${driverName || 'Conductor Autorizado'}</p>
+              <p style="margin: 4px 0;"><strong>Placa Oficial:</strong> ${driverPlate || 'B1A-789'}</p>
+              <p style="margin: 4px 0;"><strong>Punto de Recojo:</strong> ${origin}</p>
+              <p style="margin: 4px 0;"><strong>Destino:</strong> ${destination}</p>
+              <p style="margin: 4px 0; font-size: 16px;"><strong>Tarifa Acordada:</strong> S/. ${fare}</p>
+              <div style="background-color: #ecfdf5; padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid #a7f3d0; text-align: center;">
+                <span style="font-size: 12px; color: #047857; font-weight: bold; display: block;">CÓDIGO PIN DE ABORDAJE SEGURO:</span>
+                <span style="font-size: 24px; font-weight: 900; letter-spacing: 4px; color: #065f46;">${securityPin}</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: #64748b;">Muestra este PIN al conductor al abordar la unidad. Servicio verificado en la red comunitaria de Barranca.</p>
+          </div>
+        `
+      }).catch(err => console.warn('[Email Agreement Error]:', err.message));
+    }
+    res.json({ success: true, message: 'Notificación enviada correctamente' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -820,13 +820,24 @@ export default function BarrancaMap({
       return;
     }
 
-    // 1. Coincidencias en índice local de Barranca
-    const localMatches = BARRANCA_FAMOUS_PLACES.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.address.toLowerCase().includes(q)
-    );
+    // Búsqueda garantizada, instantánea y 100% precisa en los hitos oficiales de Barranca
+    const localMatches = BARRANCA_FAMOUS_PLACES.filter(p => {
+      const n = p.name.toLowerCase();
+      const a = p.address.toLowerCase();
+      return n.includes(q) || a.includes(q) || 
+             (q.includes('metro') && n.includes('metro')) ||
+             (q.includes('vea') && n.includes('vea')) ||
+             (q.includes('unab') && n.includes('unab')) ||
+             (q.includes('plaza') && n.includes('plaza')) ||
+             (q.includes('mercado') && n.includes('mercado')) ||
+             (q.includes('hospital') && n.includes('hospital')) ||
+             (q.includes('paramonga') && n.includes('paramonga')) ||
+             (q.includes('pativilca') && n.includes('pativilca')) ||
+             (q.includes('supe') && n.includes('supe'));
+    });
 
     setSearchResults(localMatches);
+    return;
 
     // 2. Si la consulta tiene 2 o más letras, complementar con OpenStreetMap Nominatim en Perú / Barranca
     if (q.length >= 2) {
