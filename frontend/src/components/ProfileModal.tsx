@@ -393,9 +393,18 @@ export default function ProfileModal({ isOpen, onClose, onOpenPhotoUpload }: Pro
                       />
 
                       {otpDemoNotice && (
-                        <p className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 text-center">
-                          {otpDemoNotice}
-                        </p>
+                        <div className="p-2 rounded-xl bg-blue-50/80 dark:bg-blue-950/50 border border-blue-200/70 dark:border-blue-900/50 text-center">
+                          <p className="text-[11px] font-bold text-blue-700 dark:text-blue-300">
+                            {otpDemoNotice}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteOtpCode('123456')}
+                            className="mt-1 text-[10.5px] text-blue-600 dark:text-blue-400 font-bold hover:underline"
+                          >
+                            ⚡ Autocompletar código de autorización
+                          </button>
+                        </div>
                       )}
 
                       <div className="flex gap-2 pt-1">

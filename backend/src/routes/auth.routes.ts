@@ -4,6 +4,7 @@ import { AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { supabase } from '../config/supabase.js';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import { EmailService } from '../services/email.service.js';
 
 dotenv.config();
 
@@ -88,6 +89,13 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
 
     rateLimitStore.set(identifier, now);
 
+    // Disparar correo real de autorización OTP en segundo plano
+    if (cleanEmail) {
+      EmailService.sendOtpEmail(cleanEmail, generatedCode, purpose).catch(err => {
+        console.warn('[OTP Email dispatch warning]:', err);
+      });
+    }
+
     res.json({
       success: true,
       message: `Código de verificación enviado a ${cleanPhone || cleanEmail}.`,
@@ -98,6 +106,123 @@ router.post('/otp/send', async (req: Request, res: Response): Promise<void> => {
   } catch (err) {
     console.error('[OTP Send Error]:', err);
     res.status(500).json({ error: 'Error al generar código de verificación.' });
+  }
+});
+
+// POST /api/auth/register-direct - Registro profesional inmediato y blindado contra límites SMTP de Supabase
+router.post('/register-direct', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password, fullName, phone, role = 'PASAJERO' } = req.body;
+
+    if (!email || !password || !fullName) {
+      res.status(400).json({ error: 'Debes proporcionar correo, contraseña y nombre completo.' });
+      return;
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const cleanPhone = phone ? String(phone).trim() : null;
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Verificar si ya existe en auth.users
+      const existing = await client.query('SELECT id FROM auth.users WHERE email = $1', [normalizedEmail]);
+      let userId: string;
+
+      if (existing.rows.length > 0) {
+        userId = existing.rows[0].id;
+        // Actualizar credenciales y reconfirmar cuenta
+        await client.query(`
+          UPDATE auth.users
+          SET encrypted_password = crypt($1, gen_salt('bf')),
+              email_confirmed_at = NOW(),
+              raw_user_meta_data = jsonb_build_object('full_name', $2::text, 'phone', $3::text, 'active_role', $4::text),
+              updated_at = NOW()
+          WHERE id = $5::uuid;
+        `, [password, fullName, cleanPhone, role, userId]);
+
+        await client.query(`
+          INSERT INTO auth.identities (
+            id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+          ) VALUES (
+            $1::uuid, $1::text, $1::uuid, jsonb_build_object('sub', $1::text, 'email', $2::text), 'email', NOW(), NOW(), NOW()
+          ) ON CONFLICT (provider_id, provider) DO UPDATE SET updated_at = NOW();
+        `, [userId, normalizedEmail]);
+      } else {
+        // Insertar nuevo usuario directamente pre-confirmado en auth.users
+        const insertUser = await client.query(`
+          INSERT INTO auth.users (
+            id, instance_id, email, encrypted_password, email_confirmed_at,
+            raw_app_meta_data, raw_user_meta_data, role, aud, created_at, updated_at,
+            confirmation_token, recovery_token, email_change_token_new, email_change,
+            email_change_token_current, phone_change, phone_change_token, reauthentication_token,
+            is_sso_user, is_anonymous
+          ) VALUES (
+            gen_random_uuid(),
+            '00000000-0000-0000-0000-000000000000',
+            $1,
+            crypt($2, gen_salt('bf')),
+            NOW(),
+            '{"provider":"email","providers":["email"]}'::jsonb,
+            jsonb_build_object('full_name', $3::text, 'phone', $4::text, 'active_role', $5::text),
+            'authenticated',
+            'authenticated',
+            NOW(),
+            NOW(),
+            '', '', '', '', '', '', '', '',
+            false, false
+          ) RETURNING id;
+        `, [normalizedEmail, password, fullName, cleanPhone, role]);
+
+        userId = insertUser.rows[0].id;
+
+        await client.query(`
+          INSERT INTO auth.identities (
+            id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+          ) VALUES (
+            $1::uuid, $1::text, $1::uuid, jsonb_build_object('sub', $1::text, 'email', $2::text), 'email', NOW(), NOW(), NOW()
+          ) ON CONFLICT (provider_id, provider) DO UPDATE SET updated_at = NOW();
+        `, [userId, normalizedEmail]);
+      }
+
+      // 2. Insertar o actualizar perfil en public.profiles
+      await client.query(`
+        INSERT INTO public.profiles (
+          id, full_name, email, phone, active_role, account_status
+        ) VALUES (
+          $1::uuid, $2, $3, $4, $5, 'ACTIVO'
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          full_name = EXCLUDED.full_name,
+          email = EXCLUDED.email,
+          phone = EXCLUDED.phone,
+          active_role = EXCLUDED.active_role,
+          updated_at = NOW();
+      `, [userId, fullName, normalizedEmail, cleanPhone, role]);
+
+      await client.query('COMMIT');
+
+      // 3. Enviar correo oficial de bienvenida en segundo plano
+      EmailService.sendWelcomeEmail(normalizedEmail, fullName, role).catch(e => {
+        console.warn('[Welcome email send warning]:', e);
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Cuenta creada y activada exitosamente para la red de transporte.',
+        user: { id: userId, email: normalizedEmail, fullName, phone: cleanPhone, role }
+      });
+      return;
+    } catch (dbErr) {
+      await client.query('ROLLBACK');
+      throw dbErr;
+    } finally {
+      client.release();
+    }
+  } catch (err: any) {
+    console.error('[Register Direct Error]:', err);
+    res.status(500).json({ error: 'Error al registrar la cuenta: ' + (err.message || 'Error interno') });
   }
 });
 

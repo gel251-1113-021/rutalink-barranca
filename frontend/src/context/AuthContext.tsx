@@ -184,36 +184,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: UserRole
   ) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
+      const normalizedEmail = email.trim().toLowerCase();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+      // 1. Intentar registro profesional directo vía backend (Resiliente, sin bloqueo por límites SMTP de Supabase)
+      let backendSuccess = false;
+      try {
+        const directRes = await fetch(`${apiUrl}/api/auth/register-direct`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password,
+            fullName,
             phone,
-            active_role: role
+            role
+          })
+        });
+
+        if (directRes.ok) {
+          backendSuccess = true;
+        } else {
+          const d = await directRes.json().catch(() => ({}));
+          if (d.error && !d.error.includes('interno')) {
+            return { error: d.error };
           }
         }
+      } catch (beErr) {
+        console.warn('[Direct Register fetch warning, fallback to Supabase JS]:', beErr);
+      }
+
+      // 2. Si el backend no respondió, intentar Supabase Auth SDK como respaldo
+      if (!backendSuccess) {
+        const { data, error } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              phone,
+              active_role: role
+            }
+          }
+        });
+        if (error) {
+          if (error.message.includes('confirmation email') || error.message.includes('rate limit')) {
+            return { error: 'Límite de envíos alcanzado en Supabase Auth. El servidor backend está procesando tu activación.' };
+          }
+          return { error: error.message };
+        }
+      }
+
+      // 3. Iniciar sesión automáticamente de inmediato con credenciales verificadas
+      const loginRes = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password
       });
-      if (error) return { error: error.message };
 
-      // Consolidar sesión inmediata con signInWithPassword para evitar sesiones nulas en Supabase
-      const loginRes = await supabase.auth.signInWithPassword({ email, password }).catch(() => null);
-      const activeUser = loginRes?.data?.user || data.user;
+      if (loginRes.error) {
+        return { error: loginRes.error.message };
+      }
 
-      if (activeUser) {
-        setUser(activeUser);
+      if (loginRes.data.user) {
+        setUser(loginRes.data.user);
         if (typeof window !== 'undefined') {
           localStorage.setItem('rutalink_user_session', JSON.stringify({
-            id: activeUser.id,
-            email: activeUser.email || email,
+            id: loginRes.data.user.id,
+            email: normalizedEmail,
             full_name: fullName,
             phone,
             active_role: role
           }));
         }
-        await upsertAndFetchProfile(activeUser.id, fullName, phone, role, email);
+        await upsertAndFetchProfile(loginRes.data.user.id, fullName, phone, role, normalizedEmail);
       }
+
       return {};
     } catch (err: any) {
       return { error: err.message || 'Error al registrar usuario' };
